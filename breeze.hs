@@ -9,6 +9,7 @@
   --package bytestring
   --package aeson-lens
   --package lens
+  --package snap
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -29,6 +30,7 @@ import Data.Maybe (listToMaybe)
 import Data.Monoid
 import GHC.Generics hiding (to)
 import Network.HTTP.Simple
+import Snap
 import qualified Data.ByteString.Char8 as Char8
 
 apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"

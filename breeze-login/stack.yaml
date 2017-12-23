@@ -1,0 +1,28 @@
+resolver: lts-9.20
+
+packages:
+- '.'
+- location:
+    git: git@github.com:theNerd247/simple
+    commit: c562776a13c479e5330c701b9783810c514ee4cf
+  subdirs:
+    - simple
+    - simple-aeson
+    - simple-snap
+    - simple-string
+  extra-dep: true
+
+extra-deps:
+  - snap-1.0.0.2
+  - heist-1.0.1.0
+  - map-syntax-0.2.0.2
+  - xmlhtml-0.2.5.1
+
+nix:
+  enable: true
+  packages: 
+    - zlib
+    - libcxx
+    - icu
+    - gcc
+    - ncurses
