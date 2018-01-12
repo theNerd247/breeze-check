@@ -68,6 +68,32 @@ instance FromJSON Person where
 
 instance ToJSON Person
 
+data Address = Address
+  { _street :: String
+  , _city :: String
+  , _state :: String
+  , _zip :: String
+  } deriving (Show, Data, Generic) 
+
+makeClassy ''Address
+
+instance FromJSON Address
+
+data NewPersonInfo = NewPersonInfo
+  { _newPerson :: Person
+  , _currentChurch :: String
+  , _newAddress :: Address
+  , _email :: String
+  , _phone :: String
+  } deriving (Show, Data, Generic)
+
+makeClassy ''NewPersonInfo
+
+instance FromJSON NewPersonInfo
+
+instance HasAddress where
+  address = newAddress
+
 personFilter x = object $
   [ "189467778_last"   .= (x^.key "lastName")
   , "697961327_street" .= (x^.key "street")
@@ -75,6 +101,9 @@ personFilter x = object $
   , "697961327_state"  .= (x^.key "state")
   , "697961327_zip"    .= (x^.key "zip")
   ]
+
+class ToField a where
+  toBreezeField :: a -> Object
 
 data Field = forall a r. (ToJSON a, ToJSON r) => Field
   { field_id       :: String
@@ -141,13 +170,18 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     & eventid .~ "36862980"
 
 checkInHandle :: (HasBreeze v) => Handle b v ()
-checkInHandle = do
-  persons <- fromBody
-  forM_ persons checkin
+checkInHandle = runAesonApi $ do
+  person <- fromBody
+  checkin (person :: Person)
 
-filterHandle :: (HasBreeze v) => Handle b v [Person]
-filterHandle = do
+getPersonsHandle :: (HasBreeze v) => Handle b v ()
+getPersonsHandle = runAesonApi $ do
   filter <- fromBody
   getPersonsWithFilter (personFilter filter)
+
+addPersonHandle :: (HasBreeze v) => Handle b v ()
+addPersonHandle = runAesonApi $ do
+  newPersonInfo <- addPersonHandle
+  makeNewPerson person^
 
 main = serveSnaplet defaultConfig appInit

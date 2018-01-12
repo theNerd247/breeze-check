@@ -6,18 +6,38 @@ import Bootstrap.CDN as CDN
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Row as Row
+import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
-import Html exposing (Html, text, program, div, button)
+import Html
+    exposing
+        ( Html
+        , text
+        , program
+        , div
+        , button
+        , h1
+        , p
+        , header
+        , main_
+        , hr
+        , a
+        )
 import Html.Attributes exposing (for, class)
 import Html.Events exposing (onClick)
 import Http as Http
 import Json.Decode as Decode
 
 
+type alias PersonId =
+    String
+
+
 type alias Person =
     { firstName : String
     , lastName : String
-    , id : String
+    , id : PersonId
+    , attending : Bool
     }
 
 
@@ -30,7 +50,13 @@ type alias ErrorMessage =
 type alias Model =
     { searchLastName : String
     , foundPeople : List Person
+    , checkedIn : List Person
     , errs : List ErrorMessage
+    }
+
+
+type alias Config =
+    { eventName : String
     }
 
 
@@ -39,6 +65,7 @@ type Msg
     | UpdateLastName String
     | CloseErrorMessage Int
     | FoundPeople (Result Http.Error (List Person))
+    | ToggleAttending PersonId
 
 
 main : Program Never Model Msg
@@ -46,7 +73,7 @@ main =
     program
         { init = init
         , update = update
-        , view = view
+        , view = view config
         , subscriptions = \_ -> Sub.none
         }
 
@@ -59,9 +86,15 @@ init =
 model : Model
 model =
     { foundPeople = []
+    , checkedIn = []
     , errs = []
     , searchLastName = ""
     }
+
+
+config : Config
+config =
+    { eventName = "Test Event" }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -89,6 +122,37 @@ update msg mdl =
             , Cmd.none
             )
 
+        ToggleAttending pid ->
+            let
+                ( chin, fnd ) =
+                    toggleCheckIn pid ( mdl.checkedIn, mdl.foundPeople )
+            in
+                ( { mdl | checkedIn = chin, foundPeople = fnd }, Cmd.none )
+
+
+toggleCheckIn : PersonId -> ( List Person, List Person ) -> ( List Person, List Person )
+toggleCheckIn pid ( chkin, found ) =
+    let
+        personFilter p =
+            p.id == pid
+
+        toggleAttend p =
+            { p | attending = not p.attending }
+
+        ( ci, co ) =
+            List.partition personFilter chkin
+
+        ( fi, fo ) =
+            List.partition personFilter found
+
+        newChkin =
+            List.append (List.map toggleAttend fi) co
+
+        newFound =
+            List.append (List.map toggleAttend ci) fo
+    in
+        ( newChkin, newFound )
+
 
 newErrorMessage : String -> List ErrorMessage -> List ErrorMessage
 newErrorMessage msg msgs =
@@ -102,17 +166,36 @@ newErrorMessage msg msgs =
         newMessage :: msgs
 
 
-view : Model -> Html Msg
-view mdl =
+view : Config -> Model -> Html Msg
+view cfg mdl =
     Grid.containerFluid []
         [ CDN.stylesheet
-        , Grid.row []
-            [ Grid.col [] [ errors mdl.errs ] ]
-        , Grid.row []
-            [ Grid.col [] [ personSearch ]
+        , Grid.containerFluid [ class "page-header" ]
+            [ Grid.row [ Row.centerLg ]
+                [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
+                    [ h1 [{- class "display-1" -}] [ text cfg.eventName ]
+                    , p [] [ text "Mountain View Church" ]
+                    ]
+                ]
             ]
-        , Grid.row []
-            [ Grid.col [] [ listPeople mdl.foundPeople ]
+        , Grid.container []
+            [ Grid.row []
+                [ Grid.col [] [ errors mdl.errs ] ]
+            , Grid.row []
+                [ Grid.col [] [ personSearch ]
+                ]
+            , Grid.row []
+                [ Grid.col []
+                    [ h1 [] [ text "Attending" ]
+                    , listPeople mdl.checkedIn
+                    ]
+                ]
+            , Grid.row []
+                [ Grid.col []
+                    [ h1 [] [ text "Found" ]
+                    , listPeople mdl.foundPeople
+                    ]
+                ]
             ]
         ]
 
@@ -154,11 +237,17 @@ findPeople lastName =
 decodePersons : Decode.Decoder (List Person)
 decodePersons =
     Decode.list <|
-        Decode.map3
+        Decode.map4
             Person
             (Decode.field "username" Decode.string)
             (Decode.field "email" Decode.string)
             (Decode.map toString (Decode.field "id" Decode.int))
+            (Decode.succeed False)
+
+
+
+-- TODO: remove as our API will have the
+-- attendance data toggled
 
 
 listPeople : List Person -> Html Msg
@@ -168,8 +257,16 @@ listPeople =
 
 person : Person -> Html Msg
 person p =
-    Grid.row []
-        [ Grid.col [] [ text p.id ]
-        , Grid.col [] [ text p.firstName ]
-        , Grid.col [] [ text p.lastName ]
+    a [ onClick (ToggleAttending p.id) ]
+        [ Grid.row []
+            [ Grid.col [] [ text p.id ]
+            , Grid.col [] [ text p.firstName ]
+            , Grid.col [] [ text p.lastName ]
+            , Grid.col [ Col.pushXs2 ]
+                [ if p.attending then
+                    (text "attending")
+                  else
+                    (text "not attending")
+                ]
+            ]
         ]
