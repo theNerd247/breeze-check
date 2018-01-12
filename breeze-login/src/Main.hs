@@ -23,6 +23,7 @@ import Network.HTTP.Simple
 import Simple.Aeson (runAesonApi, fromBody)
 import Simple.String (fromParam, skipParse)
 import Simple.Snap
+import qualified Simple as Simple
 import Snap
 import qualified Data.ByteString.Char8 as Char8
 
@@ -72,7 +73,7 @@ data Address = Address
   { _street :: String
   , _city :: String
   , _state :: String
-  , _zip :: String
+  , _zipcode :: String
   } deriving (Show, Data, Generic) 
 
 makeClassy ''Address
@@ -91,15 +92,15 @@ makeClassy ''NewPersonInfo
 
 instance FromJSON NewPersonInfo
 
-instance HasAddress where
+instance HasAddress NewPersonInfo where
   address = newAddress
 
-personFilter x = object $
-  [ "189467778_last"   .= (x^.key "lastName")
-  , "697961327_street" .= (x^.key "street")
-  , "697961327_city"   .= (x^.key "city")
-  , "697961327_state"  .= (x^.key "state")
-  , "697961327_zip"    .= (x^.key "zip")
+personFilter lname maddr = object $
+  [ "189467778_last"   .= (lname :: String)
+  , "697961327_street" .= (maddr^.street)
+  , "697961327_city"   .= (maddr^.city)
+  , "697961327_state"  .= (maddr^.state)
+  , "697961327_zip"    .= (maddr^.zipcode)
   ]
 
 class ToField a where
@@ -114,23 +115,22 @@ data Field = forall a r. (ToJSON a, ToJSON r) => Field
 
 instance ToJSON Field where
   toJSON (Field i t r d) = object $ 
-    [ "field_id"       .= i
-    , "field_type"     .= t
+    [ "field_id"       .= i , "field_type"     .= t
     , "field_response" .= r
     , "details"        .= d
     ]
 
-addrField a c s z = Field "697961327" "address" True $ object
-  [ "street" .= a
-  , "city"   .= c
-  , "state"  .= s
-  , "zip"    .= z
+addrField a = Field "697961327" "address" True $ object
+  [ "street" .= (a^.street)
+  , "city"   .= (a^.city)
+  , "state"  .= (a^.state)
+  , "zip"    .= (a^.zipcode)
   ]
 
 currentChurchField c = Field "2105844304" "notes" c ()
 
 runApiReq path params = do
-  config <- asks (breeze)
+  config <- asks (view breeze)
   req <- fmap (setHeaders (config^.apikey) . setRequestQueryString params) $ parseRequest ((config^.urlBase) ++ path)
   getResponseBody <$> httpJSON req
   where
@@ -146,42 +146,62 @@ getPersonsWithFilter filter = runApiReq "/people"
 checkin p = do
   eventId <- asks (view eventid)
   runApiReq "/events/attendance/add"
-    [ ("person_id"   , Just . Char8.pack $ p^pid)
+    [ ("person_id"   , Just . Char8.pack $ p^.pid)
     , ("instance_id" , Just . Char8.pack $ eventId)
     , ("direction"   , Just . Char8.pack $ p^.to checkInDir)
     ]
   where
     checkInDir p = if (p^.checkedIn) then "in" else "out"
 
-makeNewPerson f l a c s z cs = runApiReq "/people/add"
-    [ ("first"       , Just . Char8.pack $ f)
-    , ("last"        , Just . Char8.pack $ l)
+makeNewPerson p = runApiReq "/people/add"
+    [ ("first"       , Just . Char8.pack $ p^.newPerson.firstName)
+    , ("last"        , Just . Char8.pack $ p^.newPerson.lastName)
     , ("fields_json" , Just . toStrict . encode $ mkFields)
     ]
   where
-    mkFields = [addrField a c s z, currentChurchField cs]
+    mkFields = [addrField (p^.newAddress), currentChurchField (p^.currentChurch)]
 
-appInit :: SnapletInit App App
-appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
-  addRoutes [("lastname", lastNameHandle)] 
-  return $ def
+apiDefault :: App
+apiDefault = def
     & apikey  .~ "e6e14e8a7e79bb7c62173b9879bacaee"
     & urlBase .~ "https://mountainviewmarietta.breezechms.com/api"
     & eventid .~ "36862980"
 
-checkInHandle :: (HasBreeze v) => Handle b v ()
-checkInHandle = runAesonApi $ do
-  person <- fromBody
-  checkin (person :: Person)
+appInit :: SnapletInit App App
+appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
+  addRoutes [("findperson", getPersonsHandle)] 
+  return $ apiDefault
 
-getPersonsHandle :: (HasBreeze v) => Handle b v ()
-getPersonsHandle = runAesonApi $ do
-  filter <- fromBody
-  getPersonsWithFilter (personFilter filter)
+checkInHandle :: (HasBreeze v) => Handler b v ()
+checkInHandle = runAesonApi h
+  where 
+    h :: (HasBreeze v) => Handler b v Value 
+    h =  do
+      person <- fromBody
+      checkin (person :: Person)
 
-addPersonHandle :: (HasBreeze v) => Handle b v ()
-addPersonHandle = runAesonApi $ do
-  newPersonInfo <- addPersonHandle
-  makeNewPerson person^
+getPersonsHandle :: (HasBreeze v) => Handler b v ()
+getPersonsHandle = runAesonApi h
+  where
+    h :: (HasBreeze v) => Handler b v Value 
+    h = do
+      {-lname <- skipParse <$> fromParam "lastname"-}
+      {-maddr <- Address -}
+        {-<$> withDefault "street"-}
+        {-<*> withDefault "city" -}
+        {-<*> withDefault "state" -}
+        {-<*> withDefault "zip"-}
+      getPersonsWithFilter (object [])
+
+withDefault :: (Simple.HasApi m) => String -> m String
+withDefault = fmap skipParse . fromParam
+
+addPersonHandle :: (HasBreeze v) => Handler b v ()
+addPersonHandle = runAesonApi h 
+  where 
+    h :: (HasBreeze v) => Handler b v Value 
+    h = do
+      newPersonInfo <- fromBody
+      makeNewPerson (newPersonInfo :: NewPersonInfo)
 
 main = serveSnaplet defaultConfig appInit
