@@ -24,5 +24,6 @@ nix:
     - zlib
     - libcxx
     - icu
+    - gmp
     - gcc
     - ncurses

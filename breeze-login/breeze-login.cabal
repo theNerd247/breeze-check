@@ -23,6 +23,7 @@ executable breeze-login
                      , bytestring
                      , data-default
                      , mtl
+                     , fast-logger
                      , exceptions
                      , http-conduit
                      , lens

@@ -9,9 +9,8 @@
 import Control.Exception hiding (Handler)
 import Control.Lens hiding ((.=))
 import Control.Monad.Catch hiding (Handler)
-import Control.Monad.IO.Class
-import Data.Aeson
 import Control.Monad.Reader
+import Data.Aeson
 import Data.Aeson.Lens
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Data.Data
@@ -21,11 +20,12 @@ import Data.Monoid
 import GHC.Generics hiding (to)
 import Network.HTTP.Simple
 import Simple.Aeson (runAesonApi, fromBody)
-import Simple.String (fromParam, skipParse)
 import Simple.Snap
-import qualified Simple as Simple
+import Simple.String (fromParam, skipParse)
 import Snap
+import Snap.Snaplet.FastLogger
 import qualified Data.ByteString.Char8 as Char8
+import qualified Simple as Simple
 
 type Id = String
 
@@ -40,12 +40,14 @@ makeClassy ''Breeze
 instance Default Breeze
 
 data App = App
-  { _breezeApp :: Breeze
-  } deriving (Show, Data, Generic)
+  { _breezeApp :: Breeze 
+  , _fastLogger :: Snaplet FastLogger
+  }
 
 makeLenses ''App
 
-instance Default App
+instance HasFastLogger App where
+  logger = fastLogger
 
 instance HasBreeze App where
   breeze = breezeApp
@@ -95,12 +97,12 @@ instance FromJSON NewPersonInfo
 instance HasAddress NewPersonInfo where
   address = newAddress
 
-personFilter lname maddr = object $
+personFilter lname {-maddr-} = object $
   [ "189467778_last"   .= (lname :: String)
-  , "697961327_street" .= (maddr^.street)
-  , "697961327_city"   .= (maddr^.city)
-  , "697961327_state"  .= (maddr^.state)
-  , "697961327_zip"    .= (maddr^.zipcode)
+  {-, "697961327_street" .= (maddr^.street)-}
+  {-, "697961327_city"   .= (maddr^.city)-}
+  {-, "697961327_state"  .= (maddr^.state)-}
+  {-, "697961327_zip"    .= (maddr^.zipcode)-}
   ]
 
 class ToField a where
@@ -161,16 +163,20 @@ makeNewPerson p = runApiReq "/people/add"
   where
     mkFields = [addrField (p^.newAddress), currentChurchField (p^.currentChurch)]
 
-apiDefault :: App
-apiDefault = def
+defaultBreezeConfig :: Breeze
+defaultBreezeConfig = def
     & apikey  .~ "e6e14e8a7e79bb7c62173b9879bacaee"
     & urlBase .~ "https://mountainviewmarietta.breezechms.com/api"
     & eventid .~ "36862980"
 
 appInit :: SnapletInit App App
 appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
+  lgr <- nestSnaplet "" fastLogger $ initFastLoggerSnaplet (LogFileNoRotate "/tmp/breeze.log" 1000)
   addRoutes [("findperson", getPersonsHandle)] 
-  return $ apiDefault
+  return $ App 
+    { _breezeApp = defaultBreezeConfig
+    , _fastLogger = lgr
+    }
 
 checkInHandle :: (HasBreeze v) => Handler b v ()
 checkInHandle = runAesonApi h
@@ -180,18 +186,14 @@ checkInHandle = runAesonApi h
       person <- fromBody
       checkin (person :: Person)
 
-getPersonsHandle :: (HasBreeze v) => Handler b v ()
+getPersonsHandle :: Handler App App ()
 getPersonsHandle = runAesonApi h
   where
-    h :: (HasBreeze v) => Handler b v Value 
+    h :: Handler App App Value 
     h = do
-      {-lname <- skipParse <$> fromParam "lastname"-}
-      {-maddr <- Address -}
-        {-<$> withDefault "street"-}
-        {-<*> withDefault "city" -}
-        {-<*> withDefault "state" -}
-        {-<*> withDefault "zip"-}
-      getPersonsWithFilter (object [])
+      lname <- skipParse <$> fromParam "lastname"
+      writeLogger $ "Fetching persons by last-name: " ++ lname
+      getPersonsWithFilter (personFilter lname)
 
 withDefault :: (Simple.HasApi m) => String -> m String
 withDefault = fmap skipParse . fromParam
