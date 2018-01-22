@@ -187,13 +187,12 @@ checkInHandle = runAesonApi h
       checkin (person :: Person)
 
 getPersonsHandle :: Handler App App ()
-getPersonsHandle = runAesonApi h
-  where
-    h :: Handler App App Value 
-    h = do
-      lname <- skipParse <$> fromParam "lastname"
-      writeLogger $ "Fetching persons by last-name: " ++ lname
-      getPersonsWithFilter (personFilter lname)
+getPersonsHandle = runAesonApi $ do 
+  lname <- skipParse <$> fromParam "lastname"
+  writeLogger $ "/findperson?lastname=" ++ lname
+  persons <- getPersonsWithFilter (personFilter lname)
+  writeLogger $ "result: " ++ (show persons)
+  return (persons :: Value)
 
 withDefault :: (Simple.HasApi m) => String -> m String
 withDefault = fmap skipParse . fromParam
