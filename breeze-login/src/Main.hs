@@ -28,7 +28,7 @@ import qualified Simple as Simple
 
 data App = App
   { _breezeApp :: Breeze 
-  , _fastLogger :: Snaplet FastLogger
+  , _fastLogger :: Snaplet Logger
   }
 
 makeLenses ''App
@@ -55,7 +55,7 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     , _fastLogger = lgr
     }
 
-logAllErrors f = f `catchAll` (writeLogger . show)
+logAllErrors f = f `catchAll` (writeLogger Snap.Snaplet.FastLogger.Error . show)
 
 checkInHandle :: (HasBreeze v) => Handler b v ()
 checkInHandle = runAesonApi $ return ()
@@ -63,18 +63,18 @@ checkInHandle = runAesonApi $ return ()
 getPersonsHandle :: (HasFastLogger b, HasBreeze v) => Handler b v ()
 getPersonsHandle = runAesonApi $ do 
   lname <- skipParse <$> fromParam "lastname"
-  persons <- runBreezeWithLog $ FindPeople lname Nothing
+  persons <- runBreezeWithLog Info $ FindPeople lname Nothing
   return persons
 
 addPersonHandle :: (HasBreeze v, HasFastLogger b) => Handler b v ()
 addPersonHandle = runAesonApi $ do
   newPersonInfo <- fromBody
-  person <- runBreezeWithLog (newPersonInfo :: NewPerson)
+  person <- runBreezeWithLog Info (newPersonInfo :: NewPerson)
   return person
 
-runBreezeWithLog f = do
+runBreezeWithLog prio f = do
   (req, resp) <- runBreeze f
-  writeLogger $ req ++ ("Response: {" ++ (show resp) ++ "}")
+  writeLogger prio $ req ++ ("Response: {" ++ (show resp) ++ "}")
   return resp
 
 main = serveSnaplet defaultConfig appInit

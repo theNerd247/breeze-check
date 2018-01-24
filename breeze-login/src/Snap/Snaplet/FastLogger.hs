@@ -5,10 +5,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Snap.Snaplet.FastLogger 
-  (initFastLoggerSnaplet
+  ( initFastLoggerSnaplet
   , writeLogger
-  , FastLogger
   , LogType (..)
+  , Logger
+  , LogPriority (..)
   , HasFastLogger (..)
   )
     where
@@ -17,24 +18,30 @@ import System.Log.FastLogger
 import System.Log.FastLogger.Date
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Data.ByteString.Char8 (split, pack, ByteString)
 import Data.Monoid ((<>))
 import Snap.Snaplet
 
-class HasFastLogger m where
-  logger :: SnapletLens m FastLogger
+data LogPriority = Info | Warn | Error
+  deriving (Show)
 
-initFastLoggerSnaplet :: LogType -> SnapletInit b FastLogger
+type Logger = LogPriority -> LogStr -> IO ()
+
+class HasFastLogger m where
+  logger :: SnapletLens m Logger
+
+initFastLoggerSnaplet :: LogType -> SnapletInit b Logger
 initFastLoggerSnaplet cfg = makeSnaplet 
   "fast-logger" 
   "snaplet for fast-logger library" 
   Nothing $ do
-    liftIO $ clearLog cfg
-    tc <- liftIO $ newTimeCache "%Y-%b-%d:%T %z"
+    tc <- liftIO $ newTimeCache "%Y-%m-%d:%T%z"
     (lgr, cleanup) <- liftIO $ newTimedFastLogger tc cfg
     onUnload cleanup
-    return $ \m -> lgr (\t -> toLogStr ("\n[" <> t <> "]: ") <> m)
-    where
-      clearLog (LogFileNoRotate f _) = writeFile f ""
-      clearLog (LogFile (FileLogSpec f _ _) _) = writeFile f ""
+    return $ \p m -> lgr $ \t -> toLogStr . mconcat . fmap (prefix p t) . (split '\n') . fromLogStr $ m
 
-writeLogger msg = withTop logger (ask >>= \f -> liftIO . f . toLogStr $ msg)
+prefix p t m = "\n[" <> t <> "][" <> prio <> "] - " <> m
+  where
+    prio = pack . show $ p
+
+writeLogger prio msg = withTop logger (ask >>= \f -> liftIO $ f prio (toLogStr msg))
