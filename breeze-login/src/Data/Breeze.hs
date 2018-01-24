@@ -5,7 +5,7 @@
 
 module Data.Breeze where
 
-import Control.Monad
+import Control.Lens
 import Data.Aeson
 import Data.Data
 import Data.Default
@@ -23,10 +23,16 @@ New Family  : {lastname, [firstname], currentChurch, email, phone?, address} -> 
 -}
 
 type Id = String
+type LastName = String
+type FirstName = String
+type ChurchInfo = String
+type Phone = String
+type Email = String
+type EventId = String
 
 data Breeze = Breeze
-  { _apikey  :: String
-  , _eventid :: String
+  { _apiKey  :: String
+  , _eventId :: String
   , _apiUrl :: String
   } deriving (Show, Data, Generic)
 
@@ -36,15 +42,20 @@ instance Default Breeze
 
 data Person = Person
   { _pid       :: Id
-  , _firstName :: String
-  , _lastName  :: String
+  , _firstName :: FirstName
+  , _lastName  :: LastName
   , _checkedIn :: Bool
-  , _pAddress  :: Maybe Address
   } deriving (Show, Data, Generic)
 
 makeClassy ''Person
 
 instance FromJSON Person where
+  parseJSON v@(Object o) = Person
+    <$> o .: "id" 
+    <*> o .: "first_name" 
+    <*> o .: "last_name" 
+    <*> pure False
+  parseJSON _ = mempty
 
 instance ToJSON Person
 
@@ -62,36 +73,9 @@ instance ToJSON Address
 
 data CheckinDirection = In | Out
 
-instance Show CheckinDirection
+instance Show CheckinDirection where
   show In = "in"
   show Out = "out"
-
-type Email = String
-type EventId = String
-type URL = String
-
-data BreezeRequest =
-  | FindPeople LastName (Maybe Address)
-  | GetAttendance EventId
-  | Checkin EventId Id CheckinDirection
-  | NewPerson Person Address Email (Maybe ChurchInfo) (Maybe Phone)
-
-newtype BreezeApiResponse a = FromBreeze { _fromBreeze :: a }
-
-instance FromJSON (BreezeApiResponse Person) where
-  parseJSON v@(Object o) = FromBreeze . Person
-    <$> (o .: "id")
-    <*> (o .: "first_name")
-    <*> (o .: "last_name")
-    <*> (pure False)
-    <*> (pure Nothing)
-  parseJSON _ = mempty
-
-breezeIso :: Iso (BreezeApiResponse a) a
-breezeIso = iso _fromBreeze FromBreeze
-
-instance HasPerson (BreezeApiResponse Person) where
-  person = breezeIso 
 
 data AttendanceRecord = AttendanceRecord
   { _checkOutTime :: String
@@ -102,12 +86,8 @@ makeLenses ''AttendanceRecord
 
 instance FromJSON AttendanceRecord where
   parseJSON (Object o) = AttendanceRecord
-    <$> (o .: "created_on")
-    <*> (o .: "check_out")
+    <$> (o .: "check_out")
     <*> (o .: "person_id")
 
-breezeRequestToParams :: BreezeRequest -> [(ByteString, Maybe ByteString)]
-breezeRequestToParams = undefined
-
 isCheckedIn :: Getter AttendanceRecord Bool
-isCheckedIn = to $ \a -> a^.checkOutTime != "0000-00-00 00:00:00"
+isCheckedIn = to $ \a -> a^.checkOutTime /= "0000-00-00 00:00:00"

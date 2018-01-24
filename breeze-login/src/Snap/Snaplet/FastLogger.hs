@@ -14,8 +14,10 @@ module Snap.Snaplet.FastLogger
     where
 
 import System.Log.FastLogger
+import System.Log.FastLogger.Date
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Data.Monoid ((<>))
 import Snap.Snaplet
 
 class HasFastLogger m where
@@ -26,8 +28,13 @@ initFastLoggerSnaplet cfg = makeSnaplet
   "fast-logger" 
   "snaplet for fast-logger library" 
   Nothing $ do
-    (lgr, cleanup) <- liftIO $ newFastLogger cfg
+    liftIO $ clearLog cfg
+    tc <- liftIO $ newTimeCache "%Y-%b-%d:%T %z"
+    (lgr, cleanup) <- liftIO $ newTimedFastLogger tc cfg
     onUnload cleanup
-    return lgr
+    return $ \m -> lgr (\t -> toLogStr ("\n[" <> t <> "]: ") <> m)
+    where
+      clearLog (LogFileNoRotate f _) = writeFile f ""
+      clearLog (LogFile (FileLogSpec f _ _) _) = writeFile f ""
 
 writeLogger msg = withTop logger (ask >>= \f -> liftIO . f . toLogStr $ msg)
