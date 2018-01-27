@@ -22,14 +22,16 @@ executable breeze-login
                      , aeson-lens
                      , bytestring
                      , data-default
-                     , mtl
-                     , fast-logger
+                     , elm-export
                      , exceptions
+                     , fast-logger
                      , http-conduit
                      , lens
+                     , mtl
                      , simple
                      , simple-aeson
                      , simple-snap
                      , simple-string
                      , snap
                      , snap-core
+                     , text

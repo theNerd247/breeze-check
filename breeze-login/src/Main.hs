@@ -6,18 +6,21 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
+import Breeze
 import Control.Lens hiding ((.=))
+import Control.Monad.Catch (catchAll)
 import Control.Monad.Reader
 import Data.Aeson
 import Data.Aeson.Lens
+import Data.Breeze
 import Data.ByteString.Lazy.Char8 (toStrict)
-import Control.Monad.Catch (catchAll)
 import Data.Data
 import Data.Default
-import Breeze
-import Data.Breeze
 import Data.Maybe (listToMaybe)
-import Network.HTTP.Simple
+import Data.Proxy
+import Data.Text (pack, unpack)
+import Elm
+import Network.HTTP.Simple hiding (Proxy)
 import Simple.Aeson (runAesonApi, fromBody)
 import Simple.Snap
 import Simple.String (fromParam, skipParse)
@@ -77,4 +80,24 @@ runBreezeWithLog prio f = do
   writeLogger prio $ req ++ ("Response: {" ++ (show resp) ++ "}")
   return resp
 
-main = serveSnaplet defaultConfig appInit
+spec = Spec ["Data"] $
+  [ "import Json.Decode exposing (..)"
+  , "import Json.Decode.Pipeline exposing (..)"
+  ] 
+  ++ makeElm (Proxy :: Proxy Person)
+  ++ makeElm (Proxy :: Proxy Address)
+  where
+    makeElm p = 
+      [ toElmTypeSourceWith ops p
+      , toElmDecoderSourceWith ops p
+      ]
+    ops = Elm.defaultOptions 
+      { fieldLabelModifier = pack . removeUnderscorePrefix . unpack
+      }
+    removeUnderscorePrefix ('_':xs) = xs
+    removeUnderscorePrefix xs = xs
+
+main = do 
+  putStrLn "Generating Elm defs"
+  specsToDir [spec] "../breeze-login-ui"
+  serveSnaplet defaultConfig appInit

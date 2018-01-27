@@ -2,12 +2,15 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Data.Breeze where
 
 import Control.Lens
-import Data.Aeson
+import Data.Aeson hiding (defaultOptions)
 import Data.Data
+import Elm
 import Data.Default
 import GHC.Generics hiding (to)
 
@@ -22,7 +25,7 @@ New Family  : {lastname, [firstname], currentChurch, email, phone?, address} -> 
 
 -}
 
-type Id = String
+type PersonId = String
 type LastName = String
 type FirstName = String
 type ChurchInfo = String
@@ -41,11 +44,11 @@ makeClassy ''Breeze
 instance Default Breeze
 
 data Person = Person
-  { _pid       :: Id
+  { _pid       :: PersonId
   , _firstName :: FirstName
   , _lastName  :: LastName
   , _checkedIn :: Bool
-  } deriving (Show, Data, Generic)
+  } deriving (Show, Data, Generic, ElmType)
 
 makeClassy ''Person
 
@@ -64,7 +67,7 @@ data Address = Address
   , _city :: String
   , _state :: String
   , _zipcode :: String
-  } deriving (Show, Data, Generic) 
+  } deriving (Show, Data, Generic, ElmType) 
 
 makeClassy ''Address
 
@@ -79,7 +82,7 @@ instance Show CheckinDirection where
 
 data AttendanceRecord = AttendanceRecord
   { _checkOutTime :: String
-  , _aPid :: Id
+  , _aPid :: PersonId
   } deriving (Show, Data, Generic)
 
 makeLenses ''AttendanceRecord

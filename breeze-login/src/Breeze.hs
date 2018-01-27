@@ -16,7 +16,7 @@ import Control.Monad.Catch
 
 data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
-data Checkin = Checkin EventId Id CheckinDirection
+data Checkin = Checkin EventId PersonId CheckinDirection
 data NewPerson = NewPerson FirstName LastName Address Email (Maybe ChurchInfo) (Maybe Phone)
 
 instance FromJSON NewPerson where
