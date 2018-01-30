@@ -26,12 +26,14 @@ import Simple.Snap
 import Simple.String (fromParam, skipParse)
 import Snap
 import Snap.Snaplet.FastLogger
+import Snap.Snaplet.Heist
 import qualified Data.ByteString.Char8 as Char8
 import qualified Simple as Simple
 
 data App = App
   { _breezeApp :: Breeze 
   , _fastLogger :: Snaplet Logger
+  , _heist :: Snaplet (Heist App)
   }
 
 makeLenses ''App
@@ -42,6 +44,9 @@ instance HasFastLogger App where
 instance HasBreeze App where
   breeze = breezeApp
 
+instance HasHeist App where
+  heistLens = subSnaplet heist 
+
 defaultBreezeConfig :: Breeze
 defaultBreezeConfig = def
   & apiKey .~ "e6e14e8a7e79bb7c62173b9879bacaee"
@@ -51,11 +56,18 @@ defaultBreezeConfig = def
 appInit :: SnapletInit App App
 appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
   lgr <- nestSnaplet "" fastLogger $ initFastLoggerSnaplet (LogFileNoRotate "/tmp/breeze.log" 1000)
-  addRoutes [("findperson", allowAny >> getPersonsHandle)] 
-  wrapSite logAllErrors
+  h <- nestSnaplet "" heist $ heistInit "templates"
+  addRoutes 
+    [ ("", heistServe)
+    , ("findperson", getPersonsHandle)
+    ] 
+  wrapSite $ \s -> do 
+    allowAny
+    logAllErrors s
   return $ App 
     { _breezeApp = defaultBreezeConfig
     , _fastLogger = lgr
+    , _heist = h
     }
 
 allowAny :: Handler b v ()

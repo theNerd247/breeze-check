@@ -4,6 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.CDN as CDN
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -145,21 +146,26 @@ toggleCheckIn pid ( chkin, found ) =
 
 view : Config -> Model -> Html Msg
 view cfg mdl =
-    Grid.containerFluid []
-        [ CDN.stylesheet
-        , Grid.containerFluid [ class "page-header" ]
+    let
+        includeCDN =
+            if cfg.debug then
+                [ CDN.stylesheet ]
+            else
+                []
+    in
+    Grid.container [] <|
+        List.append
+            includeCDN
             [ Grid.row [ Row.centerLg ]
                 [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
                     [ h1 [{- class "display-1" -}] [ text cfg.eventName ]
                     , p [] [ text "Mountain View Church" ]
                     ]
                 ]
-            ]
-        , Grid.container []
-            [ Grid.row []
+            , Grid.row []
                 [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ]
             , Grid.row []
-                [ Grid.col [] [ personSearch ]
+                [ Grid.col [ Col.md, Col.md10 ] [ personSearch ]
                 ]
             , Grid.row []
                 [ Grid.col []
@@ -174,18 +180,15 @@ view cfg mdl =
                     ]
                 ]
             ]
-        ]
 
 
 personSearch : Html Msg
 personSearch =
-    Form.form []
-        [ Form.group []
-            [ Form.label [ for "lastname" ] [ text "Last Name" ]
-            , Input.text [ Input.id "lastname", Input.onInput UpdateLastName ]
-            , Form.help [] [ text "Your family's last name" ]
-            ]
-        , Button.button [ Button.primary, Button.onClick LastNameSearch ] [ text "Find" ]
+    div []
+        [ InputGroup.config
+            (InputGroup.text [ Input.placeholder "Last Name" ])
+            |> InputGroup.large
+            |> InputGroup.view
         ]
 
 
