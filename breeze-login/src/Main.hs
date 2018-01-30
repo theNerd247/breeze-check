@@ -27,6 +27,7 @@ import Simple.String (fromParam, skipParse)
 import Snap
 import Snap.Snaplet.FastLogger
 import Snap.Snaplet.Heist
+import Snap.Util.FileServe
 import qualified Data.ByteString.Char8 as Char8
 import qualified Simple as Simple
 
@@ -59,6 +60,7 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
   h <- nestSnaplet "" heist $ heistInit "templates"
   addRoutes 
     [ ("", heistServe)
+    , ("ui", serveDirectory "ui")
     , ("findperson", getPersonsHandle)
     ] 
   wrapSite $ \s -> do 
@@ -111,5 +113,5 @@ spec = Spec ["Data"] $
 
 main = do 
   putStrLn "Generating Elm defs"
-  specsToDir [spec] "../breeze-login-ui"
+  specsToDir [spec] "./ui/"
   serveSnaplet defaultConfig appInit

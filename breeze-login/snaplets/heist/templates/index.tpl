@@ -7,11 +7,11 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+
+    <!-- Elm application  -->
+    <script src="ui/elm.js"></script>
   </head>
   <body>
-    <h1>Hello, world!</h1>
-
-    <!-- Your Elm application  -->
-    <script src="elm.js"></script>
+    <script type="text/javascript">Elm.Main.fullscreen()</script>
   </body>
 </html>
