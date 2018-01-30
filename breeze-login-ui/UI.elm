@@ -1,78 +1,63 @@
 module Main exposing (..)
 
-import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
 import Bootstrap.CDN as CDN
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Row as Row
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
-import Html
+import Data as Breeze
+import ErrorMsg as Err
+import Html as Html
     exposing
         ( Html
-        , text
-        , program
-        , div
-        , button
-        , h1
-        , p
-        , header
-        , main_
-        , hr
         , a
+        , button
+        , div
+        , h1
+        , header
+        , hr
+        , main_
+        , p
+        , program
+        , text
         )
-import Html.Attributes exposing (for, class)
+import Html.Attributes exposing (class, for)
 import Html.Events exposing (onClick)
 import Http as Http
 import Json.Decode as Decode
 
 
-type alias PersonId =
-    String
-
-
-type alias Person =
-    { firstName : String
-    , lastName : String
-    , id : PersonId
-    , attending : Bool
-    }
-
-
-type alias ErrorMessage =
-    { errorMsg : String
-    , errorId : Int
-    }
-
-
 type alias Model =
     { searchLastName : String
-    , foundPeople : List Person
-    , checkedIn : List Person
-    , errs : List ErrorMessage
+    , foundPeople : List Breeze.Person
+    , checkedIn : List Breeze.Person
+    , errors : Err.Errors
     }
 
 
 type alias Config =
     { eventName : String
+    , apiBase : String
+    , debug : Bool
     }
 
 
 type Msg
     = LastNameSearch
     | UpdateLastName String
-    | CloseErrorMessage Int
-    | FoundPeople (Result Http.Error (List Person))
-    | ToggleAttending PersonId
+    | FoundPeople (Result Http.Error (List Breeze.Person))
+    | ToggleAttending String
+    | ErrorMessage Err.Msg
 
 
 main : Program Never Model Msg
 main =
     program
         { init = init
-        , update = update
+        , update = update config
         , view = view config
         , subscriptions = \_ -> Sub.none
         }
@@ -87,57 +72,61 @@ model : Model
 model =
     { foundPeople = []
     , checkedIn = []
-    , errs = []
     , searchLastName = ""
+    , errors = Err.model
     }
 
 
 config : Config
 config =
-    { eventName = "Test Event" }
+    { eventName = "Test Event"
+    , apiBase = "http://10.0.0.100:8080"
+    , debug = True
+    }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg mdl =
+newError : Model -> String -> Model
+newError mdl msg =
+    { mdl | errors = Err.newError msg mdl.errors }
+
+
+update : Config -> Msg -> Model -> ( Model, Cmd Msg )
+update cfg msg mdl =
     case msg of
         UpdateLastName s ->
             ( { mdl | searchLastName = s }, Cmd.none )
 
         LastNameSearch ->
-            ( mdl, findPeople mdl.searchLastName )
+            ( mdl, findPeople cfg mdl.searchLastName )
 
         FoundPeople (Ok []) ->
-            ( { mdl | errs = newErrorMessage ("I'm sorry nobody exists with the last name of: " ++ mdl.searchLastName) mdl.errs }, Cmd.none )
+            ( newError mdl <| "I'm sorry nobody exists with the last name of: " ++ mdl.searchLastName, Cmd.none )
 
         FoundPeople (Ok ps) ->
             ( { mdl | foundPeople = ps }, Cmd.none )
 
         FoundPeople (Err e) ->
-            ( { mdl | errs = newErrorMessage (toString e) mdl.errs }, Cmd.none )
-
-        CloseErrorMessage eid ->
-            ( { mdl
-                | errs = List.filter (\x -> x.errorId /= eid) mdl.errs
-              }
-            , Cmd.none
-            )
+            ( newError mdl (toString e), Cmd.none )
 
         ToggleAttending pid ->
             let
                 ( chin, fnd ) =
                     toggleCheckIn pid ( mdl.checkedIn, mdl.foundPeople )
             in
-                ( { mdl | checkedIn = chin, foundPeople = fnd }, Cmd.none )
+            ( { mdl | checkedIn = chin, foundPeople = fnd }, Cmd.none )
+
+        ErrorMessage emsg ->
+            ( { mdl | errors = Err.update emsg mdl.errors }, Cmd.none )
 
 
-toggleCheckIn : PersonId -> ( List Person, List Person ) -> ( List Person, List Person )
+toggleCheckIn : String -> ( List Breeze.Person, List Breeze.Person ) -> ( List Breeze.Person, List Breeze.Person )
 toggleCheckIn pid ( chkin, found ) =
     let
         personFilter p =
-            p.id == pid
+            p.pid == pid
 
         toggleAttend p =
-            { p | attending = not p.attending }
+            { p | checkedIn = not p.checkedIn }
 
         ( ci, co ) =
             List.partition personFilter chkin
@@ -151,19 +140,7 @@ toggleCheckIn pid ( chkin, found ) =
         newFound =
             List.append (List.map toggleAttend ci) fo
     in
-        ( newChkin, newFound )
-
-
-newErrorMessage : String -> List ErrorMessage -> List ErrorMessage
-newErrorMessage msg msgs =
-    let
-        newId =
-            Maybe.withDefault 0 << Maybe.map (\x -> 1 + x.errorId) <| List.head msgs
-
-        newMessage =
-            { errorId = newId, errorMsg = msg }
-    in
-        newMessage :: msgs
+    ( newChkin, newFound )
 
 
 view : Config -> Model -> Html Msg
@@ -180,7 +157,7 @@ view cfg mdl =
             ]
         , Grid.container []
             [ Grid.row []
-                [ Grid.col [] [ errors mdl.errs ] ]
+                [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ]
             , Grid.row []
                 [ Grid.col [] [ personSearch ]
                 ]
@@ -200,19 +177,6 @@ view cfg mdl =
         ]
 
 
-errors : List ErrorMessage -> Html Msg
-errors =
-    List.map error >> div []
-
-
-error : ErrorMessage -> Html Msg
-error msg =
-    Alert.danger
-        [ text msg.errorMsg
-        , button [ class "close", onClick (CloseErrorMessage msg.errorId) ] [ text "x" ]
-        ]
-
-
 personSearch : Html Msg
 personSearch =
     Form.form []
@@ -225,24 +189,34 @@ personSearch =
         ]
 
 
-findPeople : String -> Cmd Msg
-findPeople lastName =
+sendApiGetRequest : Config -> String -> Decode.Decoder a -> (Result Http.Error a -> Msg) -> Cmd Msg
+sendApiGetRequest cfg path decoder f =
     let
-        getPeople =
-            Http.get ("https://jsonplaceholder.typicode.com/users?username=" ++ lastName) decodePersons
+        req =
+            Http.request
+                { method = "GET"
+                , headers = []
+                , url = cfg.apiBase ++ path
+                , body = Http.emptyBody
+                , expect = Http.expectJson decoder
+                , timeout = Nothing
+                , withCredentials = False
+                }
     in
-        Http.send FoundPeople getPeople
+    Http.send f req
 
 
-decodePersons : Decode.Decoder (List Person)
+findPeople : Config -> String -> Cmd Msg
+findPeople cfg lastName =
+    sendApiGetRequest cfg
+        ("/findperson?lastname=" ++ lastName)
+        decodePersons
+        FoundPeople
+
+
+decodePersons : Decode.Decoder (List Breeze.Person)
 decodePersons =
-    Decode.list <|
-        Decode.map4
-            Person
-            (Decode.field "username" Decode.string)
-            (Decode.field "email" Decode.string)
-            (Decode.map toString (Decode.field "id" Decode.int))
-            (Decode.succeed False)
+    Decode.list Breeze.decodePerson
 
 
 
@@ -250,23 +224,23 @@ decodePersons =
 -- attendance data toggled
 
 
-listPeople : List Person -> Html Msg
+listPeople : List Breeze.Person -> Html Msg
 listPeople =
     List.map (person >> List.singleton >> ListGroup.li []) >> ListGroup.ul
 
 
-person : Person -> Html Msg
+person : Breeze.Person -> Html Msg
 person p =
-    a [ onClick (ToggleAttending p.id) ]
+    a [ onClick (ToggleAttending p.pid) ]
         [ Grid.row []
-            [ Grid.col [] [ text p.id ]
+            [ Grid.col [] [ text p.pid ]
             , Grid.col [] [ text p.firstName ]
             , Grid.col [] [ text p.lastName ]
             , Grid.col [ Col.pushXs2 ]
-                [ if p.attending then
-                    (text "attending")
+                [ if p.checkedIn then
+                    text "attending"
                   else
-                    (text "not attending")
+                    text "not attending"
                 ]
             ]
         ]

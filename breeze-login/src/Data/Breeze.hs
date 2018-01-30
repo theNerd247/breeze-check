@@ -8,9 +8,10 @@
 module Data.Breeze where
 
 import Control.Lens
-import Data.Aeson hiding (defaultOptions)
+import Data.Aeson 
+import Data.Aeson.Types
 import Data.Data
-import Elm
+import Elm hiding (Options, fieldLabelModifier, defaultOptions)
 import Data.Default
 import GHC.Generics hiding (to)
 
@@ -32,6 +33,11 @@ type ChurchInfo = String
 type Phone = String
 type Email = String
 type EventId = String
+
+customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix }
+
+removeUnderscorePrefix ('_':xs) = xs
+removeUnderscorePrefix xs = xs
 
 data Breeze = Breeze
   { _apiKey  :: String
@@ -60,7 +66,8 @@ instance FromJSON Person where
     <*> pure False
   parseJSON _ = mempty
 
-instance ToJSON Person
+instance ToJSON Person where
+  toJSON = genericToJSON customAesonOptions
 
 data Address = Address
   { _street :: String
@@ -71,8 +78,11 @@ data Address = Address
 
 makeClassy ''Address
 
-instance FromJSON Address
-instance ToJSON Address
+instance FromJSON Address where
+  parseJSON = genericParseJSON customAesonOptions
+
+instance ToJSON Address where
+  toJSON = genericToJSON customAesonOptions
 
 data CheckinDirection = In | Out
 
@@ -94,3 +104,5 @@ instance FromJSON AttendanceRecord where
 
 isCheckedIn :: Getter AttendanceRecord Bool
 isCheckedIn = to $ \a -> a^.checkOutTime /= "0000-00-00 00:00:00"
+
+

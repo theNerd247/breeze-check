@@ -51,12 +51,15 @@ defaultBreezeConfig = def
 appInit :: SnapletInit App App
 appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
   lgr <- nestSnaplet "" fastLogger $ initFastLoggerSnaplet (LogFileNoRotate "/tmp/breeze.log" 1000)
-  addRoutes [("findperson", getPersonsHandle)] 
+  addRoutes [("findperson", allowAny >> getPersonsHandle)] 
   wrapSite logAllErrors
   return $ App 
     { _breezeApp = defaultBreezeConfig
     , _fastLogger = lgr
     }
+
+allowAny :: Handler b v ()
+allowAny = modifyResponse $ setHeader "Access-Control-Allow-Origin" "*"
 
 logAllErrors f = f `catchAll` (writeLogger Snap.Snaplet.FastLogger.Error . show)
 
@@ -85,7 +88,6 @@ spec = Spec ["Data"] $
   , "import Json.Decode.Pipeline exposing (..)"
   ] 
   ++ makeElm (Proxy :: Proxy Person)
-  ++ makeElm (Proxy :: Proxy Address)
   where
     makeElm p = 
       [ toElmTypeSourceWith ops p
@@ -94,8 +96,6 @@ spec = Spec ["Data"] $
     ops = Elm.defaultOptions 
       { fieldLabelModifier = pack . removeUnderscorePrefix . unpack
       }
-    removeUnderscorePrefix ('_':xs) = xs
-    removeUnderscorePrefix xs = xs
 
 main = do 
   putStrLn "Generating Elm defs"
