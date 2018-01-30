@@ -8,7 +8,7 @@
 
 import Breeze
 import Control.Lens hiding ((.=))
-import Control.Monad.Catch (catchAll)
+import Control.Monad.Catch (catch)
 import Control.Monad.Reader
 import Data.Aeson
 import Data.Aeson.Lens
@@ -63,9 +63,7 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     , ("ui", serveDirectory "ui")
     , ("findperson", getPersonsHandle)
     ] 
-  wrapSite $ \s -> do 
-    allowAny
-    logAllErrors s
+  wrapSite (`catch` handleBreezeException)
   return $ App 
     { _breezeApp = defaultBreezeConfig
     , _fastLogger = lgr
@@ -75,7 +73,10 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
 allowAny :: Handler b v ()
 allowAny = modifyResponse $ setHeader "Access-Control-Allow-Origin" "*"
 
-logAllErrors f = f `catchAll` (writeLogger Snap.Snaplet.FastLogger.Error . show)
+{-logAllErrors f = f `catch` (writeLogger Snap.Snaplet.FastLogger.Error . show)-}
+
+handleBreezeException :: BreezeException -> Handler b v ()
+handleBreezeException = runAesonApi . return
 
 checkInHandle :: (HasBreeze v) => Handler b v ()
 checkInHandle = runAesonApi $ return ()
@@ -83,25 +84,22 @@ checkInHandle = runAesonApi $ return ()
 getPersonsHandle :: (HasFastLogger b, HasBreeze v) => Handler b v ()
 getPersonsHandle = runAesonApi $ do 
   lname <- skipParse <$> fromParam "lastname"
-  persons <- runBreezeWithLog Info $ FindPeople lname Nothing
+  writeLogger Info $ "Last Name: " ++ lname
+  persons <- runBreeze $ FindPeople lname Nothing
   return persons
 
 addPersonHandle :: (HasBreeze v, HasFastLogger b) => Handler b v ()
 addPersonHandle = runAesonApi $ do
   newPersonInfo <- fromBody
-  person <- runBreezeWithLog Info (newPersonInfo :: NewPerson)
+  person <- runBreeze (newPersonInfo :: NewPerson)
   return person
-
-runBreezeWithLog prio f = do
-  (req, resp) <- runBreeze f
-  writeLogger prio $ req ++ ("Response: {" ++ (show resp) ++ "}")
-  return resp
 
 spec = Spec ["Data"] $
   [ "import Json.Decode exposing (..)"
   , "import Json.Decode.Pipeline exposing (..)"
   ] 
   ++ makeElm (Proxy :: Proxy Person)
+  ++ makeElm (Proxy :: Proxy BreezeException)
   where
     makeElm p = 
       [ toElmTypeSourceWith ops p

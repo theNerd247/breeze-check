@@ -1,18 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Breeze where
 
 import Control.Monad.IO.Class
 import Control.Lens hiding ((.=))
-import Data.Aeson
+import Data.Aeson hiding (Error)
 import Data.Breeze
 import Data.Proxy
+import Simple.Snap
+import Snap
+import Snap.Snaplet.FastLogger
 import Data.ByteString.Lazy.Char8 (toStrict)
 import qualified Data.ByteString.Char8 as Char8
 import qualified Network.HTTP.Simple as HTTP
 import Control.Monad.Reader.Class
-import Control.Monad.Catch
+import Control.Monad.Catch hiding (Handler)
 
 data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
@@ -31,7 +35,7 @@ instance FromJSON NewPerson where
 
 class BreezeApi a where
   type BreezeResponse a :: *
-  runBreeze :: (MonadThrow m, HasBreeze r, MonadReader r m, MonadIO m) => a -> m (String, (BreezeResponse a))
+  runBreeze :: (HasFastLogger b, HasBreeze v) => a -> Handler b v (BreezeResponse a)
 
 instance BreezeApi FindPeople where
   type BreezeResponse FindPeople = [Person]
@@ -93,5 +97,8 @@ runApiReq path params = do
         . HTTP.addRequestHeader "Api-Key" (Char8.pack $ config^.apiKey)
         . HTTP.setRequestQueryString params
   req <- buildRequest <$> HTTP.parseRequest ((config^.apiUrl) ++ path)
-  resp <- HTTP.getResponseBody <$> HTTP.httpJSON req
-  return (show req, resp)
+  resp <- HTTP.getResponseBody <$> HTTP.httpJSONEither req
+  either (\_ -> log Error req resp >> throwErr) (\a -> log Info req resp >> return a) resp
+  where
+    log s req res = writeLogger s $ "Request: " ++ (show req) ++ "\nResponse: " ++ (show res)
+    throwErr = throwM . BreezeException $ "Something went wrong when contacting breeze!"

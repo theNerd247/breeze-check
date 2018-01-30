@@ -4,7 +4,7 @@ packages:
 - '.'
 - location:
     git: git@github.com:theNerd247/simple
-    commit: c562776a13c479e5330c701b9783810c514ee4cf
+    commit: dcba08858ffc85040bf8b85922fbc0ebb5f32be6
   subdirs:
     - simple
     - simple-aeson

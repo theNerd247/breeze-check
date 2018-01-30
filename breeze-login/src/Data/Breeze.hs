@@ -8,6 +8,7 @@
 module Data.Breeze where
 
 import Control.Lens
+import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
 import Data.Data
@@ -38,6 +39,12 @@ customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix
 
 removeUnderscorePrefix ('_':xs) = xs
 removeUnderscorePrefix xs = xs
+
+data BreezeException = BreezeException { breezeErr :: String }
+  deriving (Show, Generic, ElmType)
+
+instance Exception BreezeException
+instance ToJSON BreezeException
 
 data Breeze = Breeze
   { _apiKey  :: String

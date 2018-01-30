@@ -49,7 +49,7 @@ type alias Config =
 type Msg
     = LastNameSearch
     | UpdateLastName String
-    | FoundPeople (Result Http.Error (List Breeze.Person))
+    | FoundPeople (Result Http.Error (Result Breeze.BreezeException (List Breeze.Person)))
     | ToggleAttending String
     | ErrorMessage Err.Msg
 
@@ -81,14 +81,24 @@ model =
 config : Config
 config =
     { eventName = "Test Event"
-    , apiBase = "http://10.0.0.100:8080"
+    , apiBase = "http://localhost:8080"
     , debug = True
     }
 
 
-newError : Model -> String -> Model
-newError mdl msg =
+newError : String -> Model -> Model
+newError msg mdl =
     { mdl | errors = Err.newError msg mdl.errors }
+
+
+catchResult : (b -> String) -> (a -> Model -> Model) -> Result b a -> Model -> Model
+catchResult g f err =
+    case err of
+        Err e ->
+            newError (g e)
+
+        Ok a ->
+            f a
 
 
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
@@ -100,14 +110,16 @@ update cfg msg mdl =
         LastNameSearch ->
             ( mdl, findPeople cfg mdl.searchLastName )
 
-        FoundPeople (Ok []) ->
-            ( newError mdl <| "I'm sorry nobody exists with the last name of: " ++ mdl.searchLastName, Cmd.none )
-
-        FoundPeople (Ok ps) ->
-            ( { mdl | foundPeople = ps }, Cmd.none )
-
-        FoundPeople (Err e) ->
-            ( newError mdl (toString e), Cmd.none )
+        FoundPeople r ->
+            ( mdl
+                |> (r
+                        |> catchResult toString
+                            (catchResult .breezeErr
+                                updateFoundPeople
+                            )
+                   )
+            , Cmd.none
+            )
 
         ToggleAttending pid ->
             let
@@ -118,6 +130,18 @@ update cfg msg mdl =
 
         ErrorMessage emsg ->
             ( { mdl | errors = Err.update emsg mdl.errors }, Cmd.none )
+
+
+updateFoundPeople : List Breeze.Person -> Model -> Model
+updateFoundPeople ps mdl =
+    if List.isEmpty ps then
+        mdl
+            |> (newError <|
+                    "I'm sorry nobody exists with the last name of: "
+                        ++ mdl.searchLastName
+               )
+    else
+        { mdl | foundPeople = ps }
 
 
 toggleCheckIn : String -> ( List Breeze.Person, List Breeze.Person ) -> ( List Breeze.Person, List Breeze.Person )
@@ -186,7 +210,9 @@ personSearch : Html Msg
 personSearch =
     div []
         [ InputGroup.config
-            (InputGroup.text [ Input.placeholder "Last Name" ])
+            (InputGroup.text [ Input.placeholder "Last Name", Input.onInput UpdateLastName ])
+            |> InputGroup.successors
+                [ InputGroup.button [ Button.primary, Button.onClick LastNameSearch ] [ text "Search" ] ]
             |> InputGroup.large
             |> InputGroup.view
         ]
@@ -209,11 +235,19 @@ sendApiGetRequest cfg path decoder f =
     Http.send f req
 
 
+withBreezeErrDecoder : Decode.Decoder a -> Decode.Decoder (Result Breeze.BreezeException a)
+withBreezeErrDecoder d =
+    Decode.oneOf
+        [ Decode.map Err Breeze.decodeBreezeException
+        , Decode.map Ok d
+        ]
+
+
 findPeople : Config -> String -> Cmd Msg
 findPeople cfg lastName =
     sendApiGetRequest cfg
         ("/findperson?lastname=" ++ lastName)
-        decodePersons
+        (withBreezeErrDecoder decodePersons)
         FoundPeople
 
 
