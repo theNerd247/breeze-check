@@ -18,6 +18,7 @@ import Html as Html
         , button
         , div
         , h1
+        , h4
         , header
         , hr
         , main_
@@ -137,7 +138,7 @@ updateFoundPeople ps mdl =
     if List.isEmpty ps then
         mdl
             |> (newError <|
-                    "I'm sorry nobody exists with the last name of: "
+                    "I'm sorry there's no one with the last name of "
                         ++ mdl.searchLastName
                )
     else
@@ -189,20 +190,29 @@ view cfg mdl =
             , Grid.row []
                 [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ]
             , Grid.row []
-                [ Grid.col [ Col.md, Col.md10 ] [ personSearch ]
-                ]
-            , Grid.row []
-                [ Grid.col [ Col.xs12 ]
-                    [ h1 [] [ text "Found" ]
-                    , listPeople mdl.foundPeople
+                [ Grid.col []
+                    [ h4 [] [ text "Find Your Family..." ]
+                    , personSearch
                     ]
                 ]
-            , Grid.row []
-                [ Grid.col [ Col.xs12 ]
-                    [ h1 [] [ text "Attending" ]
-                    , listPeople mdl.checkedIn
+            , Grid.row [] <|
+                if List.isEmpty mdl.foundPeople then
+                    []
+                else
+                    [ Grid.col [ Col.xs12 ]
+                        [ h4 [] [ text "Select Members To Check In" ]
+                        , listPeople mdl.foundPeople
+                        ]
                     ]
-                ]
+            , Grid.row [] <|
+                if List.isEmpty mdl.checkedIn then
+                    []
+                else
+                    [ Grid.col [ Col.xs12 ]
+                        [ h4 [] [ text "Checked In" ]
+                        , listPeople mdl.checkedIn
+                        ]
+                    ]
             ]
 
 
@@ -212,7 +222,7 @@ personSearch =
         [ InputGroup.config
             (InputGroup.text [ Input.placeholder "Last Name", Input.onInput UpdateLastName ])
             |> InputGroup.successors
-                [ InputGroup.button [ Button.primary, Button.onClick LastNameSearch ] [ text "Search" ] ]
+                [ InputGroup.button [ Button.primary, Button.large, Button.onClick LastNameSearch ] [ text "Search" ] ]
             |> InputGroup.large
             |> InputGroup.view
         ]
