@@ -15,6 +15,7 @@ import Data.Aeson.Lens
 import Data.Breeze
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Data.Data
+import qualified Data.List as List
 import Data.Default
 import Data.Maybe (listToMaybe)
 import Data.Proxy
@@ -89,7 +90,7 @@ getPersonsHandle = runAesonApi $ do
   lname <- skipParse <$> fromParam "lastname"
   writeLogger Info $ "Last Name: " ++ lname
   persons <- runBreeze $ FindPeople lname Nothing
-  return persons
+  return $ filter (\p -> List.isPrefixOf lname $ p^.lastName ) persons
 
 addPersonHandle :: (HasBreeze v, HasFastLogger b) => Handler b v ()
 addPersonHandle = runAesonApi $ do
