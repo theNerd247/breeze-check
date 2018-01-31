@@ -53,6 +53,7 @@ type Msg
     | FoundPeople (Result Http.Error (Result Breeze.BreezeException (List Breeze.Person)))
     | ToggleAttending String
     | ErrorMessage Err.Msg
+    | NewPersonSelect
 
 
 main : Program Never Model Msg
@@ -82,7 +83,7 @@ model =
 config : Config
 config =
     { eventName = "Test Event"
-    , apiBase = "http://10.0.0.100:8080"
+    , apiBase = "" -- "http://10.0.0.100:8080"
     , debug = False
     }
 
@@ -132,13 +133,16 @@ update cfg msg mdl =
         ErrorMessage emsg ->
             ( { mdl | errors = Err.update emsg mdl.errors }, Cmd.none )
 
+        NewPersonSelect ->
+            ( mdl, Cmd.none )
+
 
 updateFoundPeople : List Breeze.Person -> Model -> Model
 updateFoundPeople ps mdl =
     if List.isEmpty ps then
         mdl
             |> (newError <|
-                    "I'm sorry there's no one with the last name of "
+                    "I'm sorry there's no one with the last name of: "
                         ++ mdl.searchLastName
                )
     else
@@ -218,13 +222,37 @@ view cfg mdl =
 
 personSearch : Html Msg
 personSearch =
-    div []
-        [ InputGroup.config
-            (InputGroup.text [ Input.placeholder "Last Name", Input.onInput UpdateLastName ])
-            |> InputGroup.successors
-                [ InputGroup.button [ Button.primary, Button.large, Button.onClick LastNameSearch ] [ text "Search" ] ]
-            |> InputGroup.large
-            |> InputGroup.view
+    Form.form []
+        [ Form.row []
+            [ Form.col []
+                [ InputGroup.config
+                    (InputGroup.text [ Input.placeholder "Last Name", Input.onInput UpdateLastName ])
+                    |> InputGroup.successors
+                        [ InputGroup.button
+                            [ Button.success
+                            , Button.large
+                            , Button.onClick LastNameSearch
+                            ]
+                            [ Html.i
+                                [ class "fas fa-search"
+                                ]
+                                []
+                            ]
+                        ]
+                    |> InputGroup.large
+                    |> InputGroup.view
+                ]
+            ]
+        , Form.row [ Row.centerXs ]
+            [ Form.col [ Col.xsAuto ]
+                [ Button.button
+                    [ Button.primary
+                    , Button.large
+                    , Button.onClick NewPersonSelect
+                    ]
+                    [ text "I can't find us" ]
+                ]
+            ]
         ]
 
 
@@ -238,7 +266,7 @@ sendApiGetRequest cfg path decoder f =
                 , url = cfg.apiBase ++ path
                 , body = Http.emptyBody
                 , expect = Http.expectJson decoder
-                , timeout = Nothing
+                , timeout = Just 3000
                 , withCredentials = False
                 }
     in
@@ -256,7 +284,7 @@ withBreezeErrDecoder d =
 findPeople : Config -> String -> Cmd Msg
 findPeople cfg lastName =
     sendApiGetRequest cfg
-        ("/findperson?lastname=" ++ lastName)
+        ("findperson?lastname=" ++ lastName)
         (withBreezeErrDecoder decodePersons)
         FoundPeople
 
