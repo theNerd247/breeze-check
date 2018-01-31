@@ -40,6 +40,7 @@ type alias Model =
     , checkedIn : List Breeze.Person
     , errors : Err.Errors
     , debounce : Debounce.State
+    , findPeopleLoading : Bool
     }
 
 
@@ -82,6 +83,7 @@ model =
     , searchLastName = ""
     , errors = Err.model
     , debounce = Debounce.init
+    , findPeopleLoading = False
     }
 
 
@@ -95,7 +97,11 @@ config =
 
 debounceCfg : Debounce.Config Model Msg
 debounceCfg =
-    Debounce.config .debounce (\dmdl s -> { dmdl | debounce = s }) Deb (1 * second)
+    Debounce.config
+        .debounce
+        (\dmdl s -> { dmdl | debounce = s })
+        Deb
+        (500 * millisecond)
 
 
 newError : String -> Model -> Model
@@ -117,7 +123,10 @@ update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update cfg msg mdl =
     case msg of
         UpdateLastName s ->
-            ( { mdl | searchLastName = s }, findPeople cfg s )
+            if String.isEmpty s then
+                ( { mdl | searchLastName = s, findPeopleLoading = False, foundPeople = [] }, Cmd.none )
+            else
+                ( { mdl | searchLastName = s, findPeopleLoading = True, foundPeople = [] }, findPeople cfg s )
 
         FoundPeople r ->
             ( mdl
@@ -127,6 +136,7 @@ update cfg msg mdl =
                                 updateFoundPeople
                             )
                    )
+                |> (\m -> { m | findPeopleLoading = False })
             , Cmd.none
             )
 
@@ -227,7 +237,13 @@ view cfg mdl =
                     ]
                 ]
             , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] ([] |> appendIf (not <| List.isEmpty mdl.checkedIn) [ br [] [], checkInButton, hr [] [] ]) ]
-            , Grid.row [] [ Grid.col [] [ listPeople mdl.foundPeople, br [] [] ] ]
+            , Grid.row []
+                [ Grid.col [] <|
+                    if mdl.findPeopleLoading then
+                        [ text "loading..." ]
+                    else
+                        [ listPeople mdl.foundPeople, br [] [] ]
+                ]
             , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] ([] |> appendIf (not <| List.isEmpty mdl.foundPeople) [ newPersonButton, hr [] [] ]) ]
             ]
 
