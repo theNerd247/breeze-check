@@ -81,7 +81,7 @@ model =
 config : Config
 config =
     { eventName = "Test Event"
-    , apiBase = "http://localhost:8080"
+    , apiBase = "http://10.0.0.100:8080"
     , debug = True
     }
 
@@ -192,15 +192,15 @@ view cfg mdl =
                 [ Grid.col [ Col.md, Col.md10 ] [ personSearch ]
                 ]
             , Grid.row []
-                [ Grid.col []
-                    [ h1 [] [ text "Attending" ]
-                    , listPeople mdl.checkedIn
+                [ Grid.col [ Col.xs12 ]
+                    [ h1 [] [ text "Found" ]
+                    , listPeople mdl.foundPeople
                     ]
                 ]
             , Grid.row []
-                [ Grid.col []
-                    [ h1 [] [ text "Found" ]
-                    , listPeople mdl.foundPeople
+                [ Grid.col [ Col.xs12 ]
+                    [ h1 [] [ text "Attending" ]
+                    , listPeople mdl.checkedIn
                     ]
                 ]
             ]
@@ -269,15 +269,15 @@ listPeople =
 person : Breeze.Person -> Html Msg
 person p =
     a [ onClick (ToggleAttending p.pid) ]
-        [ Grid.row []
-            [ Grid.col [] [ text p.pid ]
-            , Grid.col [] [ text p.firstName ]
-            , Grid.col [] [ text p.lastName ]
-            , Grid.col [ Col.pushXs2 ]
-                [ if p.checkedIn then
-                    text "attending"
-                  else
-                    text "not attending"
+        [ Grid.container []
+            [ Grid.row []
+                [ Grid.col [ Col.xs5 ] [ text p.firstName ]
+                , Grid.col [ Col.xs5 ] [ text p.lastName ]
+                , Grid.col [] <|
+                    if p.checkedIn then
+                        [ Html.i [ class "fas fa-check" ] [] ]
+                    else
+                        []
                 ]
             ]
         ]

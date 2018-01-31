@@ -63,7 +63,10 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     , ("ui", serveDirectory "ui")
     , ("findperson", getPersonsHandle)
     ] 
-  wrapSite (`catch` handleBreezeException)
+  wrapSite $ \s -> do 
+    allowAny
+    s
+    `catch` handleBreezeException
   return $ App 
     { _breezeApp = defaultBreezeConfig
     , _fastLogger = lgr
