@@ -82,7 +82,7 @@ config : Config
 config =
     { eventName = "Test Event"
     , apiBase = "http://10.0.0.100:8080"
-    , debug = True
+    , debug = False
     }
 
 
@@ -269,11 +269,11 @@ listPeople =
 person : Breeze.Person -> Html Msg
 person p =
     a [ onClick (ToggleAttending p.pid) ]
-        [ Grid.container []
+        [ Grid.containerFluid []
             [ Grid.row []
                 [ Grid.col [ Col.xs5 ] [ text p.firstName ]
                 , Grid.col [ Col.xs5 ] [ text p.lastName ]
-                , Grid.col [] <|
+                , Grid.col [ Col.xs2, Col.pushXs5 ] <|
                     if p.checkedIn then
                         [ Html.i [ class "fas fa-check" ] [] ]
                     else
