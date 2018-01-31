@@ -1,7 +1,6 @@
 module Main exposing (..)
 
 import Bootstrap.Button as Button
-import Bootstrap.CDN as CDN
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
@@ -56,6 +55,7 @@ type Msg
     | ToggleAttending String
     | ErrorMessage Err.Msg
     | NewPersonSelect
+    | CheckIn
     | Deb (Debounce.Msg Msg)
 
 
@@ -142,8 +142,16 @@ update cfg msg mdl =
         NewPersonSelect ->
             ( mdl, Cmd.none )
 
+        -- TODO: add new person page
         Deb a ->
             Debounce.update debounceCfg a mdl
+
+        CheckIn ->
+            ( mdl, Cmd.none )
+
+
+
+-- TODO: add checkin call
 
 
 updateFoundPeople : List Breeze.Person -> Model -> Model
@@ -182,51 +190,80 @@ toggleCheckIn pid ( chkin, found ) =
     ( newChkin, newFound )
 
 
+appendIf : Bool -> List a -> List a -> List a
+appendIf e f g =
+    if e then
+        List.append g f
+    else
+        g
+
+
+include : List a -> List a -> List a
+include a b =
+    List.append b a
+
+
 view : Config -> Model -> Html Msg
 view cfg mdl =
     let
-        includeCDN =
-            if cfg.debug then
-                [ CDN.stylesheet ]
-            else
-                []
-    in
-    Grid.container [] <|
-        List.append
-            includeCDN
+        foundRow =
+            [ Grid.row []
+                [ Grid.col [ Col.xs12 ]
+                    [ h4 [] [ text "2. Select Members To Check In" ]
+                    , listPeople mdl.foundPeople
+                    ]
+                ]
+            ]
+
+        checkedInRow =
+            [ Grid.row []
+                [ Grid.col [ Col.xs12 ]
+                    [ h4 [] [ text "2. Select Members To Check In" ]
+                    , if List.isEmpty mdl.checkedIn && (not <| List.isEmpty mdl.foundPeople) then
+                        p [] [ text "You haven't selected anyone for checkin!" ]
+                      else
+                        listPeople mdl.checkedIn
+                    , hr [] []
+                    , listPeople mdl.foundPeople
+                    , hr [] []
+                    ]
+                ]
+            , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] [ newPersonButton ] ]
+            ]
+
+        titleRow =
             [ Grid.row [ Row.centerLg ]
                 [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
                     [ h1 [{- class "display-1" -}] [ text cfg.eventName ]
                     , p [] [ text "Mountain View Church" ]
                     ]
                 ]
-            , Grid.row []
-                [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ]
-            , Grid.row []
+            ]
+
+        errorRow =
+            [ Grid.row [] [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ] ]
+
+        personSearchRow =
+            [ Grid.row []
                 [ Grid.col []
-                    [ h4 [] [ text "Find Your Family..." ]
+                    [ h4 [] [ text "1. Find Your Family" ]
                     , personSearch
                     ]
                 ]
-            , Grid.row [] <|
-                if List.isEmpty mdl.foundPeople then
+            , Grid.row []
+                [ Grid.col []
                     []
-                else
-                    [ Grid.col [ Col.xs12 ]
-                        [ h4 [] [ text "Select Members To Check In" ]
-                        , listPeople mdl.foundPeople
-                        ]
-                    ]
-            , Grid.row [] <|
-                if List.isEmpty mdl.checkedIn then
-                    []
-                else
-                    [ Grid.col [ Col.xs12 ]
-                        [ h4 [] [ text "Checked In" ]
-                        , listPeople mdl.checkedIn
-                        ]
-                    ]
+                ]
             ]
+
+        body =
+            []
+                |> include titleRow
+                |> include errorRow
+                |> include personSearchRow
+                |> include checkedInRow
+    in
+    Grid.container [] body
 
 
 personSearch : Html Msg
@@ -240,17 +277,17 @@ personSearch =
                     |> InputGroup.view
                 ]
             ]
-        , Form.row [ Row.centerXs ]
-            [ Form.col [ Col.xsAuto ]
-                [ Button.button
-                    [ Button.primary
-                    , Button.large
-                    , Button.onClick NewPersonSelect
-                    ]
-                    [ text "I can't find us" ]
-                ]
-            ]
         ]
+
+
+newPersonButton : Html Msg
+newPersonButton =
+    Button.button
+        [ Button.outlineSecondary
+        , Button.large
+        , Button.onClick NewPersonSelect
+        ]
+        [ text "I can't find us" ]
 
 
 deb1 : (a -> Msg) -> (a -> Msg)
@@ -309,18 +346,26 @@ listPeople =
     List.map (person >> List.singleton >> ListGroup.li []) >> ListGroup.ul
 
 
+checkInButton : Html Msg
+checkInButton =
+    Button.button [ Button.primary, Button.large, Button.onClick CheckIn ] [ text "Check Us In!" ]
+
+
 person : Breeze.Person -> Html Msg
 person p =
+    let
+        icon =
+            if p.checkedIn then
+                class "far fa-check-square text-success"
+            else
+                class "far fa-square"
+    in
     a [ onClick (ToggleAttending p.pid) ]
         [ Grid.containerFluid []
             [ Grid.row []
                 [ Grid.col [ Col.xs5 ] [ text p.firstName ]
                 , Grid.col [ Col.xs5 ] [ text p.lastName ]
-                , Grid.col [ Col.xs2, Col.pushXs5 ] <|
-                    if p.checkedIn then
-                        [ Html.i [ class "fas fa-check" ] [] ]
-                    else
-                        []
+                , Grid.col [ Col.xs2, Col.pushXs5 ] [ Html.i [ icon ] [] ]
                 ]
             ]
         ]
