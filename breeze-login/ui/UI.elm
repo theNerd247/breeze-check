@@ -15,6 +15,7 @@ import Html as Html
     exposing
         ( Html
         , a
+        , br
         , button
         , div
         , h1
@@ -218,17 +219,16 @@ view cfg mdl =
         checkedInRow =
             [ Grid.row []
                 [ Grid.col [ Col.xs12 ]
-                    [ h4 [] [ text "2. Select Members To Check In" ]
+                    [ h4 [] [ text "2. Select Members" ]
                     , if List.isEmpty mdl.checkedIn && (not <| List.isEmpty mdl.foundPeople) then
-                        p [] [ text "You haven't selected anyone for checkin!" ]
+                        p [] [ text "You haven't selected anyone for check-in" ]
                       else
                         listPeople mdl.checkedIn
-                    , hr [] []
-                    , listPeople mdl.foundPeople
-                    , hr [] []
                     ]
                 ]
-            , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] [ newPersonButton ] ]
+            , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] ([] |> appendIf (not <| List.isEmpty mdl.checkedIn) [ br [] [], checkInButton, hr [] [] ]) ]
+            , Grid.row [] [ Grid.col [] [ listPeople mdl.foundPeople, br [] [] ] ]
+            , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] ([] |> appendIf (not <| List.isEmpty mdl.foundPeople) [ newPersonButton, hr [] [] ]) ]
             ]
 
         titleRow =
@@ -348,7 +348,7 @@ listPeople =
 
 checkInButton : Html Msg
 checkInButton =
-    Button.button [ Button.primary, Button.large, Button.onClick CheckIn ] [ text "Check Us In!" ]
+    Button.button [ Button.outlineSuccess, Button.large, Button.onClick CheckIn ] [ text "3. We're Ready! Let's Go!" ]
 
 
 person : Breeze.Person -> Html Msg
