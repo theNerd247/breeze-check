@@ -10,6 +10,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
 import Data as Breeze
+import Debounce as Debounce
 import ErrorMsg as Err
 import Html as Html
     exposing
@@ -30,6 +31,7 @@ import Html.Attributes exposing (class, for)
 import Html.Events exposing (onClick)
 import Http as Http
 import Json.Decode as Decode
+import Time exposing (..)
 
 
 type alias Model =
@@ -37,6 +39,7 @@ type alias Model =
     , foundPeople : List Breeze.Person
     , checkedIn : List Breeze.Person
     , errors : Err.Errors
+    , debounce : Debounce.State
     }
 
 
@@ -48,12 +51,12 @@ type alias Config =
 
 
 type Msg
-    = LastNameSearch
-    | UpdateLastName String
+    = UpdateLastName String
     | FoundPeople (Result Http.Error (Result Breeze.BreezeException (List Breeze.Person)))
     | ToggleAttending String
     | ErrorMessage Err.Msg
     | NewPersonSelect
+    | Deb (Debounce.Msg Msg)
 
 
 main : Program Never Model Msg
@@ -77,6 +80,7 @@ model =
     , checkedIn = []
     , searchLastName = ""
     , errors = Err.model
+    , debounce = Debounce.init
     }
 
 
@@ -86,6 +90,11 @@ config =
     , apiBase = "" -- "http://10.0.0.100:8080"
     , debug = False
     }
+
+
+debounceCfg : Debounce.Config Model Msg
+debounceCfg =
+    Debounce.config .debounce (\dmdl s -> { dmdl | debounce = s }) Deb (1 * second)
 
 
 newError : String -> Model -> Model
@@ -107,10 +116,7 @@ update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update cfg msg mdl =
     case msg of
         UpdateLastName s ->
-            ( { mdl | searchLastName = s }, Cmd.none )
-
-        LastNameSearch ->
-            ( mdl, findPeople cfg mdl.searchLastName )
+            ( { mdl | searchLastName = s }, findPeople cfg s )
 
         FoundPeople r ->
             ( mdl
@@ -135,6 +141,9 @@ update cfg msg mdl =
 
         NewPersonSelect ->
             ( mdl, Cmd.none )
+
+        Deb a ->
+            Debounce.update debounceCfg a mdl
 
 
 updateFoundPeople : List Breeze.Person -> Model -> Model
@@ -226,19 +235,7 @@ personSearch =
         [ Form.row []
             [ Form.col []
                 [ InputGroup.config
-                    (InputGroup.text [ Input.placeholder "Last Name", Input.onInput UpdateLastName ])
-                    |> InputGroup.successors
-                        [ InputGroup.button
-                            [ Button.success
-                            , Button.large
-                            , Button.onClick LastNameSearch
-                            ]
-                            [ Html.i
-                                [ class "fas fa-search"
-                                ]
-                                []
-                            ]
-                        ]
+                    (InputGroup.text [ Input.placeholder "Last Name", Input.onInput (deb1 UpdateLastName) ])
                     |> InputGroup.large
                     |> InputGroup.view
                 ]
@@ -256,6 +253,11 @@ personSearch =
         ]
 
 
+deb1 : (a -> Msg) -> (a -> Msg)
+deb1 =
+    Debounce.debounce1 debounceCfg
+
+
 sendApiGetRequest : Config -> String -> Decode.Decoder a -> (Result Http.Error a -> Msg) -> Cmd Msg
 sendApiGetRequest cfg path decoder f =
     let
@@ -266,7 +268,7 @@ sendApiGetRequest cfg path decoder f =
                 , url = cfg.apiBase ++ path
                 , body = Http.emptyBody
                 , expect = Http.expectJson decoder
-                , timeout = Just 3000
+                , timeout = Just <| 8 * second
                 , withCredentials = False
                 }
     in
@@ -283,10 +285,13 @@ withBreezeErrDecoder d =
 
 findPeople : Config -> String -> Cmd Msg
 findPeople cfg lastName =
-    sendApiGetRequest cfg
-        ("findperson?lastname=" ++ lastName)
-        (withBreezeErrDecoder decodePersons)
-        FoundPeople
+    if String.isEmpty lastName then
+        Cmd.none
+    else
+        sendApiGetRequest cfg
+            ("findperson?lastname=" ++ lastName)
+            (withBreezeErrDecoder decodePersons)
+            FoundPeople
 
 
 decodePersons : Decode.Decoder (List Breeze.Person)
