@@ -1,4 +1,4 @@
-resolver: lts-9.20
+resolver: lts-10.4
 
 packages:
 - '.'
@@ -12,6 +12,8 @@ packages:
     - simple-string
   extra-dep: true
 
+allow-newer: true
+
 extra-deps:
   - snap-1.0.0.2
   - heist-1.0.1.0
@@ -19,7 +21,7 @@ extra-deps:
   - xmlhtml-0.2.5.1
 
 nix:
-  enable: true
+  enable: false
   packages: 
     - zlib
     - libcxx
@@ -27,3 +29,4 @@ nix:
     - gmp
     - gcc
     - ncurses
+    - cabal-install

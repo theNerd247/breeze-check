@@ -11,6 +11,7 @@ import Control.Lens
 import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
+import Data.IxSet
 import Data.Data
 import Elm hiding (Options, fieldLabelModifier, defaultOptions)
 import Data.Default
@@ -34,6 +35,7 @@ type ChurchInfo = String
 type Phone = String
 type Email = String
 type EventId = String
+type CheckInGroupId = String
 
 customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix }
 
@@ -50,6 +52,7 @@ data Breeze = Breeze
   { _apiKey  :: String
   , _eventId :: String
   , _apiUrl :: String
+  , _attendanceDB :: IxSet AttendanceRecord
   } deriving (Show, Data, Generic)
 
 makeClassy ''Breeze
@@ -109,7 +112,10 @@ instance FromJSON AttendanceRecord where
     <$> (o .: "check_out")
     <*> (o .: "person_id")
 
+data CheckInGroup = CheckInGroup
+  { _checkInPersonIds :: [PersonId]
+  , _checkInGroupId :: CheckInGroupId
+  } deriving (Show, Data, Generic, ElmType)
+
 isCheckedIn :: Getter AttendanceRecord Bool
 isCheckedIn = to $ \a -> a^.checkOutTime /= "0000-00-00 00:00:00"
-
-
