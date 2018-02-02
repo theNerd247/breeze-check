@@ -7,7 +7,7 @@
 
 module Data.Breeze where
 
-import Control.Lens
+import Control.Lens hiding (Indexable)
 import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
@@ -28,14 +28,14 @@ New Family  : {lastname, [firstname], currentChurch, email, phone?, address} -> 
 
 -}
 
-type PersonId = String
-type LastName = String
-type FirstName = String
+type CheckInGroupId = String
 type ChurchInfo = String
-type Phone = String
 type Email = String
 type EventId = String
-type CheckInGroupId = String
+type FirstName = String
+type LastName = String
+type PersonId = String
+type Phone = String
 
 customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix }
 
@@ -46,18 +46,39 @@ data BreezeException = BreezeException { breezeErr :: String }
   deriving (Show, Generic, ElmType)
 
 instance Exception BreezeException
+
 instance ToJSON BreezeException
+
+data AttendanceRecord = AttendanceRecord
+  { _checkOutTime :: String
+  , _aPid :: PersonId
+  } deriving (Show, Eq, Ord, Data, Generic)
+
+makeLenses ''AttendanceRecord
+
+isCheckedIn :: Getter AttendanceRecord Bool
+isCheckedIn = to $ \a -> a^.checkOutTime /= "0000-00-00 00:00:00"
+
+instance FromJSON AttendanceRecord where
+  parseJSON (Object o) = AttendanceRecord
+    <$> (o .: "check_out")
+    <*> (o .: "person_id")
+
+instance Indexable AttendanceRecord where
+  empty = ixSet 
+    [ ixFun $ (:[]) . (view isCheckedIn)
+    , ixFun $ (:[]) . (view aPid)
+    ]
 
 data Breeze = Breeze
   { _apiKey  :: String
-  , _eventId :: String
+  , _eventId :: Maybe EventId
+  , _eventName :: Maybe String
   , _apiUrl :: String
   , _attendanceDB :: IxSet AttendanceRecord
   } deriving (Show, Data, Generic)
 
 makeClassy ''Breeze
-
-instance Default Breeze
 
 data Person = Person
   { _pid       :: PersonId
@@ -99,23 +120,8 @@ data CheckinDirection = In | Out
 instance Show CheckinDirection where
   show In = "in"
   show Out = "out"
-
-data AttendanceRecord = AttendanceRecord
-  { _checkOutTime :: String
-  , _aPid :: PersonId
-  } deriving (Show, Data, Generic)
-
-makeLenses ''AttendanceRecord
-
-instance FromJSON AttendanceRecord where
-  parseJSON (Object o) = AttendanceRecord
-    <$> (o .: "check_out")
-    <*> (o .: "person_id")
-
 data CheckInGroup = CheckInGroup
   { _checkInPersonIds :: [PersonId]
   , _checkInGroupId :: CheckInGroupId
   } deriving (Show, Data, Generic, ElmType)
 
-isCheckedIn :: Getter AttendanceRecord Bool
-isCheckedIn = to $ \a -> a^.checkOutTime /= "0000-00-00 00:00:00"

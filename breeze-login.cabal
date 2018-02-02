@@ -25,14 +25,15 @@ executable breeze-login
                      , elm-export
                      , exceptions
                      , fast-logger
-                     , ixset
                      , http-conduit
+                     , ixset
                      , lens
                      , mtl
-                     --, simple
-                     --, simple-aeson
-                     --, simple-snap
-                     --, simple-string
+                     , simple
+                     , simple-aeson
+                     , simple-snap
+                     , simple-string
                      , snap
                      , snap-core
                      , text
+                     , time

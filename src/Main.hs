@@ -6,7 +6,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-import Breeze
 import Control.Lens hiding ((.=))
 import Control.Monad.Catch (catch)
 import Control.Monad.Reader
@@ -26,6 +25,7 @@ import Simple.Aeson (runAesonApi, fromBody)
 import Simple.Snap
 import Simple.String (fromParam, skipParse)
 import Snap
+import Snap.Snaplet.Breeze
 import Snap.Snaplet.FastLogger
 import Snap.Snaplet.Heist
 import Snap.Util.FileServe
@@ -48,12 +48,6 @@ instance HasBreeze App where
 
 instance HasHeist App where
   heistLens = subSnaplet heist 
-
-defaultBreezeConfig :: Breeze
-defaultBreezeConfig = def
-  & apiKey .~ "e6e14e8a7e79bb7c62173b9879bacaee"
-  & apiUrl .~ "https://mountainviewmarietta.breezechms.com/api"
-  & eventId .~ "36862980"
 
 appInit :: SnapletInit App App
 appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do

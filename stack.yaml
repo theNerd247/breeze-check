@@ -1,4 +1,4 @@
-resolver: lts-10.4
+resolver: lts-9.2
 
 packages:
 - '.'
@@ -19,6 +19,8 @@ extra-deps:
   - heist-1.0.1.0
   - map-syntax-0.2.0.2
   - xmlhtml-0.2.5.1
+  - ixset-1.0.7
+  - syb-with-class-0.6.1.8
 
 nix:
   enable: false
