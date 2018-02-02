@@ -12,6 +12,8 @@ import Data.Aeson hiding (Error)
 import Data.Aeson.Lens
 import Data.Breeze
 import Data.ByteString.Lazy.Char8 (toStrict)
+import Data.Default
+import Data.Foldable (fold)
 import Data.IxSet
 import Data.Proxy
 import Data.Time
@@ -25,6 +27,7 @@ data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
 data Checkin = Checkin EventId PersonId CheckinDirection
 data NewPerson = NewPerson FirstName LastName Address Email (Maybe ChurchInfo) (Maybe Phone)
+data GetEvents = GetEvents
 
 instance FromJSON NewPerson where
   parseJSON (Object o) = NewPerson
@@ -38,11 +41,11 @@ instance FromJSON NewPerson where
 
 class BreezeApi a where
   type BreezeResponse a :: *
-  runBreeze :: (HasBreeze v) => a -> Handler b v (BreezeResponse a)
+  runBreeze :: (MonadIO m) => Breeze -> a -> m (Either HTTP.JSONException (BreezeResponse a))
 
 instance BreezeApi FindPeople where
   type BreezeResponse FindPeople = [Person]
-  runBreeze (FindPeople lname maddr) = runApiReq "/people" $
+  runBreeze b (FindPeople lname maddr) = runApiReq b "/people" $
     [ ("details", Just . Char8.pack . show $ 0)
     , ("filter_json", Just . toStrict . encode $ object
         [ "189467778_last"   .= lname
@@ -55,7 +58,7 @@ instance BreezeApi FindPeople where
 
 instance BreezeApi GetAttendance where
   type BreezeResponse GetAttendance = [AttendanceRecord]
-  runBreeze (GetAttendance eid) = runApiReq "/events/attendance/list"
+  runBreeze b (GetAttendance eid) = runApiReq b "/events/attendance/list"
     [ ("instance_id", Just . Char8.pack $ eid)
     , ("details",     Just "false")
     , ("type",        Just "person")
@@ -63,7 +66,7 @@ instance BreezeApi GetAttendance where
   
 instance BreezeApi Checkin where
   type BreezeResponse Checkin = Value
-  runBreeze (Checkin eid pid chkInDir) = runApiReq "/events/attendance/add"
+  runBreeze b (Checkin eid pid chkInDir) = runApiReq b "/events/attendance/add"
     [ ("person_id"   , Just . Char8.pack $ pid)
     , ("instance_id" , Just . Char8.pack $ eid)
     , ("direction"   , Just . Char8.pack . show $ chkInDir)
@@ -71,7 +74,7 @@ instance BreezeApi Checkin where
 
 instance BreezeApi NewPerson where
   type BreezeResponse NewPerson = Person
-  runBreeze (NewPerson f l a email mcinfo mphone) =  runApiReq "/people/add"
+  runBreeze b (NewPerson f l a email mcinfo mphone) = runApiReq b "/people/add"
     [ ("first"       , Just . Char8.pack $ f)
     , ("last"        , Just . Char8.pack $ l)
     , ("fields_json" , Just . toStrict . encode $
@@ -93,7 +96,7 @@ instance BreezeApi NewPerson where
         , "details"        .= d
         ]
 
-runApiReq' config path params = do
+runApiReq config path params = do
   let req = HTTP.defaultRequest & 
           HTTP.setRequestPath (Char8.pack $ (config^.apiUrl) ++ path)
         . HTTP.setRequestMethod "GET"
@@ -102,24 +105,28 @@ runApiReq' config path params = do
         . HTTP.setRequestQueryString params
   HTTP.getResponseBody <$> HTTP.httpJSONEither req
 
-runApiReq path params = do 
+throwEither :: (MonadThrow m, Exception e) => Either e a -> m a
+throwEither = either throwM return
+
+runBreeze' a = do 
   config <- use breeze
-  r <- runApiReq' config path params
-  either throwM return $ r
+  runBreeze config a
 
-getAttendance :: (HasBreeze v, HasFastLogger b) => Handler b v ()
-getAttendance = do
-  eid <- getEid
-  as <- runBreeze $ GetAttendance eid
-  assign (breeze.attendanceDB) (fromList as)
+getAttendance' :: (MonadIO m) => Breeze -> m (Either HTTP.JSONException Breeze)
+getAttendance' config = maybe (return $ Right config) getAs $ config^.eventId
+  where
+    getAs eid = do
+      eas <- runBreeze config $ GetAttendance eid
+      return $ fmap (mergeAttendance . filter (\p -> (p^.aCheckedIn) == True)) eas
+      where
+        mergeAttendance :: [AttendanceRecord] -> Breeze
+        mergeAttendance as = config & personDB %~ (fold $ updatePerson <$> as)
 
-{-signIn :: (HasBreeze v, HasFastLogger b) => [PersonId] -> Handler b v ()-}
-{-signIn = do-}
-
-getEid :: (HasBreeze v) => Handler b v EventId
-getEid = use (breeze.eventId) >>= maybe 
-  (throwM $ BreezeException "there is no configured event")
-  return
+        updatePerson :: AttendanceRecord -> IxSet Person -> IxSet Person
+        updatePerson p db = maybe 
+          (db)
+          (\x -> updateIx (x^.pid) (x & checkedIn .~ True) db)
+          (getOne $ db @= (p^.aPid) @= False)
 
 defaultBreeze :: Breeze
 defaultBreeze = Breeze
@@ -127,7 +134,7 @@ defaultBreeze = Breeze
   , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
   , _eventId = Nothing
   , _eventName = Nothing
-  , _attendanceDB = empty
+  , _personDB = empty
   }
 
 breezeInit :: SnapletInit b Breeze
@@ -135,9 +142,12 @@ breezeInit = makeSnaplet "breeze checkin" "a breeze chms mobile friendly checkin
   now <- liftIO getCurrentTime
   let s = formatTime defaultTimeLocale "%F" now
   let e = formatTime defaultTimeLocale "%F" now
-  es <- runApiReq' defaultBreeze "events" [("start", Just . Char8.pack $ s)
-                           , ("end", Just . Char8.pack $ e)
-                           ]
-  return $ defaultBreeze 
-    & eventId .~ (es^. _Right . nth 0 . key "id")
-    & eventName .~ (es^. _Right . nth 0 . key "name")
+  es <- runApiReq defaultBreeze "events" 
+    [("start", Just . Char8.pack $ s)
+    , ("end", Just . Char8.pack $ e)
+    ]
+  let conf = defaultBreeze 
+              & eventId .~ (es^. _Right . nth 0 . key "id") 
+              & eventName .~ (es^. _Right . nth 0 . key "name")
+  newConf <- getAttendance' conf
+  either (const $ return conf) return $ newConf

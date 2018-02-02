@@ -11,10 +11,10 @@ import Control.Lens hiding (Indexable)
 import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
-import Data.IxSet
 import Data.Data
-import Elm hiding (Options, fieldLabelModifier, defaultOptions)
 import Data.Default
+import Data.IxSet
+import Elm hiding (Options, fieldLabelModifier, defaultOptions)
 import GHC.Generics hiding (to)
 
 {- Breeze Api Interface
@@ -28,7 +28,7 @@ New Family  : {lastname, [firstname], currentChurch, email, phone?, address} -> 
 
 -}
 
-type CheckInGroupId = String
+type CheckInGroupId = Int
 type ChurchInfo = String
 type Email = String
 type EventId = String
@@ -50,44 +50,39 @@ instance Exception BreezeException
 instance ToJSON BreezeException
 
 data AttendanceRecord = AttendanceRecord
-  { _checkOutTime :: String
+  { _aCheckedIn :: Bool
   , _aPid :: PersonId
   } deriving (Show, Eq, Ord, Data, Generic)
 
 makeLenses ''AttendanceRecord
 
-isCheckedIn :: Getter AttendanceRecord Bool
-isCheckedIn = to $ \a -> a^.checkOutTime /= "0000-00-00 00:00:00"
-
 instance FromJSON AttendanceRecord where
   parseJSON (Object o) = AttendanceRecord
-    <$> (o .: "check_out")
+    <$> (o .: "check_out" >>= return . (/= ("0000-00-00 00:00:00" :: String)))
     <*> (o .: "person_id")
-
-instance Indexable AttendanceRecord where
-  empty = ixSet 
-    [ ixFun $ (:[]) . (view isCheckedIn)
-    , ixFun $ (:[]) . (view aPid)
-    ]
-
-data Breeze = Breeze
-  { _apiKey  :: String
-  , _eventId :: Maybe EventId
-  , _eventName :: Maybe String
-  , _apiUrl :: String
-  , _attendanceDB :: IxSet AttendanceRecord
-  } deriving (Show, Data, Generic)
-
-makeClassy ''Breeze
 
 data Person = Person
   { _pid       :: PersonId
   , _firstName :: FirstName
   , _lastName  :: LastName
   , _checkedIn :: Bool
-  } deriving (Show, Data, Generic, ElmType)
+  , _groupId   :: Maybe CheckInGroupId
+  } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
+
+newtype FName = FName String deriving (Eq, Ord, Data)
+
+newtype LName = LName String deriving (Eq, Ord, Data)
+
+instance Indexable Person where
+  empty = ixSet 
+    [ ixFun $ (:[]) . (view checkedIn)
+    , ixFun $ (:[]) . (view pid)
+    , ixFun $ (:[]) . (view groupId)
+    , ixFun $ (:[]) . FName . (view firstName)
+    , ixFun $ (:[]) . LName . (view lastName)
+    ]
 
 instance FromJSON Person where
   parseJSON v@(Object o) = Person
@@ -95,6 +90,7 @@ instance FromJSON Person where
     <*> o .: "first_name" 
     <*> o .: "last_name" 
     <*> pure False
+    <*> pure Nothing
   parseJSON _ = mempty
 
 instance ToJSON Person where
@@ -120,8 +116,18 @@ data CheckinDirection = In | Out
 instance Show CheckinDirection where
   show In = "in"
   show Out = "out"
+
 data CheckInGroup = CheckInGroup
   { _checkInPersonIds :: [PersonId]
   , _checkInGroupId :: CheckInGroupId
   } deriving (Show, Data, Generic, ElmType)
 
+data Breeze = Breeze
+  { _apiKey  :: String
+  , _eventId :: Maybe EventId
+  , _eventName :: Maybe String
+  , _apiUrl :: String
+  , _personDB :: IxSet Person
+  } deriving (Show, Data, Generic)
+
+makeClassy ''Breeze
