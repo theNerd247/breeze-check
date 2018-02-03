@@ -37,3 +37,4 @@ executable breeze-login
                      , snap-core
                      , text
                      , time
+                     , transformers

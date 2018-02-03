@@ -8,6 +8,7 @@ import Control.Lens hiding ((.=))
 import Control.Monad.Catch hiding (Handler)
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Control.Monad.Trans.Except
 import Data.Aeson hiding (Error)
 import Data.Aeson.Lens
 import Data.Breeze
@@ -16,11 +17,14 @@ import Data.Default
 import Data.Foldable (fold)
 import Data.IxSet
 import Data.Proxy
+import Data.Text (Text)
 import Data.Time
+import Simple.Aeson (runAesonApi, fromBody)
 import Simple.Snap
+import Simple.String (fromParam, skipParse)
 import Snap
-import Snap.Snaplet.FastLogger
 import qualified Data.ByteString.Char8 as Char8
+import qualified Data.List as List
 import qualified Network.HTTP.Simple as HTTP
 
 data FindPeople = FindPeople LastName (Maybe Address)
@@ -28,6 +32,9 @@ data GetAttendance = GetAttendance EventId
 data Checkin = Checkin EventId PersonId CheckinDirection
 data NewPerson = NewPerson FirstName LastName Address Email (Maybe ChurchInfo) (Maybe Phone)
 data GetEvents = GetEvents
+
+class HasBreezeApp b where
+  breezeLens :: SnapletLens b Breeze
 
 instance FromJSON NewPerson where
   parseJSON (Object o) = NewPerson
@@ -41,7 +48,7 @@ instance FromJSON NewPerson where
 
 class BreezeApi a where
   type BreezeResponse a :: *
-  runBreeze :: (MonadIO m) => Breeze -> a -> m (Either HTTP.JSONException (BreezeResponse a))
+  runBreeze :: (MonadIO m, MonadThrow m) => Breeze -> a -> m (Either HTTP.JSONException (BreezeResponse a))
 
 instance BreezeApi FindPeople where
   type BreezeResponse FindPeople = [Person]
@@ -97,22 +104,21 @@ instance BreezeApi NewPerson where
         ]
 
 runApiReq config path params = do
-  let req = HTTP.defaultRequest & 
-          HTTP.setRequestPath (Char8.pack $ (config^.apiUrl) ++ path)
-        . HTTP.setRequestMethod "GET"
-        . HTTP.addRequestHeader "Content-Type" "application/json"
-        . HTTP.addRequestHeader "Api-Key" (Char8.pack $ config^.apiKey)
-        . HTTP.setRequestQueryString params
-  HTTP.getResponseBody <$> HTTP.httpJSONEither req
-
-throwEither :: (MonadThrow m, Exception e) => Either e a -> m a
-throwEither = either throwM return
+  let modReq = HTTP.addRequestHeader "Content-Type" "application/json"
+            . HTTP.addRequestHeader "Api-Key" (Char8.pack $ config^.apiKey)
+            . HTTP.setRequestQueryString params
+  req <- HTTP.parseRequest ((config^.apiUrl) ++ (addRoot path))
+  HTTP.getResponseBody <$> HTTP.httpJSONEither (modReq req)
+  where
+    addRoot xs@('/':_) = xs
+    addRoot xs = '/':xs
 
 runBreeze' a = do 
   config <- use breeze
-  runBreeze config a
+  x <- runBreeze config a
+  either throwM return $ x
 
-getAttendance' :: (MonadIO m) => Breeze -> m (Either HTTP.JSONException Breeze)
+getAttendance' :: (MonadIO m, MonadThrow m) => Breeze -> m (Either HTTP.JSONException Breeze)
 getAttendance' config = maybe (return $ Right config) getAs $ config^.eventId
   where
     getAs eid = do
@@ -128,6 +134,18 @@ getAttendance' config = maybe (return $ Right config) getAs $ config^.eventId
           (\x -> updateIx (x^.pid) (x & checkedIn .~ True) db)
           (getOne $ db @= (p^.aPid) @= False)
 
+getPersonsHandle :: (HasBreezeApp b) => Handler b v ()
+getPersonsHandle = withTop breezeLens $ runAesonApi $ do 
+  lname <- skipParse <$> fromParam "lastname"
+  persons <- runBreeze' $ FindPeople lname Nothing
+  return $ filter (\p -> List.isPrefixOf lname $ p^.lastName ) persons
+
+addPersonHandle :: (HasBreezeApp b)  => Handler b v ()
+addPersonHandle = withTop breezeLens $ runAesonApi $ do
+  newPersonInfo <- fromBody
+  person <- runBreeze' (newPersonInfo :: NewPerson)
+  return person
+
 defaultBreeze :: Breeze
 defaultBreeze = Breeze
   { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
@@ -137,17 +155,30 @@ defaultBreeze = Breeze
   , _personDB = empty
   }
 
-breezeInit :: SnapletInit b Breeze
-breezeInit = makeSnaplet "breeze checkin" "a breeze chms mobile friendly checkin system" Nothing $ do
-  now <- liftIO getCurrentTime
-  let s = formatTime defaultTimeLocale "%F" now
-  let e = formatTime defaultTimeLocale "%F" now
-  es <- runApiReq defaultBreeze "events" 
-    [("start", Just . Char8.pack $ s)
-    , ("end", Just . Char8.pack $ e)
-    ]
-  let conf = defaultBreeze 
-              & eventId .~ (es^. _Right . nth 0 . key "id") 
-              & eventName .~ (es^. _Right . nth 0 . key "name")
-  newConf <- getAttendance' conf
-  either (const $ return conf) return $ newConf
+initEvent :: Breeze -> IO (Either Text Breeze)
+initEvent config = runExceptT $ do
+  es <- getEs
+  eid <- maybe (throwE "Couldn't fetch event id") return $ es^. nth 0 . key "id"
+  ename <- maybe (throwE "Couldn't fetch event name") return $ es^. nth 0 . key "name"
+  withExceptT (const "Failed to get attendance") . ExceptT $ getAttendance' $ config 
+              & eventId .~ (Just eid) 
+              & eventName .~ (Just ename)
+  where
+    getEs :: ExceptT Text IO (Maybe Value)
+    getEs = withExceptT (const "Failed to fetch event list") $ do
+      now <- liftIO getCurrentTime
+      let s = formatTime defaultTimeLocale "%F" (now {utctDay = addDays (-1) (utctDay now)})
+      let e = formatTime defaultTimeLocale "%F" now
+      ExceptT $ runApiReq config "/events" 
+          [("start", Just . Char8.pack $ s)
+          , ("end", Just . Char8.pack $ e)
+          ]
+ 
+
+initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
+initBreeze = makeSnaplet "breeze checkin" "a breeze chms mobile friendly checkin system" Nothing $ do
+  addRoutes 
+    [ ("findperson", getPersonsHandle)
+    ] 
+  addPostInitHook initEvent
+  return defaultBreeze
