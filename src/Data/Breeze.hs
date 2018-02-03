@@ -124,10 +124,11 @@ data CheckInGroup = CheckInGroup
 
 data Breeze = Breeze
   { _apiKey  :: String
-  , _eventId :: Maybe EventId
-  , _eventName :: Maybe String
+  , _eventId :: EventId
+  , _eventName :: String
   , _apiUrl :: String
   , _personDB :: IxSet Person
+  , _checkInGroupCounter :: Int
   } deriving (Show, Data, Generic)
 
 makeClassy ''Breeze

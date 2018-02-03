@@ -9,6 +9,7 @@ import Control.Monad.Catch hiding (Handler)
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.Trans.Except
+import Control.Monad (forM)
 import Data.Aeson hiding (Error)
 import Data.Aeson.Lens
 import Data.Breeze
@@ -29,7 +30,7 @@ import qualified Network.HTTP.Simple as HTTP
 
 data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
-data Checkin = Checkin EventId PersonId CheckinDirection
+data Checkin = Checkin EventId PersonId 
 data NewPerson = NewPerson FirstName LastName Address Email (Maybe ChurchInfo) (Maybe Phone)
 data GetEvents = GetEvents
 
@@ -72,11 +73,11 @@ instance BreezeApi GetAttendance where
     ]
   
 instance BreezeApi Checkin where
-  type BreezeResponse Checkin = Value
-  runBreeze b (Checkin eid pid chkInDir) = runApiReq b "/events/attendance/add"
+  type BreezeResponse Checkin = Bool
+  runBreeze b (Checkin eid pid) = runApiReq b "/events/attendance/add"
     [ ("person_id"   , Just . Char8.pack $ pid)
     , ("instance_id" , Just . Char8.pack $ eid)
-    , ("direction"   , Just . Char8.pack . show $ chkInDir)
+    , ("direction"   , Just "in")
     ]
 
 instance BreezeApi NewPerson where
@@ -119,20 +120,19 @@ runBreeze' a = do
   either throwM return $ x
 
 getAttendance' :: (MonadIO m, MonadThrow m) => Breeze -> m (Either HTTP.JSONException Breeze)
-getAttendance' config = maybe (return $ Right config) getAs $ config^.eventId
+getAttendance' config = do
+  let eid = config^.eventId
+  eas <- runBreeze config $ GetAttendance eid
+  return $ fmap (mergeAttendance . filter (\p -> (p^.aCheckedIn) == True)) eas
   where
-    getAs eid = do
-      eas <- runBreeze config $ GetAttendance eid
-      return $ fmap (mergeAttendance . filter (\p -> (p^.aCheckedIn) == True)) eas
-      where
-        mergeAttendance :: [AttendanceRecord] -> Breeze
-        mergeAttendance as = config & personDB %~ (fold $ updatePerson <$> as)
+    mergeAttendance :: [AttendanceRecord] -> Breeze
+    mergeAttendance as = config & personDB %~ (fold $ updatePerson <$> as)
 
-        updatePerson :: AttendanceRecord -> IxSet Person -> IxSet Person
-        updatePerson p db = maybe 
-          (db)
-          (\x -> updateIx (x^.pid) (x & checkedIn .~ True) db)
-          (getOne $ db @= (p^.aPid) @= False)
+    updatePerson :: AttendanceRecord -> IxSet Person -> IxSet Person
+    updatePerson p db = maybe 
+      (db)
+      (\x -> updateIx (x^.pid) (x & checkedIn .~ True) db)
+      (getOne $ db @= (p^.aPid) @= False)
 
 getPersonsHandle :: (HasBreezeApp b) => Handler b v ()
 getPersonsHandle = withTop breezeLens $ runAesonApi $ do 
@@ -146,13 +146,43 @@ addPersonHandle = withTop breezeLens $ runAesonApi $ do
   person <- runBreeze' (newPersonInfo :: NewPerson)
   return person
 
+updatePerson :: (Person -> Person) -> Person -> IxSet Person -> IxSet Person
+updatePerson f p = updateIx (p^.pid) (f p)
+
+userCheckInHandle :: (HasBreezeApp b) => Handler b v ()
+userCheckInHandle = withTop breezeLens $ runAesonApi $ do
+  persons <- fromBody
+  db <- use personDB
+  checkInGroupCounter += 1
+  gid <- use checkInGroupCounter
+  let notCheckedIn = toList $ db @= False @= (Nothing :: Maybe CheckInGroupId) @+ (_pid <$> persons)
+  personDB %= (fold $ updatePerson (set groupId $ Just gid) <$> notCheckedIn)
+  return $ toDigits gid
+  where
+    toDigits :: Int -> Int
+    toDigits = undefined
+
+approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
+approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
+  gid <- skipParse <$> fromParam "groupid"
+  db <- use personDB
+  eid <- use eventId
+  let toCheckIn = toList $ db @= Just gid
+  vs <- forM toCheckIn (runBreeze' . Checkin eid . _pid)
+  case (allOf folded id vs) of
+    True -> do
+      personDB %= (fold $ updatePerson (set checkedIn True) <$> toCheckIn)
+      return True
+    False -> throwM $ BreezeException $ "Failed to check in group: " ++ (show gid)
+
 defaultBreeze :: Breeze
 defaultBreeze = Breeze
   { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
   , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
-  , _eventId = Nothing
-  , _eventName = Nothing
+  , _eventId = ""
+  , _eventName = ""
   , _personDB = empty
+  , _checkInGroupCounter = 0
   }
 
 initEvent :: Breeze -> IO (Either Text Breeze)
@@ -161,8 +191,8 @@ initEvent config = runExceptT $ do
   eid <- maybe (throwE "Couldn't fetch event id") return $ es^. nth 0 . key "id"
   ename <- maybe (throwE "Couldn't fetch event name") return $ es^. nth 0 . key "name"
   withExceptT (const "Failed to get attendance") . ExceptT $ getAttendance' $ config 
-              & eventId .~ (Just eid) 
-              & eventName .~ (Just ename)
+              & eventId .~ eid 
+              & eventName .~ ename
   where
     getEs :: ExceptT Text IO (Maybe Value)
     getEs = withExceptT (const "Failed to fetch event list") $ do
@@ -179,6 +209,7 @@ initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
 initBreeze = makeSnaplet "breeze checkin" "a breeze chms mobile friendly checkin system" Nothing $ do
   addRoutes 
     [ ("findperson", getPersonsHandle)
+    , ("checkin", userCheckInHandle)
     ] 
   addPostInitHook initEvent
   return defaultBreeze
