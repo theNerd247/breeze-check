@@ -6,7 +6,6 @@
 
 module FastLogger 
   ( initFastLogger
-  , writeLogger
   , LogType (..)
   , Logger
   , LogPriority (..)
@@ -17,19 +16,21 @@ import System.Log.FastLogger
 import System.Log.FastLogger.Date
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Data.Data
+import GHC.Generics
 import Data.ByteString.Char8 (split, pack, ByteString)
 import Data.Monoid ((<>))
 
 data LogPriority = Info | Warn | Error
-  deriving (Show)
+  deriving (Show, Data, Generic)
 
-type Logger = LogPriority -> LogStr -> IO ()
+type Logger = LogPriority -> String -> IO ()
 
 initFastLogger :: (MonadIO m) => LogType -> m (Logger, IO ())
 initFastLogger cfg = do
   tc <- liftIO $ newTimeCache "%Y-%m-%d:%T%z"
   (lgr, cleanup) <- liftIO $ newTimedFastLogger tc cfg
-  return (mkLogger lgr, cleanup)
+  return ((\prio msg -> liftIO $ (mkLogger lgr) prio (toLogStr msg)) , cleanup)
   
 mkLogger lgr p m = lgr $ \t -> toLogStr . splitLines t . fromLogStr $ m
   where
@@ -38,5 +39,3 @@ mkLogger lgr p m = lgr $ \t -> toLogStr . splitLines t . fromLogStr $ m
 prefix p t m = "\n[" <> t <> "][" <> prio <> "] - " <> m
   where
     prio = pack . show $ p
-
-writeLogger lgr prio msg = liftIO $ lgr prio (toLogStr msg)

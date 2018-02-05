@@ -16,6 +16,7 @@ import Data.Data
 import Data.Default
 import Data.IxSet
 import Elm hiding (Options, fieldLabelModifier, defaultOptions)
+import FastLogger (Logger)
 import GHC.Generics hiding (to)
 
 {- Breeze Api Interface
@@ -69,10 +70,11 @@ data Person = Person
 
 makeClassy ''Person
 
-newtype ParseAttendance = ParseAttendance { attendingPerson :: Person }
+data ParseAttendance = ParseAttendance { attendingPerson :: Person, raw :: Value }
+  deriving (Show)
 
 instance FromJSON ParseAttendance where
-  parseJSON (Object o) = fmap ParseAttendance $ Person
+  parseJSON v@(Object o) = fmap (flip ParseAttendance v) $ Person
     <$> (o .: "person_id")
     <*> (o .: "details" >>= (.: "first_name"))
     <*> (o .: "details" >>= (.: "last_name"))
@@ -82,7 +84,7 @@ instance FromJSON ParseAttendance where
       parseCheckedOut s 
         | s == "0000-00-00 00:00:00" = CheckedIn
         | otherwise = CheckedOut
-  parseJSON _ = mempty
+  parseJSON x = typeMismatch "ParseAttendance" x
 
 newtype FName = FName String deriving (Eq, Ord, Data)
 
@@ -135,6 +137,8 @@ data Breeze = Breeze
   , _eventName :: String
   , _apiUrl :: String
   , _personDB :: TVar (IxSet Person)
+  , _logger :: Logger
+  , _loggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
   } deriving (Data, Generic)
 

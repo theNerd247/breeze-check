@@ -20,11 +20,12 @@ import Data.Breeze
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Data.Default
 import Data.Foldable (fold)
-import Data.Monoid ((<>))
+import Data.Monoid ((<>), Endo(..))
 import Data.IxSet
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time
+import FastLogger
 import Data.String (fromString)
 import Simple.Aeson (runAesonApi, fromBody)
 import Simple.Snap
@@ -110,12 +111,16 @@ instance BreezeApi NewPerson where
         , "details"        .= d
         ]
 
+{-runApiReq :: (HasBreeze s, MonadThrow m, MonadIO m, FromJSON b) => s -> [Char] -> [(Char8.ByteString, Maybe Char8.ByteString)] -> m b-}
 runApiReq config path params = do
   let modReq = HTTP.addRequestHeader "Content-Type" "application/json"
             . HTTP.addRequestHeader "Api-Key" (Char8.pack $ config^.apiKey)
             . HTTP.setRequestQueryString params
-  req <- HTTP.parseRequest ((config^.apiUrl) ++ (addRoot path))
-  either throwM return =<< HTTP.getResponseBody <$> HTTP.httpJSONEither (modReq req)
+  req <- fmap modReq $ HTTP.parseRequest ((config^.apiUrl) ++ (addRoot path))
+  res <- HTTP.getResponseBody <$> HTTP.httpJSONEither req
+  let ltype = either (const Error) (const Info) res
+  liftIO $ (config^.logger) ltype (show req <> "\n" <> (show res))
+  either throwM return res 
   where
     addRoot xs@('/':_) = xs
     addRoot xs = '/':xs
@@ -128,8 +133,8 @@ getAttendance' :: (MonadIO m, MonadThrow m) => Breeze -> m ()
 getAttendance' config = flip evalStateT config $ do
   let eid = config^.eventId
   eas <- runBreeze' $ GetAttendance eid
-  withTVarWrite personDB $ fold $
-    eas^..folded.to attendingPerson & mapped %~ updateAttending
+  withTVarWrite personDB $ appEndo . fold $
+    eas^..folded.to attendingPerson & mapped %~ Endo . updateAttending
   where
     updateAttending :: Person -> IxSet Person -> IxSet Person
     updateAttending p db = maybe
@@ -226,22 +231,31 @@ eventInfoHandle = withTop breezeLens $ runAesonApi $ do
   ename <- use eventName
   return $ object [("event-id", fromString eid), ("event-name", fromString ename)]
 
-initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
-initBreeze = makeSnaplet "breeze checkin" "a breeze chms mobile friendly checkin system" Nothing $ do
-  addRoutes 
-    [ ("findperson", getPersonsHandle)
-    , ("checkin", userCheckInHandle)
-    , ("attendance", listAttendanceHandle)
-    , ("eventinfo", eventInfoHandle)
-    ] 
+mkBreeze :: (MonadIO m) => FilePath -> m Breeze
+mkBreeze fp = do
   pdb <- liftIO $ newTVarIO empty
   gcntr <- liftIO $ newTVarIO 0
-  addPostInitHook initEvent
+  (lgr, cleanup) <- liftIO $ initFastLogger (LogFileNoRotate (fp <> "/breeze.log") 1024)
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
     , _eventId = ""
     , _eventName = ""
     , _personDB = pdb
+    , _logger = lgr
+    , _loggerCleanup = cleanup
     , _checkInGroupCounter = gcntr
     }
+
+initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
+initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system" (Just $ return "breeze") $ do
+  addRoutes 
+    [ ("findperson", getPersonsHandle)
+    , ("checkin", userCheckInHandle)
+    , ("attendance", listAttendanceHandle)
+    , ("eventinfo", eventInfoHandle)
+    ] 
+  addPostInitHook initEvent
+  b <- getSnapletFilePath >>= mkBreeze  
+  onUnload (b^.loggerCleanup)
+  return b
