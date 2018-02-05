@@ -24,6 +24,7 @@ import Data.IxSet
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time
+import Data.String (fromString)
 import Simple.Aeson (runAesonApi, fromBody)
 import Simple.Snap
 import Simple.String (fromParam, skipParse)
@@ -72,7 +73,7 @@ instance BreezeApi GetAttendance where
   type BreezeResponse GetAttendance = [ParseAttendance]
   runBreeze b (GetAttendance eid) = runApiReq b "/events/attendance/list"
     [ ("instance_id", Just . Char8.pack $ eid)
-    , ("details",     Just "false")
+    , ("details",     Just "true")
     , ("type",        Just "person")
     ]
   
@@ -192,8 +193,8 @@ initEvent config = runExceptT $ do
     getEs :: ExceptT Text IO (Maybe Value)
     getEs = withExceptT (const "Failed to fetch event list") $ do
       now <- liftIO getCurrentTime
-      let s = formatTime defaultTimeLocale "%F" (now {utctDay = addDays (-1) (utctDay now)})
-      let e = formatTime defaultTimeLocale "%F" now
+      let s = formatTime defaultTimeLocale "%F" (now {utctDayTime = 0})
+      let e = formatTime defaultTimeLocale "%F" (now {utctDayTime = 86399})
       runApiReq config "/events" 
           [("start", Just . Char8.pack $ s)
           , ("end", Just . Char8.pack $ e)
@@ -204,12 +205,19 @@ listAttendanceHandle = withTop breezeLens $ runAesonApi $ do
   use breeze >>= getAttendance'
   withTVarRead personDB $ toList
 
+eventInfoHandle :: (HasBreezeApp b) => Handler b v ()
+eventInfoHandle = withTop breezeLens $ runAesonApi $ do
+  eid <- use eventId
+  ename <- use eventName
+  return $ object [("event-id", fromString eid), ("event-name", fromString ename)]
+
 initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
 initBreeze = makeSnaplet "breeze checkin" "a breeze chms mobile friendly checkin system" Nothing $ do
   addRoutes 
     [ ("findperson", getPersonsHandle)
     , ("checkin", userCheckInHandle)
     , ("attendance", listAttendanceHandle)
+    , ("eventinfo", eventInfoHandle)
     ] 
   pdb <- liftIO $ newTVarIO empty
   gcntr <- liftIO $ newTVarIO 0
