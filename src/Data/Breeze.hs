@@ -7,6 +7,7 @@
 
 module Data.Breeze where
 
+import Control.Concurrent.STM (TVar)
 import Control.Lens hiding (Indexable)
 import Control.Monad.Catch
 import Data.Aeson 
@@ -49,27 +50,39 @@ instance Exception BreezeException
 
 instance ToJSON BreezeException
 
-data AttendanceRecord = AttendanceRecord
-  { _aCheckedIn :: Bool
-  , _aPid :: PersonId
-  } deriving (Show, Eq, Ord, Data, Generic)
+-- NOTE: Do not change the order of this list
+data CheckInStatus = CheckedOut 
+                   | WaitingApproval CheckInGroupId 
+                   | CheckedIn
+                   deriving (Show, Eq, Ord, Data, Generic, ElmType)
 
-makeLenses ''AttendanceRecord
+makePrisms ''CheckInStatus
 
-instance FromJSON AttendanceRecord where
-  parseJSON (Object o) = AttendanceRecord
-    <$> (o .: "check_out" >>= return . (/= ("0000-00-00 00:00:00" :: String)))
-    <*> (o .: "person_id")
+instance ToJSON CheckInStatus
 
 data Person = Person
   { _pid       :: PersonId
   , _firstName :: FirstName
   , _lastName  :: LastName
-  , _checkedIn :: Bool
-  , _groupId   :: Maybe CheckInGroupId
+  , _checkedIn :: CheckInStatus
   } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
+
+newtype ParseAttendance = ParseAttendance { attendingPerson :: Person }
+
+instance FromJSON ParseAttendance where
+  parseJSON (Object o) = fmap ParseAttendance $ Person
+    <$> (o .: "person_id")
+    <*> (o .: "details" >>= (.: "first_name"))
+    <*> (o .: "details" >>= (.: "last_name"))
+    <*> (o .: "check_out" >>= return . parseCheckedOut )
+    where
+      parseCheckedOut :: String -> CheckInStatus
+      parseCheckedOut s 
+        | s == "0000-00-00 00:00:00" = CheckedIn
+        | otherwise = CheckedOut
+  parseJSON _ = mempty
 
 newtype FName = FName String deriving (Eq, Ord, Data)
 
@@ -79,7 +92,7 @@ instance Indexable Person where
   empty = ixSet 
     [ ixFun $ (:[]) . (view checkedIn)
     , ixFun $ (:[]) . (view pid)
-    , ixFun $ (:[]) . (view groupId)
+    , ixFun $ \x -> x^? checkedIn . _WaitingApproval . to (:[]) ^. non []
     , ixFun $ (:[]) . FName . (view firstName)
     , ixFun $ (:[]) . LName . (view lastName)
     ]
@@ -89,8 +102,7 @@ instance FromJSON Person where
     <$> o .: "id" 
     <*> o .: "first_name" 
     <*> o .: "last_name" 
-    <*> pure False
-    <*> pure Nothing
+    <*> pure CheckedOut
   parseJSON _ = mempty
 
 instance ToJSON Person where
@@ -117,18 +129,13 @@ instance Show CheckinDirection where
   show In = "in"
   show Out = "out"
 
-data CheckInGroup = CheckInGroup
-  { _checkInPersonIds :: [PersonId]
-  , _checkInGroupId :: CheckInGroupId
-  } deriving (Show, Data, Generic, ElmType)
-
 data Breeze = Breeze
   { _apiKey  :: String
   , _eventId :: EventId
   , _eventName :: String
   , _apiUrl :: String
-  , _personDB :: IxSet Person
-  , _checkInGroupCounter :: Int
-  } deriving (Show, Data, Generic)
+  , _personDB :: TVar (IxSet Person)
+  , _checkInGroupCounter :: TVar Int
+  } deriving (Data, Generic)
 
 makeClassy ''Breeze

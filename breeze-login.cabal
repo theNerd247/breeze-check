@@ -29,6 +29,7 @@ executable breeze-login
                      , ixset
                      , lens
                      , mtl
+                     , stm
                      , simple
                      , simple-aeson
                      , simple-snap

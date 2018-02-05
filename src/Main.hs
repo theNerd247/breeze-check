@@ -68,7 +68,6 @@ spec = Spec ["Data"] $
   ] 
   ++ makeElm (Proxy :: Proxy Person)
   ++ makeElm (Proxy :: Proxy BreezeException)
-  ++ makeElm (Proxy :: Proxy CheckInGroup)
   where
     makeElm p = 
       [ toElmTypeSourceWith ops p
