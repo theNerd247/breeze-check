@@ -20,6 +20,7 @@ import Data.Breeze
 import Data.ByteString.Lazy.Char8 (toStrict)
 import Data.Default
 import Data.Foldable (fold)
+import Data.Monoid ((<>))
 import Data.IxSet
 import Data.Proxy
 import Data.Text (Text)
@@ -183,22 +184,36 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
-  es <- getEs
-  eid <- maybe (throwE "Couldn't fetch event id") return $ es^. nth 0 . key "id"
-  ename <- maybe (throwE "Couldn't fetch event name") return $ es^. nth 0 . key "name"
+  (eid, ename) <- getEs
   let conf = config & eventId .~ eid & eventName .~ ename
   getAttendance' conf
   return conf
+  `catch` handleBreeze `catch` handleHTTP
   where
-    getEs :: ExceptT Text IO (Maybe Value)
-    getEs = withExceptT (const "Failed to fetch event list") $ do
+    getEs :: ExceptT Text IO (EventId, String)
+    getEs = do
       now <- liftIO getCurrentTime
-      let s = formatTime defaultTimeLocale "%F" (now {utctDayTime = 0})
-      let e = formatTime defaultTimeLocale "%F" (now {utctDayTime = 86399})
-      runApiReq config "/events" 
-          [("start", Just . Char8.pack $ s)
-          , ("end", Just . Char8.pack $ e)
+      let s = now {utctDayTime = 0}
+      let e = now {utctDayTime = 86399}
+      es <- runApiReq config "/events" 
+          [ ("start", Just . Char8.pack $ formatTime defaultTimeLocale "%F" s)
+          , ("end", Just . Char8.pack $ formatTime defaultTimeLocale "%F" e)
           ]
+      eid <- maybe (throwE $ mkErrInfo "Couldn't parse event id" es s e) return $ es^. nth 0 . key "id"
+      ename <- maybe (throwE $ mkErrInfo "Couldn't fetch event name: " es s e) return $ es^. nth 0 . key "name"
+      return (eid, ename)
+
+    mkErrInfo m es s e = m
+      <> ": "
+      <> (fromString . show $ es)
+      <> (fromString $ " start: " ++ (show s))
+      <> (fromString $ " end: " ++ (show e))
+
+    handleBreeze :: BreezeException -> ExceptT Text IO a
+    handleBreeze = throwE . fromString . show
+
+    handleHTTP :: HTTP.JSONException -> ExceptT Text IO a
+    handleHTTP = throwE . fromString . show
  
 listAttendanceHandle :: (HasBreezeApp b) => Handler b v ()
 listAttendanceHandle = withTop breezeLens $ runAesonApi $ do
