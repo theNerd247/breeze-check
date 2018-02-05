@@ -166,14 +166,22 @@ withTVarWrite l f = use l >>= liftIO . atomically . flip modifyTVar f
 userCheckInHandle :: (HasBreezeApp b) => Handler b v ()
 userCheckInHandle = withTop breezeLens $ runAesonApi $ do
   persons <- fromBody
-  withTVarWrite checkInGroupCounter (+1)
-  gid <- withTVarRead checkInGroupCounter id
-  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (_pid <$> persons))
-  withTVarWrite personDB $ fold $ notCheckedIn & mapped %~ updatePerson (set checkedIn $ WaitingApproval gid)
-  return $ toDigits gid
-  where
-    toDigits :: Int -> Int
-    toDigits = undefined
+  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (persons :: [PersonId]))
+  case notCheckedIn of
+    [] -> do
+      cgid <- withTVarRead checkInGroupCounter id
+      waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ (persons :: [PersonId])) 
+      let mid = firstOf traverse waiting ^? _Just . checkedIn . _WaitingApproval
+      maybe 
+        (throwM $ BreezeException $ "Could not find perons to login: " <> (show persons)) 
+        (return) 
+        mid
+    _ -> do
+      withTVarWrite checkInGroupCounter (+1)
+      gid <- withTVarRead checkInGroupCounter id
+      breezeLog Info $ "Creating log group " <> (show gid)
+      withTVarWrite personDB $ fold $ notCheckedIn & mapped %~ updatePerson (set checkedIn $ WaitingApproval gid)
+      return gid
 
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
@@ -186,6 +194,8 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
       withTVarWrite personDB $ fold $ toCheckIn & mapped %~ updatePerson (set checkedIn CheckedIn)
       return True
     False -> throwM $ BreezeException $ "Failed to check in group: " ++ (show gid)
+
+breezeLog p m = use logger >>= \f -> liftIO $ f p m
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
