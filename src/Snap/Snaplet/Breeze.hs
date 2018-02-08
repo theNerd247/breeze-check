@@ -22,6 +22,7 @@ import Data.Default
 import Data.Foldable (fold)
 import Data.Monoid ((<>), Endo(..))
 import Data.IxSet
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time
@@ -111,6 +112,18 @@ instance BreezeApi NewPerson where
         , "details"        .= d
         ]
 
+instance BreezeApi GetEvents where
+  type BreezeResponse GetEvents = NonEmpty EventInfo
+  runBreeze b _ = do
+    now <- liftIO getZonedTime
+    let s = formatTime defaultTimeLocale "%F" now --{utctDayTime = 0}
+    let e = formatTime defaultTimeLocale "%F" now --{utctDayTime = 86399}
+    runApiReq b "/events" 
+      [ ("start", Just . Char8.pack $ s)
+      , ("end", Just . Char8.pack $ e)
+      ]
+
+
 {-runApiReq :: (HasBreeze s, MonadThrow m, MonadIO m, FromJSON b) => s -> [Char] -> [(Char8.ByteString, Maybe Char8.ByteString)] -> m b-}
 runApiReq config path params = do
   let modReq = HTTP.addRequestHeader "Content-Type" "application/json"
@@ -199,31 +212,12 @@ breezeLog p m = use logger >>= \f -> liftIO $ f p m
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
-  (eid, ename) <- getEs
-  let conf = config & eventId .~ eid & eventName .~ ename
+  es <- runBreeze config GetEvents
+  let conf = config & eventId .~ (es^?! traverse.eid) & eventName .~ (es^?! traverse.ename)
   getAttendance' conf
   return conf
   `catch` handleBreeze `catch` handleHTTP
   where
-    getEs :: ExceptT Text IO (EventId, String)
-    getEs = do
-      now <- liftIO getCurrentTime
-      let s = now {utctDayTime = 0}
-      let e = now {utctDayTime = 86399}
-      es <- runApiReq config "/events" 
-          [ ("start", Just . Char8.pack $ formatTime defaultTimeLocale "%F" s)
-          , ("end", Just . Char8.pack $ formatTime defaultTimeLocale "%F" e)
-          ]
-      eid <- maybe (throwE $ mkErrInfo "Couldn't parse event id" es s e) return $ es^. nth 0 . key "id"
-      ename <- maybe (throwE $ mkErrInfo "Couldn't fetch event name: " es s e) return $ es^. nth 0 . key "name"
-      return (eid, ename)
-
-    mkErrInfo m es s e = m
-      <> ": "
-      <> (fromString . show $ es)
-      <> (fromString $ " start: " ++ (show s))
-      <> (fromString $ " end: " ++ (show e))
-
     handleBreeze :: BreezeException -> ExceptT Text IO a
     handleBreeze = throwE . fromString . show
 

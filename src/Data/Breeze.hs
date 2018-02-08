@@ -131,6 +131,18 @@ instance Show CheckinDirection where
   show In = "in"
   show Out = "out"
 
+data EventInfo = EventInfo
+  { _eid :: EventId
+  , _ename :: String
+  } deriving (Show, Eq, Ord, Data, Generic)
+
+makeLenses ''EventInfo
+
+instance FromJSON EventInfo where
+  parseJSON (Object o) = EventInfo
+    <$> (o .: "id")
+    <*> (o .: "name")
+
 data Breeze = Breeze
   { _apiKey  :: String
   , _eventId :: EventId
