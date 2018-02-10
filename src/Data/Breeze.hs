@@ -61,6 +61,9 @@ makePrisms ''CheckInStatus
 
 instance ToJSON CheckInStatus
 
+instance Default CheckInStatus where
+  def = CheckedOut
+
 data Person = Person
   { _pid       :: PersonId
   , _firstName :: FirstName
@@ -72,6 +75,8 @@ makeClassy ''Person
 
 data ParseAttendance = ParseAttendance { attendingPerson :: Person, raw :: Value }
   deriving (Show)
+
+instance Default Person
 
 instance FromJSON ParseAttendance where
   parseJSON v@(Object o) = fmap (flip ParseAttendance v) $ Person
@@ -152,6 +157,7 @@ data Breeze = Breeze
   , _logger :: Logger
   , _loggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
+  , _debug :: Bool
   } deriving (Data, Generic)
 
 makeClassy ''Breeze

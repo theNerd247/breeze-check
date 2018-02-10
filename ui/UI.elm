@@ -333,6 +333,7 @@ withBreezeErrDecoder d =
     Decode.oneOf
         [ Decode.map Err Breeze.decodeBreezeException
         , Decode.map Ok d
+        , Decode.fail "Something went wrong when fetching data"
         ]
 
 

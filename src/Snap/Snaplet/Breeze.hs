@@ -23,6 +23,7 @@ import Data.Foldable (fold)
 import Data.Monoid ((<>), Endo(..))
 import Data.IxSet
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.List (isPrefixOf)
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time
@@ -61,7 +62,7 @@ class BreezeApi a where
 
 instance BreezeApi FindPeople where
   type BreezeResponse FindPeople = [Person]
-  runBreeze b (FindPeople lname maddr) = runApiReq b "/people" $
+  runBreeze b (FindPeople lname maddr) = runApiReq b "/people" $ 
     [ ("details", Just . Char8.pack . show $ 0)
     , ("filter_json", Just . toStrict . encode $ object
         [ "189467778_last"   .= lname
@@ -158,8 +159,16 @@ getAttendance' config = flip evalStateT config $ do
 getPersonsHandle :: (HasBreezeApp b) => Handler b v ()
 getPersonsHandle = withTop breezeLens $ runAesonApi $ do 
   lname <- skipParse <$> fromParam "lastname"
-  persons <- runBreeze' $ FindPeople lname Nothing
-  return $ filter (\p -> List.isPrefixOf lname $ p^.lastName ) persons
+  ps <- runBreeze' $ FindPeople lname Nothing
+  let persons = ps^..folded.filtered (isPrefixOf lname . (view lastName))
+  withTVarWrite personDB $ addMissingPersons persons
+  withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (persons^..folded.pid))
+    where
+      addMissingPersons ps = appEndo $ foldMap (Endo . addMissingPerson) ps
+      addMissingPerson p db = maybe
+        (insert p db)
+        (return db)
+        (getOne $ db @= (p^.pid))
 
 addPersonHandle :: (HasBreezeApp b)  => Handler b v ()
 addPersonHandle = withTop breezeLens $ runAesonApi $ do
@@ -212,8 +221,11 @@ breezeLog p m = use logger >>= \f -> liftIO $ f p m
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
-  es <- runBreeze config GetEvents
-  let conf = config & eventId .~ (es^?! traverse.eid) & eventName .~ (es^?! traverse.ename)
+  conf <- case (config^.debug) of
+    True -> return $ config & eventId .~ "40532683" & eventName .~ "Staff Meeting"
+    _ -> do 
+      es <- runBreeze config GetEvents
+      return $ config & eventId .~ (es^?! traverse.eid) & eventName .~ (es^?! traverse.ename)
   getAttendance' conf
   return conf
   `catch` handleBreeze `catch` handleHTTP
@@ -249,6 +261,7 @@ mkBreeze fp = do
     , _logger = lgr
     , _loggerCleanup = cleanup
     , _checkInGroupCounter = gcntr
+    , _debug = True
     }
 
 initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
