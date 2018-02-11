@@ -31,6 +31,7 @@ import Html.Attributes exposing (class, for)
 import Html.Events exposing (onClick)
 import Http as Http
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Time exposing (..)
 
 
@@ -41,6 +42,7 @@ type alias Model =
     , errors : Err.Errors
     , debounce : Debounce.State
     , findPeopleLoading : Bool
+    , groupId : Int
     }
 
 
@@ -58,6 +60,7 @@ type Msg
     | ErrorMessage Err.Msg
     | NewPersonSelect
     | CheckIn
+    | CheckedInGroupId (Result Http.Error (Result Breeze.BreezeException Int))
     | Deb (Debounce.Msg Msg)
 
 
@@ -84,6 +87,7 @@ model =
     , errors = Err.model
     , debounce = Debounce.init
     , findPeopleLoading = False
+    , groupId = 0
     }
 
 
@@ -158,7 +162,18 @@ update cfg msg mdl =
             Debounce.update debounceCfg a mdl
 
         CheckIn ->
-            ( mdl, Cmd.none )
+            ( mdl, checkIn cfg mdl.checkedIn )
+
+        CheckedInGroupId gid ->
+            ( mdl
+                |> (gid
+                        |> catchResult toString
+                            (catchResult .breezeErr
+                                setGroupId
+                            )
+                   )
+            , Cmd.none
+            )
 
 
 
@@ -199,6 +214,11 @@ toggleCheckIn pid ( chkin, found ) =
             List.append (List.map toggleAttend ci) fo
     in
     ( newChkin, newFound )
+
+
+setGroupId : Int -> Model -> Model
+setGroupId gid mdl =
+    { mdl | groupId = gid }
 
 
 appendIf : Bool -> List a -> List a -> List a
@@ -311,21 +331,29 @@ deb1 =
     Debounce.debounce1 debounceCfg
 
 
-sendApiGetRequest : Config -> String -> Decode.Decoder a -> (Result Http.Error a -> Msg) -> Cmd Msg
-sendApiGetRequest cfg path decoder f =
+sendApiGetRequest : String -> Http.Body -> Config -> String -> Decode.Decoder a -> (Result Http.Error a -> Msg) -> Cmd Msg
+sendApiGetRequest meth bdy cfg path decoder f =
     let
         req =
             Http.request
-                { method = "GET"
+                { method = meth
                 , headers = []
                 , url = cfg.apiBase ++ path
-                , body = Http.emptyBody
+                , body = bdy
                 , expect = Http.expectJson decoder
                 , timeout = Just <| 8 * second
                 , withCredentials = False
                 }
     in
     Http.send f req
+
+
+sendGet =
+    sendApiGetRequest "GET" Http.emptyBody
+
+
+sendPost cfg path bdy =
+    sendApiGetRequest "POST" bdy cfg path
 
 
 withBreezeErrDecoder : Decode.Decoder a -> Decode.Decoder (Result Breeze.BreezeException a)
@@ -342,7 +370,7 @@ findPeople cfg lastName =
     if String.isEmpty lastName then
         Cmd.none
     else
-        sendApiGetRequest cfg
+        sendGet cfg
             ("findperson?lastname=" ++ lastName)
             (withBreezeErrDecoder decodePersons)
             FoundPeople
@@ -351,6 +379,23 @@ findPeople cfg lastName =
 decodePersons : Decode.Decoder (List Breeze.Person)
 decodePersons =
     Decode.list Breeze.decodePerson
+
+
+checkIn : Config -> List Breeze.Person -> Cmd Msg
+checkIn cfg ppl =
+    sendPost cfg
+        "checkin"
+        (Http.jsonBody <| encodePersonIds ppl)
+        (withBreezeErrDecoder decodeGroupId)
+        CheckedInGroupId
+
+
+encodePersonIds =
+    Encode.list << List.map (Encode.string << .pid)
+
+
+decodeGroupId =
+    Decode.int
 
 
 
