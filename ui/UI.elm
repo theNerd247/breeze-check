@@ -62,6 +62,8 @@ type Msg
     | CheckIn
     | CheckedInGroupId (Result Http.Error (Result Breeze.BreezeException Int))
     | Deb (Debounce.Msg Msg)
+    | CancelCheckIn (Result Http.Error (Result Breeze.BreezeException Bool))
+    | ClickCancelCheckin
 
 
 main : Program Never Model Msg
@@ -175,6 +177,20 @@ update cfg msg mdl =
             , Cmd.none
             )
 
+        CancelCheckIn t ->
+            ( mdl
+                |> (t
+                        |> catchResult toString
+                            (catchResult .breezeErr
+                                revertCheckInGroup
+                            )
+                   )
+            , Cmd.none
+            )
+
+        ClickCancelCheckin ->
+            ( mdl, cancelCheckin cfg mdl.groupId )
+
 
 
 -- TODO: add checkin call
@@ -219,6 +235,14 @@ toggleCheckIn pid ( chkin, found ) =
 setGroupId : Int -> Model -> Model
 setGroupId gid mdl =
     { mdl | groupId = Just gid }
+
+
+revertCheckInGroup : Bool -> Model -> Model
+revertCheckInGroup b mdl =
+    if b then
+        { mdl | groupId = Nothing }
+    else
+        mdl
 
 
 appendIf : Bool -> List a -> List a -> List a
@@ -275,6 +299,11 @@ viewCheckedIn cfg gid =
     , Grid.row []
         [ Grid.col [ Col.xs12 ] [ h4 [] [ text "Check-in ID" ] ]
         , Grid.col [ Col.xs12 ] [ p [] [ text << toString <| gid ] ]
+        ]
+    , Grid.row []
+        [ Grid.col [ Col.xs12 ]
+            [ Button.button [ Button.danger, Button.large, Button.onClick ClickCancelCheckin ] [ text "Cancel Check-in" ]
+            ]
         ]
     ]
 
@@ -422,6 +451,19 @@ encodePersonIds =
 
 decodeGroupId =
     Decode.int
+
+
+cancelCheckin : Config -> Maybe Int -> Cmd Msg
+cancelCheckin cfg mgid =
+    case mgid of
+        Nothing ->
+            Cmd.none
+
+        Just gid ->
+            sendGet cfg
+                ("cancel?groupid=" ++ toString gid)
+                (withBreezeErrDecoder Decode.bool)
+                CancelCheckIn
 
 
 

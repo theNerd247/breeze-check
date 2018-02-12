@@ -223,6 +223,19 @@ getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
     [] -> throwM $ BreezeException $ "There isn't anybody for the group: " <> (show gid)
     _ -> return g
 
+cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
+cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do
+  gid <- fromParam "groupid"
+  ps <- withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
+  withTVarWrite personDB $ 
+    ps
+      ^..folded
+        .to (updatePerson $ set checkedIn CheckedOut)
+        .to Endo
+      ^.folded
+      ^.to appEndo
+  return True
+
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
@@ -297,6 +310,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("eventinfo", eventInfoHandle)
     , ("getgroup", getCheckInGroupHandle)
     , ("approve", approveCheckinHandle) 
+    , ("cancel", cancelCheckinHandle)
     ] 
   addPostInitHook initEvent
   b <- getSnapletFilePath >>= mkBreeze  
