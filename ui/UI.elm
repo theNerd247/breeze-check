@@ -42,7 +42,7 @@ type alias Model =
     , errors : Err.Errors
     , debounce : Debounce.State
     , findPeopleLoading : Bool
-    , groupId : Int
+    , groupId : Maybe Int
     }
 
 
@@ -87,7 +87,7 @@ model =
     , errors = Err.model
     , debounce = Debounce.init
     , findPeopleLoading = False
-    , groupId = 0
+    , groupId = Nothing
     }
 
 
@@ -218,7 +218,7 @@ toggleCheckIn pid ( chkin, found ) =
 
 setGroupId : Int -> Model -> Model
 setGroupId gid mdl =
-    { mdl | groupId = gid }
+    { mdl | groupId = Just gid }
 
 
 appendIf : Bool -> List a -> List a -> List a
@@ -236,6 +236,51 @@ include a b =
 
 view : Config -> Model -> Html Msg
 view cfg mdl =
+    let
+        titleRow =
+            [ Grid.row [ Row.centerLg ]
+                [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
+                    [ h1 [{- class "display-1" -}] [ text cfg.eventName ]
+                    , p [] [ text "Mountain View Church" ]
+                    ]
+                ]
+            ]
+
+        errorRow =
+            [ Grid.row [] [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ] ]
+
+        pageRow =
+            case mdl.groupId of
+                Nothing ->
+                    viewCheckin cfg mdl
+
+                Just gid ->
+                    viewCheckedIn cfg gid
+
+        body =
+            []
+                |> flip List.append titleRow
+                |> flip List.append errorRow
+                |> flip List.append pageRow
+    in
+    Grid.container [] body
+
+
+viewCheckedIn : Config -> Int -> List (Html Msg)
+viewCheckedIn cfg gid =
+    [ Grid.row []
+        [ Grid.col [ Col.xs12 ] [ h4 [] [ text "You're ready!" ] ]
+        , Grid.col [ Col.xs12 ] [ p [] [ text "Stop by the check-in center to finish the check-in process" ] ]
+        ]
+    , Grid.row []
+        [ Grid.col [ Col.xs12 ] [ h4 [] [ text "Check-in ID" ] ]
+        , Grid.col [ Col.xs12 ] [ p [] [ text << toString <| gid ] ]
+        ]
+    ]
+
+
+viewCheckin : Config -> Model -> List (Html Msg)
+viewCheckin cfg mdl =
     let
         foundRow =
             [ Grid.row []
@@ -267,18 +312,6 @@ view cfg mdl =
             , Grid.row [ Row.centerXs ] [ Grid.col [ Col.xsAuto ] ([] |> appendIf (not <| List.isEmpty mdl.foundPeople) [ newPersonButton, hr [] [] ]) ]
             ]
 
-        titleRow =
-            [ Grid.row [ Row.centerLg ]
-                [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
-                    [ h1 [{- class "display-1" -}] [ text cfg.eventName ]
-                    , p [] [ text "Mountain View Church" ]
-                    ]
-                ]
-            ]
-
-        errorRow =
-            [ Grid.row [] [ Grid.col [] [ Html.map ErrorMessage <| Err.view mdl.errors ] ] ]
-
         personSearchRow =
             [ Grid.row []
                 [ Grid.col []
@@ -291,15 +324,8 @@ view cfg mdl =
                     []
                 ]
             ]
-
-        body =
-            []
-                |> include titleRow
-                |> include errorRow
-                |> include personSearchRow
-                |> include checkedInRow
     in
-    Grid.container [] body
+    personSearchRow ++ checkedInRow
 
 
 personSearch : Html Msg

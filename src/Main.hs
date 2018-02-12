@@ -78,6 +78,6 @@ spec = Spec ["Data"] $
       }
 
 main = do 
-  putStrLn "Generating Elm defs"
-  specsToDir [spec] "./ui/"
+  {-putStrLn "Generating Elm defs"-}
+  {-specsToDir [spec] "./ui/"-}
   serveSnaplet defaultConfig appInit

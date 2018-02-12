@@ -201,9 +201,22 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
     _ -> do
       withTVarWrite checkInGroupCounter (+1)
       gid <- withTVarRead checkInGroupCounter id
-      breezeLog Info $ "Creating log group " <> (show gid)
-      withTVarWrite personDB $ fold $ notCheckedIn & mapped %~ updatePerson (set checkedIn $ WaitingApproval gid)
+      breezeLog Info $ "Creating log group " <> (show gid) <> (fold $ notCheckedIn^..folded.to show.to (<>"\n"))
+      withTVarWrite personDB $ 
+        notCheckedIn
+          ^..folded
+            .to (updatePerson $ set checkedIn $ WaitingApproval gid)
+            .to Endo
+          ^.folded
+          ^.to appEndo
+      ps <- withTVarRead personDB $ toList . (@+ persons)
+      breezeLog Info $ foldMapOf folded show ps
       return gid
+
+getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
+getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
+  gid <- fromParam "groupid"
+  withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
 
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
@@ -237,9 +250,8 @@ initEvent config = runExceptT $ do
     handleHTTP = throwE . fromString . show
  
 listAttendanceHandle :: (HasBreezeApp b) => Handler b v ()
-listAttendanceHandle = withTop breezeLens $ runAesonApi $ do
-  use breeze >>= getAttendance'
-  withTVarRead personDB $ toList
+listAttendanceHandle = withTop breezeLens $ runAesonApi $ 
+  withTVarRead personDB toList
 
 eventInfoHandle :: (HasBreezeApp b) => Handler b v ()
 eventInfoHandle = withTop breezeLens $ runAesonApi $ do
@@ -271,6 +283,8 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("checkin", userCheckInHandle)
     , ("attendance", listAttendanceHandle)
     , ("eventinfo", eventInfoHandle)
+    , ("getgroup", getCheckInGroupHandle)
+    , ("approve", approveCheckinHandle) 
     ] 
   addPostInitHook initEvent
   b <- getSnapletFilePath >>= mkBreeze  
