@@ -190,12 +190,14 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
   persons <- fromBody
   notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (persons :: [PersonId]))
   case notCheckedIn of
+    -- TODO: redo case where requested person being checked in is already
+    -- waiting or has already been checked in
     [] -> do
       cgid <- withTVarRead checkInGroupCounter id
       waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ (persons :: [PersonId])) 
       let mid = firstOf traverse waiting ^? _Just . checkedIn . _WaitingApproval
       maybe 
-        (throwM $ BreezeException $ "Could not find perons to login: " <> (show persons)) 
+        (throwM $ BreezeException $ "Could not find persons to login: " <> (show persons)) 
         (return) 
         mid
     _ -> do
@@ -216,7 +218,10 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
 getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
+  g <- withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
+  case g of
+    [] -> throwM $ BreezeException $ "There isn't anybody for the group: " <> (show gid)
+    _ -> return g
 
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
@@ -226,9 +231,16 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   vs <- forM toCheckIn (runBreeze' . Checkin eid . _pid)
   case (allOf folded id vs) of
     True -> do
-      withTVarWrite personDB $ fold $ toCheckIn & mapped %~ updatePerson (set checkedIn CheckedIn)
+      withTVarWrite personDB $ 
+        toCheckIn 
+          ^..folded
+            .to (updatePerson $ set checkedIn CheckedIn)
+            .to Endo
+          ^.folded
+          ^.to appEndo
+      breezeLog Info $ "Logged in: " <> (toCheckIn^..folded.to show.to (<> "\n")^.folded)
       return True
-    False -> throwM $ BreezeException $ "Failed to check in group: " ++ (show gid)
+    False -> throwM $ BreezeException $ "Failed to check in group: " <> (show gid)
 
 breezeLog p m = use logger >>= \f -> liftIO $ f p m
 
@@ -288,5 +300,12 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     ] 
   addPostInitHook initEvent
   b <- getSnapletFilePath >>= mkBreeze  
+  wrapSite $ \s -> do
+    s `catch` handleBreeze
   onUnload (b^.loggerCleanup)
   return b
+  where
+    handleBreeze :: (HasBreezeApp b) => BreezeException -> Handler b v ()
+    handleBreeze e = withTop breezeLens $ runAesonApi $ do 
+      breezeLog Error . show $ e
+      return e
