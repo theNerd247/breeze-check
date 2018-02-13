@@ -3,6 +3,7 @@ module BreezeApi exposing (..)
 import Data as Data
 import Http as Http
 import Json.Decode as Decode
+import Result
 import Time exposing (second)
 
 
@@ -61,8 +62,8 @@ sendPost path bdy =
     sendApiGetRequest "POST" bdy path
 
 
-findPeople : String -> (Response (List Data.Person) -> msg) -> Cmd msg
-findPeople lastName f =
+findPeople : (Response (List Data.Person) -> msg) -> String -> Cmd msg
+findPeople f lastName =
     if String.isEmpty lastName then
         Cmd.none
     else
@@ -72,8 +73,8 @@ findPeople lastName f =
             f
 
 
-checkIn : List Data.Person -> (Response Data.GroupId -> msg) -> Cmd msg
-checkIn ppl f =
+checkIn : (Response Data.GroupId -> msg) -> List Data.Person -> Cmd msg
+checkIn f ppl =
     sendPost
         "checkin"
         (Http.jsonBody <| Data.encodePersonIds ppl)
@@ -81,8 +82,8 @@ checkIn ppl f =
         f
 
 
-cancelCheckin : Maybe Int -> (Response Bool -> msg) -> Cmd msg
-cancelCheckin mgid f =
+cancelCheckin : (Response Bool -> msg) -> Maybe Int -> Cmd msg
+cancelCheckin f mgid =
     case mgid of
         Nothing ->
             Cmd.none
@@ -92,3 +93,21 @@ cancelCheckin mgid f =
                 ("cancel?groupid=" ++ toString gid)
                 (Data.withBreezeErrDecoder Decode.bool)
                 f
+
+
+fromResult : (a -> c) -> (b -> c) -> Result.Result a b -> c
+fromResult f g r =
+    case r of
+        Err a ->
+            f a
+
+        Ok b ->
+            g b
+
+
+fromResponse :
+    Response a
+    -> Result.Result String a
+fromResponse resp =
+    Result.mapError toString resp
+        |> Result.andThen (Result.mapError .breezeErr)

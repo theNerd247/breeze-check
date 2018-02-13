@@ -120,13 +120,7 @@ catchResult g f err =
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update cfg msg mdl =
     case msg of
-        UpdateLastName s ->
-            if String.isEmpty s then
-                ( { mdl | searchLastName = s, findPeopleLoading = False, foundPeople = [] }, Cmd.none )
-            else
-                ( { mdl | searchLastName = s, findPeopleLoading = True, foundPeople = [] }, findPeople cfg s )
-
-        FoundPeople r ->
+                FoundPeople r ->
             ( mdl
                 |> (r
                         |> catchResult toString
