@@ -9,7 +9,6 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
 import Data as Breeze
-import Debounce as Debounce
 import ErrorMsg as Err
 import Html as Html
     exposing
@@ -30,18 +29,11 @@ import Html as Html
 import Html.Attributes exposing (class, for)
 import Html.Events exposing (onClick)
 import Http as Http
-import Json.Decode as Decode
-import Json.Encode as Encode
 import Time exposing (..)
 
 
 type alias Model =
-    { searchLastName : String
-    , foundPeople : List Breeze.Person
-    , checkedIn : List Breeze.Person
-    , errors : Err.Errors
-    , debounce : Debounce.State
-    , findPeopleLoading : Bool
+    { errors : Err.Errors
     , groupId : Maybe Int
     }
 
@@ -290,6 +282,17 @@ view cfg mdl =
     Grid.container [] body
 
 
+viewAdmin : Config -> Model -> List (Html Msg)
+viewAdmin cfg mdl =
+    [ Grid.row []
+        [ Grid.col [ Col.xs12 ]
+            [ h4 [] [ text "Admin" ]
+            ]
+        ]
+    ]
+        |> flip List.append viewCheckin
+
+
 viewCheckedIn : Config -> Int -> List (Html Msg)
 viewCheckedIn cfg gid =
     [ Grid.row []
@@ -357,20 +360,6 @@ viewCheckin cfg mdl =
     personSearchRow ++ checkedInRow
 
 
-personSearch : Html Msg
-personSearch =
-    Form.form []
-        [ Form.row []
-            [ Form.col []
-                [ InputGroup.config
-                    (InputGroup.text [ Input.placeholder "Last Name", Input.onInput (deb1 UpdateLastName) ])
-                    |> InputGroup.large
-                    |> InputGroup.view
-                ]
-            ]
-        ]
-
-
 newPersonButton : Html Msg
 newPersonButton =
     Button.button
@@ -379,123 +368,3 @@ newPersonButton =
         , Button.onClick NewPersonSelect
         ]
         [ text "I can't find us" ]
-
-
-deb1 : (a -> Msg) -> (a -> Msg)
-deb1 =
-    Debounce.debounce1 debounceCfg
-
-
-sendApiGetRequest : String -> Http.Body -> Config -> String -> Decode.Decoder a -> (Result Http.Error a -> Msg) -> Cmd Msg
-sendApiGetRequest meth bdy cfg path decoder f =
-    let
-        req =
-            Http.request
-                { method = meth
-                , headers = []
-                , url = cfg.apiBase ++ path
-                , body = bdy
-                , expect = Http.expectJson decoder
-                , timeout = Just <| 8 * second
-                , withCredentials = False
-                }
-    in
-    Http.send f req
-
-
-sendGet =
-    sendApiGetRequest "GET" Http.emptyBody
-
-
-sendPost cfg path bdy =
-    sendApiGetRequest "POST" bdy cfg path
-
-
-withBreezeErrDecoder : Decode.Decoder a -> Decode.Decoder (Result Breeze.BreezeException a)
-withBreezeErrDecoder d =
-    Decode.oneOf
-        [ Decode.map Err Breeze.decodeBreezeException
-        , Decode.map Ok d
-        , Decode.fail "Something went wrong when fetching data"
-        ]
-
-
-findPeople : Config -> String -> Cmd Msg
-findPeople cfg lastName =
-    if String.isEmpty lastName then
-        Cmd.none
-    else
-        sendGet cfg
-            ("findperson?lastname=" ++ lastName)
-            (withBreezeErrDecoder decodePersons)
-            FoundPeople
-
-
-decodePersons : Decode.Decoder (List Breeze.Person)
-decodePersons =
-    Decode.list Breeze.decodePerson
-
-
-checkIn : Config -> List Breeze.Person -> Cmd Msg
-checkIn cfg ppl =
-    sendPost cfg
-        "checkin"
-        (Http.jsonBody <| encodePersonIds ppl)
-        (withBreezeErrDecoder decodeGroupId)
-        CheckedInGroupId
-
-
-encodePersonIds =
-    Encode.list << List.map (Encode.string << .pid)
-
-
-decodeGroupId =
-    Decode.int
-
-
-cancelCheckin : Config -> Maybe Int -> Cmd Msg
-cancelCheckin cfg mgid =
-    case mgid of
-        Nothing ->
-            Cmd.none
-
-        Just gid ->
-            sendGet cfg
-                ("cancel?groupid=" ++ toString gid)
-                (withBreezeErrDecoder Decode.bool)
-                CancelCheckIn
-
-
-
--- TODO: remove as our API will have the
--- attendance data toggled
-
-
-listPeople : List Breeze.Person -> Html Msg
-listPeople =
-    List.map (person >> List.singleton >> ListGroup.li []) >> ListGroup.ul
-
-
-checkInButton : Html Msg
-checkInButton =
-    Button.button [ Button.outlineSuccess, Button.large, Button.onClick CheckIn ] [ text "3. We're Ready! Let's Go!" ]
-
-
-person : Breeze.Person -> Html Msg
-person p =
-    let
-        icon =
-            if p.checkedIn then
-                class "far fa-check-square text-success"
-            else
-                class "far fa-square"
-    in
-    a [ onClick (ToggleAttending p.pid) ]
-        [ Grid.containerFluid []
-            [ Grid.row []
-                [ Grid.col [ Col.xs5 ] [ text p.firstName ]
-                , Grid.col [ Col.xs5 ] [ text p.lastName ]
-                , Grid.col [ Col.xs2, Col.pushXs5 ] [ Html.i [ icon ] [] ]
-                ]
-            ]
-        ]
