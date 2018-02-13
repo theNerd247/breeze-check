@@ -170,13 +170,18 @@ toggleCheckIn pid ( chkin, found ) =
 -- VIEW:
 
 
-view : (Msg -> msg) -> Html msg -> Model -> Html msg
-view fmsg checkInButtonView mdl =
+searchPersonsView : (Msg -> msg) -> Html msg
+searchPersonsView fmsg =
     Grid.containerFluid []
-        [ Html.map fmsg searchView
-        , Html.map fmsg <| foundPeopleView mdl
+        [ Html.map fmsg <| searchView
+        ]
+
+
+selectForCheckInView : (Msg -> msg) -> Model -> Html msg
+selectForCheckInView fmsg mdl =
+    Grid.containerFluid []
+        [ Html.map fmsg <| foundPeopleView mdl
         , Html.map fmsg <| waitingCheckInView mdl
-        , checkInButtonView
         ]
 
 

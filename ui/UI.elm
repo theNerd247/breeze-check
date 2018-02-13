@@ -120,48 +120,8 @@ catchResult g f err =
 update : Config -> Msg -> Model -> ( Model, Cmd Msg )
 update cfg msg mdl =
     case msg of
-                FoundPeople r ->
-            ( mdl
-                |> (r
-                        |> catchResult toString
-                            (catchResult .breezeErr
-                                updateFoundPeople
-                            )
-                   )
-                |> (\m -> { m | findPeopleLoading = False })
-            , Cmd.none
-            )
-
-        ToggleAttending pid ->
-            let
-                ( chin, fnd ) =
-                    toggleCheckIn pid ( mdl.checkedIn, mdl.foundPeople )
-            in
-            ( { mdl | checkedIn = chin, foundPeople = fnd }, Cmd.none )
-
         ErrorMessage emsg ->
             ( { mdl | errors = Err.update emsg mdl.errors }, Cmd.none )
-
-        NewPersonSelect ->
-            ( mdl, Cmd.none )
-
-        -- TODO: add new person page
-        Deb a ->
-            Debounce.update debounceCfg a mdl
-
-        CheckIn ->
-            ( mdl, checkIn cfg mdl.checkedIn )
-
-        CheckedInGroupId gid ->
-            ( mdl
-                |> (gid
-                        |> catchResult toString
-                            (catchResult .breezeErr
-                                setGroupId
-                            )
-                   )
-            , Cmd.none
-            )
 
         CancelCheckIn t ->
             ( mdl
