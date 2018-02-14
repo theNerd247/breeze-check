@@ -46,16 +46,6 @@ type Msg
     | ToggleAttending Data.PersonId
 
 
-model : HasFind m -> HasFind m
-model m =
-    { m
-        | foundPeople = []
-        , waitingCheckIn = []
-        , searchLastName = ""
-        , findPeopleLoading = False
-    }
-
-
 
 -- UPDATE:
 
@@ -93,7 +83,7 @@ searchResult mdl r =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
                     (flip Err.newError { mdl | findPeopleLoading = False })
-                    (\ppl -> { m | foundPeople = ppl })
+                    (\ppl -> { mdl | foundPeople = ppl })
     in
     ( m, Cmd.none )
 
@@ -135,13 +125,6 @@ toggleCheckIn pid ( chkin, found ) =
 -- VIEW:
 
 
-searchPersonsView : Html Msg
-searchPersonsView =
-    Grid.containerFluid []
-        [ searchView
-        ]
-
-
 selectForCheckInView : HasFind m -> Html Msg
 selectForCheckInView mdl =
     Grid.containerFluid []
@@ -150,8 +133,8 @@ selectForCheckInView mdl =
         ]
 
 
-searchView : Html Msg
-searchView =
+searchPersonsView : Html Msg
+searchPersonsView =
     Grid.row []
         [ Grid.col []
             [ h4 [] [ text "1. Find Your Family" ]
@@ -172,7 +155,7 @@ searchView =
                     [ Form.col []
                         [ Button.button
                             [ Button.onClick SearchClick, Button.large ]
-                            [ Html.i [ class "far fa-search" ] []
+                            [ Html.i [ class "fas fa-search" ] []
                             , text " Search"
                             ]
                         ]

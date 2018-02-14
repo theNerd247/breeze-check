@@ -37,11 +37,6 @@ type alias HasErrors m =
     { m | errors : Errors }
 
 
-model : HasErrors m -> HasErrors m
-model m =
-    { m | errors = [] }
-
-
 newError : String -> HasErrors m -> HasErrors m
 newError msg msgs =
     let

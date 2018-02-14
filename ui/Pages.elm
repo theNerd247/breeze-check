@@ -23,7 +23,7 @@ type alias Page mdl msg =
 
 
 type alias Pages mdl msg =
-    Zipper (Page mdl msg)
+    ZipperBase (Page mdl msg)
 
 
 type alias HasPages m mdl msg =
@@ -33,13 +33,18 @@ type alias HasPages m mdl msg =
     }
 
 
+initPages : Page mdl msg -> Pages mdl msg
+initPages =
+    flip fromList []
+
+
 
 -- given a Prism between message types, assuming the model type is the same
 -- across all functions (because we have structural typing) convert a Page type
 
 
-mkpage : Prism m msg -> Page mdl msg -> Page mdl m
-mkpage msgl p =
+composePage : Prism m msg -> Page mdl msg -> Page mdl m
+composePage msgl p =
     let
         nestedUpdate msg mdl =
             msgl.getOption msg
@@ -56,11 +61,11 @@ mkpage msgl p =
     }
 
 
-update : Prism msg PageDir -> msg -> HasPages m mdl msg -> ( HasPages m mdl msg, Cmd msg )
-update pgl msg mdl =
+update : (msg -> Maybe PageDir) -> msg -> HasPages m mdl msg -> ( HasPages m mdl msg, Cmd msg )
+update mTodir msg mdl =
     let
         nextPages =
-            case pgl.getOption msg of
+            case mTodir msg of
                 Just NextPage ->
                     next mdl.pages
 

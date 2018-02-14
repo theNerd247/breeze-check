@@ -25,14 +25,6 @@ type alias HasCheckin m =
         }
 
 
-model : HasCheckin m -> HasCheckin m
-model m =
-    Find.model
-        { m
-            | groupId = Nothing
-        }
-
-
 
 -- UPDATE
 
@@ -81,21 +73,24 @@ cancelCheckinResponse mdl r =
 -- VIEW
 
 
-checkedInView : Data.GroupId -> Html Msg
-checkedInView gid =
-    Grid.containerFluid []
-        [ Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
-                [ h4 [] [ text "You're Almost Done!" ]
-                , p [] [ text "Please stop by the check-in desk to finish checking in" ]
+checkedInView : Maybe Data.GroupId -> Html Msg
+checkedInView mgid =
+    case mgid of
+        Just gid ->
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ h4 [] [ text "You're Almost Done!" ]
+                    , p [] [ text "Please stop by the check-in desk to finish checking in" ]
+                    ]
                 ]
-            ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
-                [ cancelCheckInView
+
+        Nothing ->
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ h4 [] [ text "Uh oh!" ]
+                    , p [] [ text "Some how you checked in without checking in...hit the cancel button below" ]
+                    ]
                 ]
-            ]
-        ]
 
 
 checkInButtonView : HasCheckin m -> Html Msg
