@@ -22,11 +22,23 @@ type alias Page mdl msg =
     }
 
 
+type alias Pages mdl msg =
+    Zipper (Page mdl msg)
+
+
+type alias HasPages m mdl msg =
+    { m
+        | pagesModel : mdl
+        , pages : Pages mdl msg
+    }
+
+
 
 -- given a Prism between message types, assuming the model type is the same
 -- across all functions (because we have structural typing) convert a Page type
 
 
+mkpage : Prism m msg -> Page mdl msg -> Page mdl m
 mkpage msgl p =
     let
         nestedUpdate msg mdl =
@@ -44,16 +56,7 @@ mkpage msgl p =
     }
 
 
-type alias Pages mdl msg =
-    Zipper (Page mdl msg)
-
-
-type alias Model msg mdl =
-    { pagesModel : mdl
-    , pages : Pages mdl msg
-    }
-
-
+update : Prism msg PageDir -> msg -> HasPages m mdl msg -> ( HasPages m mdl msg, Cmd msg )
 update pgl msg mdl =
     let
         nextPages =
@@ -71,21 +74,22 @@ update pgl msg mdl =
         mdl.pages.selected.pgUpdate msg mdl.pagesModel
 
 
-view pages errMsg mdl =
+view : (Err.Msg -> msg) -> HasPages m (Err.HasErrors mdl) msg -> Html msg
+view errMsg mdl =
     Grid.containerFluid []
         [ Grid.row []
             [ Grid.col [ Col.xs12 ]
-                [ pageProgressView <| pages.selected
+                [ pageProgressView <| mdl.pages.selected
                 ]
             ]
         , Grid.row []
             [ Grid.col []
-                [ Html.map errMsg <| Err.view mdl.errors
+                [ Html.map errMsg <| Err.view mdl.pagesModel
                 ]
             ]
         , Grid.row []
             [ Grid.col [ Col.xs12 ]
-                [ .pgView pages.selected mdl
+                [ mdl.pages.selected.pgView mdl.pagesModel
                 ]
             ]
         ]

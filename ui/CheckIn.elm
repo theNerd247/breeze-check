@@ -9,7 +9,6 @@ import Data as Data
 import ErrorMsg as Err
 import FindPeople as Find
 import Html as Html exposing (Html, h4, p, text)
-import Nested exposing (modifyCmd)
 
 
 type Msg
@@ -17,7 +16,6 @@ type Msg
     | CheckInResponse (BreezeApi.Response Data.GroupId)
     | CancelCheckInClick
     | CancelCheckInResponse (BreezeApi.Response Bool)
-    | Find Find.Msg
 
 
 type alias HasCheckin m =
@@ -53,9 +51,6 @@ update msg mdl =
 
         CancelCheckInResponse r ->
             cancelCheckinResponse mdl r
-
-        Find m ->
-            modifyCmd Find <| Find.update m mdl
 
 
 checkInResponse : HasCheckin m -> BreezeApi.Response Data.GroupId -> ( HasCheckin m, Cmd Msg )
