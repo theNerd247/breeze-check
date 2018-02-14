@@ -8,7 +8,8 @@ import BreezeApi as BreezeApi
 import Data as Data
 import ErrorMsg as Err
 import FindPeople as Find
-import Html as Html exposing (Html, h4, p, text)
+import Html as Html exposing (Html, h2, p, text)
+import Html.Attributes exposing (class)
 
 
 type Msg
@@ -64,7 +65,7 @@ cancelCheckinResponse mdl r =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
                     (flip Err.newError mdl)
-                    (\_ -> { mdl | groupId = Nothing, foundPeople = [], searchLastName = "" })
+                    (\_ -> { mdl | groupId = Nothing })
     in
     ( m, Cmd.none )
 
@@ -77,49 +78,54 @@ checkedInView : Maybe Data.GroupId -> Html Msg
 checkedInView mgid =
     case mgid of
         Just gid ->
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
-                    [ h4 [] [ text "You're Almost Done!" ]
-                    , p [] [ text "Please stop by the check-in desk to finish checking in" ]
+            Grid.containerFluid []
+                [ Grid.row [ Row.centerXs ]
+                    [ Grid.col [ Col.xsAuto ]
+                        [ h2 [] [ text "You're Almost Done!" ]
+                        ]
+                    ]
+                , Grid.row [ Row.centerXs ]
+                    [ Grid.col [ Col.xs10 ]
+                        [ p [ class "text-center" ] [ text "Stop by the check-in desk to finish checking in" ]
+                        ]
                     ]
                 ]
 
         Nothing ->
             Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
-                    [ h4 [] [ text "Uh oh!" ]
-                    , p [] [ text "Some how you checked in without checking in...hit the cancel button below" ]
+                [ Grid.col [ Col.xs10 ]
+                    [ h2 [] [ text "Uh oh!" ]
+                    , p []
+                        [ text "Some how you checked in without checking in...hit the cancel button below"
+                        ]
                     ]
                 ]
 
 
-checkInButtonView : HasCheckin m -> Html Msg
-checkInButtonView mdl =
-    Grid.row []
-        [ Grid.col [ Col.xs12 ] <|
-            if not <| List.isEmpty mdl.waitingCheckIn then
-                [ Button.button
-                    [ Button.outlineSuccess
-                    , Button.large
-                    , Button.onClick CheckInClick
-                    ]
-                    [ text "3. We're Ready! Let's Go!" ]
-                ]
-            else
-                []
+checkInButtonView : Html Msg
+checkInButtonView =
+    Button.button
+        [ Button.outlineSuccess
+        , Button.large
+        , Button.onClick CheckInClick
+        ]
+        [ text "Check In "
+        , Html.i [ class "fas fa-arrow-right" ] []
         ]
 
 
 cancelCheckInView : Html Msg
 cancelCheckInView =
-    Grid.row []
-        [ Grid.col [ Col.xs12 ]
+    Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xsAuto ]
             [ Button.button
-                [ Button.danger
+                [ Button.outlineInfo
                 , Button.large
                 , Button.onClick
                     CancelCheckInClick
                 ]
-                [ text "Cancel Check-in" ]
+                [ Html.i [ class "fas fa-arrow-left" ] []
+                , text " Cancel Check In"
+                ]
             ]
         ]

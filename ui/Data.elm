@@ -71,6 +71,15 @@ encodePersonIds =
     Encode.list << List.map (Encode.string << .pid)
 
 
+type alias EventName =
+    String
+
+
+decodeEventName : Decoder EventName
+decodeEventName =
+    field "event-name" string
+
+
 
 -- VIEW
 

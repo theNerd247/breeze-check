@@ -5,7 +5,9 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Progress as Progress
+import BreezeApi as BreezeApi
 import CheckIn as CheckIn
+import Data as Data
 import ErrorMsg as Err
 import FindPeople as Find
 import Html as Html
@@ -16,7 +18,7 @@ import Html as Html
         , button
         , div
         , h1
-        , h4
+        , h2
         , header
         , hr
         , main_
@@ -56,12 +58,14 @@ type Msg
     | CheckIn CheckIn.Msg
     | Err Err.Msg
     | SearchPageClick
+    | GetEventName
+    | EventNameResult (BreezeApi.Response Data.EventName)
 
 
 main : Program Never Model Msg
 main =
     program
-        { init = ( model, Cmd.none )
+        { init = getEventName model
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
@@ -101,18 +105,41 @@ update msg m =
         Err msg ->
             ( Err.update msg mdl, Cmd.none )
 
+        GetEventName ->
+            getEventName mdl
+
+        EventNameResult r ->
+            eventNameResult mdl r
+
         _ ->
             ( mdl, Cmd.none )
+
+
+getEventName : Model -> ( Model, Cmd Msg )
+getEventName mdl =
+    ( mdl, BreezeApi.eventInfo EventNameResult )
+
+
+eventNameResult : Model -> BreezeApi.Response Data.EventName -> ( Model, Cmd Msg )
+eventNameResult mdl r =
+    let
+        m =
+            BreezeApi.fromResponse r
+                |> BreezeApi.fromResult
+                    (\e -> Err.newError e mdl)
+                    (\n -> { mdl | eventName = n })
+    in
+    ( m, Cmd.none )
 
 
 pageUpdate : Msg -> Model -> Model
 pageUpdate msg mdl =
     case mdl.page of
         Search ->
-            searchPageUpdate (Debug.log "msg" msg) (Debug.log "mdl" mdl)
+            searchPageUpdate msg mdl
 
         Select ->
-            selectPageUpdate msg mdl
+            selectPageUpdate (Debug.log "msg" msg) (Debug.log "mdl" mdl)
 
         Finished ->
             finishedPageUpdate msg mdl
@@ -161,7 +188,7 @@ view mdl =
         titleRow =
             [ Grid.row [ Row.centerLg ]
                 [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
-                    [ h1 [{- class "display-1" -}] [ text mdl.eventName ]
+                    [ h1 [] [ text mdl.eventName ]
                     , p [] [ text "Mountain View Church" ]
                     ]
                 ]
@@ -174,12 +201,24 @@ view mdl =
         page =
             case mdl.page of
                 Search ->
-                    [ Html.map Find <| Find.searchPersonsView ]
+                    [ Html.map Find <| Find.searchPersonsView mdl ]
 
                 Select ->
-                    [ Html.map Find <| Find.selectForCheckInView mdl
-                    , Html.map CheckIn <| CheckIn.checkInButtonView mdl
-                    , searchPageButtonView
+                    let
+                        title =
+                            Grid.row [ Row.centerXs ]
+                                [ Grid.col [ Col.xs10 ]
+                                    [ h2 [ class "text-center" ] [ text "Select Your Family Members" ]
+                                    ]
+                                ]
+                    in
+                    [ title
+                    , Html.map Find <| Find.foundPeopleView mdl
+                    , hr [] []
+                    , Html.map Find <| Find.waitingCheckInView mdl
+                    , br [] []
+                    , selectPageButtonsView mdl
+                    , hr [] []
                     ]
 
                 Finished ->
@@ -190,7 +229,7 @@ view mdl =
         body =
             []
                 |> flip List.append titleRow
-                |> flip List.append [ pageProgressView mdl.page ]
+                --|> flip List.append [ pageProgressView mdl.page ]
                 |> flip List.append errors
                 |> flip List.append page
     in
@@ -216,11 +255,27 @@ pageProgressView pg =
     Grid.row [] [ Grid.col [ Col.xs12 ] [ Progress.progress ops ] ]
 
 
+selectPageButtonsView : Model -> Html Msg
+selectPageButtonsView mdl =
+    Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xsAuto ] <|
+            [ searchPageButtonView
+            ]
+        , Grid.col [ Col.xsAuto ] <|
+            if not <| List.isEmpty mdl.waitingCheckIn then
+                [ Html.map CheckIn <| CheckIn.checkInButtonView ]
+            else
+                []
+        ]
+
+
 searchPageButtonView : Html Msg
 searchPageButtonView =
-    Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xsAuto ]
-            [ Button.button [ Button.large, Button.onClick SearchPageClick ]
-                [ text "Return To Search" ]
-            ]
+    Button.button
+        [ Button.large
+        , Button.onClick SearchPageClick
+        , Button.outlineSecondary
+        ]
+        [ Html.i [ class "fas fa-arrow-left" ] []
+        , text " Search"
         ]

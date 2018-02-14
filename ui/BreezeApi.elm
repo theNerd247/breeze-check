@@ -95,6 +95,14 @@ cancelCheckin f mgid =
                 f
 
 
+eventInfo : (Response String -> msg) -> Cmd msg
+eventInfo f =
+    sendGet
+        "eventinfo"
+        (Data.withBreezeErrDecoder Data.decodeEventName)
+        f
+
+
 fromResult : (a -> c) -> (b -> c) -> Result.Result a b -> c
 fromResult f g r =
     case r of

@@ -6,6 +6,7 @@ import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
 import ErrorMsg as Err
@@ -16,8 +17,7 @@ import Html as Html
         , br
         , button
         , div
-        , h1
-        , h4
+        , h2
         , header
         , hr
         , main_
@@ -73,7 +73,7 @@ updateSearchLastName mdl s =
 
 searchClick : HasFind m -> ( HasFind m, Cmd Msg )
 searchClick mdl =
-    ( mdl, BreezeApi.findPeople SearchResult mdl.searchLastName )
+    ( { mdl | findPeopleLoading = True }, BreezeApi.findPeople SearchResult mdl.searchLastName )
 
 
 searchResult : HasFind m -> BreezeApi.Response (List Data.Person) -> ( HasFind m, Cmd Msg )
@@ -82,10 +82,19 @@ searchResult mdl r =
         m =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
-                    (flip Err.newError { mdl | findPeopleLoading = False })
-                    (\ppl -> { mdl | foundPeople = ppl })
+                    (flip Err.newError mdl)
+                    (\ppl -> { mdl | foundPeople = filtered ppl })
+
+        filtered =
+            List.filter personFilter
+
+        pids =
+            List.map .pid mdl.waitingCheckIn
+
+        personFilter p =
+            not <| List.member p.pid pids
     in
-    ( m, Cmd.none )
+    ( { m | findPeopleLoading = False }, Cmd.none )
 
 
 toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
@@ -125,45 +134,39 @@ toggleCheckIn pid ( chkin, found ) =
 -- VIEW:
 
 
-selectForCheckInView : HasFind m -> Html Msg
-selectForCheckInView mdl =
-    let
-        title =
-            Grid.row [] [ Grid.col [ Col.xs12 ] [ h4 [] [ text "Select Your Family Members" ] ] ]
-    in
-    Grid.containerFluid []
-        [ title
-        , foundPeopleView mdl
-        , waitingCheckInView mdl
-        ]
-
-
-searchPersonsView : Html Msg
-searchPersonsView =
-    Grid.row []
-        [ Grid.col []
-            [ h4 [] [ text "1. Find Your Family" ]
+searchPersonsView : HasFind m -> Html Msg
+searchPersonsView mdl =
+    Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xs10 ]
+            [ h2 [] [ text "Find Your Family" ]
             , Form.form []
-                [ Form.row []
-                    [ Form.col []
+                [ Form.row [ Row.centerXs ]
+                    [ Form.col [ Col.xsAuto ]
                         [ InputGroup.config
                             (InputGroup.text
                                 [ Input.placeholder "Last Name"
                                 , Input.onInput UpdateSearchLastName
+                                , Input.value mdl.searchLastName
                                 ]
                             )
                             |> InputGroup.large
                             |> InputGroup.view
                         ]
                     ]
-                , Form.row []
-                    [ Form.col []
-                        [ Button.button
-                            [ Button.onClick SearchClick, Button.large ]
-                            [ Html.i [ class "fas fa-search" ] []
-                            , text " Search"
+                , Form.row [ Row.centerXs ]
+                    [ Form.col [ Col.xsAuto ] <|
+                        if not <| String.isEmpty mdl.searchLastName then
+                            [ Button.button
+                                [ Button.onClick SearchClick
+                                , Button.large
+                                , Button.outlinePrimary
+                                ]
+                                [ Html.i [ class "fas fa-search" ] []
+                                , text " Search"
+                                ]
                             ]
-                        ]
+                        else
+                            []
                     ]
                 ]
             ]
@@ -190,14 +193,11 @@ foundPeopleView mdl =
                 [ text "loading..." ]
             else if
                 List.isEmpty mdl.foundPeople
-                    && not
-                        (String.isEmpty
-                            mdl.searchLastName
-                        )
+                    && not (String.isEmpty mdl.searchLastName)
+                    && not (List.isEmpty mdl.waitingCheckIn)
             then
                 [ text <| "No one has the last name of: " ++ mdl.searchLastName ]
             else
                 [ Data.listPersonView ToggleAttending mdl.foundPeople
-                , br [] []
                 ]
         ]
