@@ -127,8 +127,13 @@ toggleCheckIn pid ( chkin, found ) =
 
 selectForCheckInView : HasFind m -> Html Msg
 selectForCheckInView mdl =
+    let
+        title =
+            Grid.row [] [ Grid.col [ Col.xs12 ] [ h4 [] [ text "Select Your Family Members" ] ] ]
+    in
     Grid.containerFluid []
-        [ foundPeopleView mdl
+        [ title
+        , foundPeopleView mdl
         , waitingCheckInView mdl
         ]
 
@@ -169,8 +174,7 @@ waitingCheckInView : HasFind m -> Html Msg
 waitingCheckInView mdl =
     Grid.row []
         [ Grid.col [ Col.xs12 ]
-            [ h4 [] [ text "2. Select Members" ]
-            , if List.isEmpty mdl.waitingCheckIn && (not <| List.isEmpty mdl.foundPeople) then
+            [ if List.isEmpty mdl.waitingCheckIn && (not <| List.isEmpty mdl.foundPeople) then
                 p [] [ text "You haven't selected anyone for check-in" ]
               else
                 Data.listPersonView ToggleAttending mdl.waitingCheckIn
@@ -184,7 +188,13 @@ foundPeopleView mdl =
         [ Grid.col [] <|
             if mdl.findPeopleLoading then
                 [ text "loading..." ]
-            else if List.isEmpty mdl.foundPeople then
+            else if
+                List.isEmpty mdl.foundPeople
+                    && not
+                        (String.isEmpty
+                            mdl.searchLastName
+                        )
+            then
                 [ text <| "No one has the last name of: " ++ mdl.searchLastName ]
             else
                 [ Data.listPersonView ToggleAttending mdl.foundPeople

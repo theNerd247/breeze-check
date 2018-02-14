@@ -1,7 +1,6 @@
 module Main exposing (..)
 
---import Bootstrap.Button as Button
-
+import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -180,6 +179,7 @@ view mdl =
                 Select ->
                     [ Html.map Find <| Find.selectForCheckInView mdl
                     , Html.map CheckIn <| CheckIn.checkInButtonView mdl
+                    , searchPageButtonView
                     ]
 
                 Finished ->
@@ -214,3 +214,13 @@ pageProgressView pg =
                         [ Progress.value 100, Progress.success ]
     in
     Grid.row [] [ Grid.col [ Col.xs12 ] [ Progress.progress ops ] ]
+
+
+searchPageButtonView : Html Msg
+searchPageButtonView =
+    Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xsAuto ]
+            [ Button.button [ Button.large, Button.onClick SearchPageClick ]
+                [ text "Return To Search" ]
+            ]
+        ]

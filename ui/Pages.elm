@@ -98,24 +98,3 @@ view errMsg mdl =
                 ]
             ]
         ]
-
-
-pageProgressView : Page mdl msg -> Html msg
-pageProgressView pg =
-    let
-        ops =
-            List.append [ Progress.height 10 ] <|
-                case pg.progress of
-                    33 ->
-                        [ Progress.value 33 ]
-
-                    66 ->
-                        [ Progress.value 66, Progress.info ]
-
-                    100 ->
-                        [ Progress.value 100, Progress.success ]
-
-                    _ ->
-                        []
-    in
-    Progress.progress ops
