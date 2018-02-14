@@ -33,37 +33,41 @@ type Msg
     = CloseError Int
 
 
-model : Errors
-model =
-    []
+type alias HasErrors m =
+    { m | errors : Errors }
 
 
-newError : String -> Errors -> Errors
+model : HasErrors m -> HasErrors m
+model m =
+    { m | errors = [] }
+
+
+newError : String -> HasErrors m -> HasErrors m
 newError msg msgs =
     let
         newId =
-            Maybe.withDefault 0 << Maybe.map (\x -> 1 + x.errorId) <| List.head msgs
+            Maybe.withDefault 0 << Maybe.map (\x -> 1 + x.errorId) <| List.head msgs.errors
 
         newMessage =
             { errorId = newId, errorMsg = msg }
     in
-    newMessage :: msgs
+    { msgs | errors = newMessage :: msgs.errors }
 
 
-update : Msg -> Errors -> Errors
+update : Msg -> HasErrors m -> HasErrors m
 update msg errs =
     case msg of
         CloseError eid ->
-            List.filter (\x -> x.errorId /= eid) errs
+            { errs | errors = List.filter (\x -> x.errorId /= eid) errs.errors }
 
 
-view : Errors -> Html Msg
+view : HasErrors m -> Html Msg
 view =
-    div [] << List.map error
+    div [] << List.map errorView << .errors
 
 
-error : Error -> Html Msg
-error msg =
+errorView : Error -> Html Msg
+errorView msg =
     Alert.danger
         [ text msg.errorMsg
         , button [ class "close", onClick (CloseError msg.errorId) ] [ text "x" ]

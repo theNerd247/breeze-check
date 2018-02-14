@@ -29,13 +29,14 @@ import Html.Attributes exposing (class)
 import Platform.Cmd as Cmd
 
 
---type alias mdl =
---{ searchLastName : String
---, foundPeople : List Data.Person
---, waitingCheckIn : List Data.Person
---, findPeopleLoading : Bool
---, errors : Err.Errors
---}
+type alias HasFind m =
+    Err.HasErrors
+        { m
+            | searchLastName : String
+            , foundPeople : List Data.Person
+            , waitingCheckIn : List Data.Person
+            , findPeopleLoading : Bool
+        }
 
 
 type Msg
@@ -45,13 +46,13 @@ type Msg
     | ToggleAttending Data.PersonId
 
 
-init m =
+model : HasFind m -> HasFind m
+model m =
     { m
         | foundPeople = []
         , waitingCheckIn = []
         , searchLastName = ""
         , findPeopleLoading = False
-        , errors = Err.model
     }
 
 
@@ -59,6 +60,7 @@ init m =
 -- UPDATE:
 
 
+update : Msg -> HasFind m -> ( HasFind m, Cmd Msg )
 update msg mdl =
     case msg of
         UpdateSearchLastName s ->
@@ -74,29 +76,29 @@ update msg mdl =
             toggleAttending mdl pid
 
 
+updateSearchLastName : HasFind m -> String -> ( HasFind m, Cmd Msg )
 updateSearchLastName mdl s =
     ( { mdl | searchLastName = s }, Cmd.none )
 
 
+searchClick : HasFind m -> ( HasFind m, Cmd Msg )
 searchClick mdl =
     ( mdl, BreezeApi.findPeople SearchResult mdl.searchLastName )
 
 
-newError e mdl =
-    { mdl | errors = Err.newError e mdl.errors }
-
-
+searchResult : HasFind m -> BreezeApi.Response (List Data.Person) -> ( HasFind m, Cmd Msg )
 searchResult mdl r =
     let
         m =
-            { mdl | findPeopleLoading = False }
+            BreezeApi.fromResponse r
+                |> BreezeApi.fromResult
+                    (flip Err.newError { mdl | findPeopleLoading = False })
+                    (\ppl -> { m | foundPeople = ppl })
     in
-    BreezeApi.fromResponse r
-        |> BreezeApi.fromResult
-            (\e -> ( newError e m, Cmd.none ))
-            (\ppl -> ( { m | foundPeople = ppl }, Cmd.none ))
+    ( m, Cmd.none )
 
 
+toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
 toggleAttending mdl pid =
     let
         ( chin, fnd ) =
@@ -105,6 +107,7 @@ toggleAttending mdl pid =
     ( { mdl | waitingCheckIn = chin, foundPeople = fnd }, Cmd.none )
 
 
+toggleCheckIn : Data.PersonId -> ( List Data.Person, List Data.Person ) -> ( List Data.Person, List Data.Person )
 toggleCheckIn pid ( chkin, found ) =
     let
         personFilter p =
@@ -132,19 +135,22 @@ toggleCheckIn pid ( chkin, found ) =
 -- VIEW:
 
 
-searchPersonsView fmsg =
+searchPersonsView : Html Msg
+searchPersonsView =
     Grid.containerFluid []
-        [ Html.map fmsg <| searchView
+        [ searchView
         ]
 
 
-selectForCheckInView fmsg mdl =
+selectForCheckInView : HasFind m -> Html Msg
+selectForCheckInView mdl =
     Grid.containerFluid []
-        [ Html.map fmsg <| foundPeopleView mdl
-        , Html.map fmsg <| waitingCheckInView mdl
+        [ foundPeopleView mdl
+        , waitingCheckInView mdl
         ]
 
 
+searchView : Html Msg
 searchView =
     Grid.row []
         [ Grid.col []
@@ -176,6 +182,7 @@ searchView =
         ]
 
 
+waitingCheckInView : HasFind m -> Html Msg
 waitingCheckInView mdl =
     Grid.row []
         [ Grid.col [ Col.xs12 ]
@@ -188,6 +195,7 @@ waitingCheckInView mdl =
         ]
 
 
+foundPeopleView : HasFind m -> Html Msg
 foundPeopleView mdl =
     Grid.row []
         [ Grid.col [] <|

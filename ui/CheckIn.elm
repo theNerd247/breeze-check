@@ -20,20 +20,30 @@ type Msg
     | Find Find.Msg
 
 
-init m =
-    { m
-        | groupId = Nothing
-    }
+type alias HasCheckin m =
+    Find.HasFind
+        { m
+            | groupId : Maybe Data.GroupId
+        }
+
+
+model : HasCheckin m -> HasCheckin m
+model m =
+    Find.model
+        { m
+            | groupId = Nothing
+        }
 
 
 
 -- UPDATE
 
 
+update : Msg -> HasCheckin m -> ( HasCheckin m, Cmd Msg )
 update msg mdl =
     case msg of
         CheckInClick ->
-            ( mdl, BreezeApi.checkIn CheckInResponse mdl.find.waitingCheckIn )
+            ( mdl, BreezeApi.checkIn CheckInResponse mdl.waitingCheckIn )
 
         CheckInResponse r ->
             checkInResponse mdl r
@@ -48,36 +58,35 @@ update msg mdl =
             modifyCmd Find <| Find.update m mdl
 
 
-newError mdl e =
-    let
-        f m =
-            { m | errors = Err.newError e m.errors }
-    in
-    ( { mdl | find = f mdl.find }, Cmd.none )
-
-
+checkInResponse : HasCheckin m -> BreezeApi.Response Data.GroupId -> ( HasCheckin m, Cmd Msg )
 checkInResponse mdl r =
-    BreezeApi.fromResponse r
-        |> BreezeApi.fromResult
-            (newError { mdl | groupId = Nothing })
-            (\gid -> ( { mdl | groupId = Just gid }, Cmd.none ))
+    let
+        m =
+            BreezeApi.fromResponse r
+                |> BreezeApi.fromResult
+                    (flip Err.newError { mdl | groupId = Nothing })
+                    (\gid -> { mdl | groupId = Just gid })
+    in
+    ( m, Cmd.none )
 
 
+cancelCheckinResponse : HasCheckin m -> BreezeApi.Response Bool -> ( HasCheckin m, Cmd Msg )
 cancelCheckinResponse mdl r =
     let
-        f m =
-            { m | foundPeople = [], searchLastName = "" }
+        m =
+            BreezeApi.fromResponse r
+                |> BreezeApi.fromResult
+                    (flip Err.newError mdl)
+                    (\_ -> { mdl | groupId = Nothing, foundPeople = [], searchLastName = "" })
     in
-    BreezeApi.fromResponse r
-        |> BreezeApi.fromResult
-            (newError mdl)
-            (\_ -> ( { mdl | groupId = Nothing, find = f mdl.find }, Cmd.none ))
+    ( m, Cmd.none )
 
 
 
 -- VIEW
 
 
+checkedInView : Data.GroupId -> Html Msg
 checkedInView gid =
     Grid.containerFluid []
         [ Grid.row [ Row.centerXs ]
@@ -94,10 +103,11 @@ checkedInView gid =
         ]
 
 
+checkInButtonView : HasCheckin m -> Html Msg
 checkInButtonView mdl =
     Grid.row []
         [ Grid.col [ Col.xs12 ] <|
-            if not <| List.isEmpty mdl.find.waitingCheckIn then
+            if not <| List.isEmpty mdl.waitingCheckIn then
                 [ Button.button
                     [ Button.outlineSuccess
                     , Button.large
@@ -110,6 +120,7 @@ checkInButtonView mdl =
         ]
 
 
+cancelCheckInView : Html Msg
 cancelCheckInView =
     Grid.row []
         [ Grid.col [ Col.xs12 ]
