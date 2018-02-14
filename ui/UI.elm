@@ -5,6 +5,7 @@ module Main exposing (..)
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Progress as Progress
 import CheckIn as CheckIn
 import ErrorMsg as Err
 import FindPeople as Find
@@ -81,6 +82,10 @@ model =
     }
 
 
+
+-- UPDATE
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     let
@@ -147,6 +152,10 @@ finishedPageUpdate msg mdl =
             mdl
 
 
+
+-- VIEW
+
+
 view : Model -> Html Msg
 view mdl =
     let
@@ -181,7 +190,27 @@ view mdl =
         body =
             []
                 |> flip List.append titleRow
+                |> flip List.append [ pageProgressView mdl.page ]
                 |> flip List.append errors
                 |> flip List.append page
     in
     Grid.container [] body
+
+
+pageProgressView : Page -> Html msg
+pageProgressView pg =
+    let
+        ops =
+            List.append [] <|
+                -- Progress.height 10 ] <|
+                case pg of
+                    Search ->
+                        [ Progress.value 33 ]
+
+                    Select ->
+                        [ Progress.value 66, Progress.info ]
+
+                    Finished ->
+                        [ Progress.value 100, Progress.success ]
+    in
+    Grid.row [] [ Grid.col [ Col.xs12 ] [ Progress.progress ops ] ]
