@@ -9,6 +9,7 @@ import Data as Data
 import ErrorMsg as Err
 import FindPeople as Find
 import Html as Html exposing (Html, h4, p, text)
+import Nested exposing (modifyCmd)
 
 
 type Msg
@@ -19,10 +20,9 @@ type Msg
     | Find Find.Msg
 
 
-type alias Model =
-    { groupId : Maybe Data.GroupId
-    , find : Find.Model
-    , errors : Err.Errors
+init m =
+    { m
+        | groupId = Nothing
     }
 
 
@@ -30,7 +30,6 @@ type alias Model =
 -- UPDATE
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
 update msg mdl =
     case msg of
         CheckInClick ->
@@ -46,15 +45,17 @@ update msg mdl =
             cancelCheckinResponse mdl r
 
         Find m ->
-            Find.withUpdate (\m -> { mdl | find = m }) Find m mdl.find
+            modifyCmd Find <| Find.update m mdl
 
 
-newError : Model -> String -> ( Model, Cmd Msg )
 newError mdl e =
-    ( { mdl | errors = Err.newError e mdl.errors }, Cmd.none )
+    let
+        f m =
+            { m | errors = Err.newError e m.errors }
+    in
+    ( { mdl | find = f mdl.find }, Cmd.none )
 
 
-checkInResponse : Model -> BreezeApi.Response Data.GroupId -> ( Model, Cmd Msg )
 checkInResponse mdl r =
     BreezeApi.fromResponse r
         |> BreezeApi.fromResult
@@ -62,7 +63,6 @@ checkInResponse mdl r =
             (\gid -> ( { mdl | groupId = Just gid }, Cmd.none ))
 
 
-cancelCheckinResponse : Model -> BreezeApi.Response Bool -> ( Model, Cmd Msg )
 cancelCheckinResponse mdl r =
     let
         f m =
@@ -78,7 +78,6 @@ cancelCheckinResponse mdl r =
 -- VIEW
 
 
-checkedInView : Data.GroupId -> Html Msg
 checkedInView gid =
     Grid.containerFluid []
         [ Grid.row [ Row.centerXs ]
@@ -95,7 +94,6 @@ checkedInView gid =
         ]
 
 
-checkInButtonView : Model -> Html Msg
 checkInButtonView mdl =
     Grid.row []
         [ Grid.col [ Col.xs12 ] <|
@@ -112,7 +110,6 @@ checkInButtonView mdl =
         ]
 
 
-cancelCheckInView : Html Msg
 cancelCheckInView =
     Grid.row []
         [ Grid.col [ Col.xs12 ]

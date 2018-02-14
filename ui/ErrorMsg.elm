@@ -57,11 +57,9 @@ update msg errs =
             List.filter (\x -> x.errorId /= eid) errs
 
 
-view : (Msg -> msg) -> Errors -> Html msg
-view fmsg =
-    Html.map fmsg
-        << div []
-        << List.map error
+view : Errors -> Html Msg
+view =
+    div [] << List.map error
 
 
 error : Error -> Html Msg

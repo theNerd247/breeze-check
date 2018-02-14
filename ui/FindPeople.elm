@@ -1,5 +1,6 @@
 module FindPeople exposing (..)
 
+import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
@@ -7,7 +8,6 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import BreezeApi as BreezeApi
 import Data as Data
-import Debounce as Debounce
 import ErrorMsg as Err
 import Html as Html
     exposing
@@ -25,70 +25,47 @@ import Html as Html
         , program
         , text
         )
+import Html.Attributes exposing (class)
 import Platform.Cmd as Cmd
-import Time exposing (millisecond)
 
 
-type alias Model =
-    { searchLastName : String
-    , foundPeople : List Data.Person
-    , waitingCheckIn : List Data.Person
-    , debounce : Debounce.State
-    , findPeopleLoading : Bool
-    , errors : Err.Errors
-    }
+--type alias mdl =
+--{ searchLastName : String
+--, foundPeople : List Data.Person
+--, waitingCheckIn : List Data.Person
+--, findPeopleLoading : Bool
+--, errors : Err.Errors
+--}
 
 
 type Msg
     = UpdateSearchLastName String
+    | SearchClick
     | SearchResult (BreezeApi.Response (List Data.Person))
     | ToggleAttending Data.PersonId
-    | Deb (Debounce.Msg Msg)
 
 
-model : Model
-model =
-    { foundPeople = []
-    , waitingCheckIn = []
-    , searchLastName = ""
-    , findPeopleLoading = False
-    , debounce = Debounce.init
-    , errors = Err.model
+init m =
+    { m
+        | foundPeople = []
+        , waitingCheckIn = []
+        , searchLastName = ""
+        , findPeopleLoading = False
+        , errors = Err.model
     }
-
-
-debounceCfg : Debounce.Config Model Msg
-debounceCfg =
-    Debounce.config
-        .debounce
-        (\dmdl s -> { dmdl | debounce = s })
-        Deb
-        (500 * millisecond)
-
-
-deb1 : (a -> Msg) -> (a -> Msg)
-deb1 =
-    Debounce.debounce1 debounceCfg
 
 
 
 -- UPDATE:
 
 
-withUpdate : (Model -> mdl) -> (Msg -> msg) -> Msg -> Model -> ( mdl, Cmd msg )
-withUpdate fmdl fmsg msg mdl =
-    let
-        ( m, c ) =
-            update msg mdl
-    in
-    ( fmdl m, Cmd.map fmsg c )
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
 update msg mdl =
     case msg of
         UpdateSearchLastName s ->
             updateSearchLastName mdl s
+
+        SearchClick ->
+            searchClick mdl
 
         SearchResult r ->
             searchResult mdl r
@@ -96,32 +73,19 @@ update msg mdl =
         ToggleAttending pid ->
             toggleAttending mdl pid
 
-        Deb deb ->
-            Debounce.update debounceCfg deb mdl
 
-
-updateSearchLastName : Model -> String -> ( Model, Cmd Msg )
 updateSearchLastName mdl s =
-    let
-        updatedMdl f =
-            { mdl
-                | searchLastName = s
-                , findPeopleLoading = f
-                , foundPeople = []
-            }
-    in
-    if String.isEmpty s then
-        ( updatedMdl False, Cmd.none )
-    else
-        ( updatedMdl True, BreezeApi.findPeople SearchResult s )
+    ( { mdl | searchLastName = s }, Cmd.none )
 
 
-newError : String -> Model -> Model
+searchClick mdl =
+    ( mdl, BreezeApi.findPeople SearchResult mdl.searchLastName )
+
+
 newError e mdl =
     { mdl | errors = Err.newError e mdl.errors }
 
 
-searchResult : Model -> BreezeApi.Response (List Data.Person) -> ( Model, Cmd Msg )
 searchResult mdl r =
     let
         m =
@@ -133,7 +97,6 @@ searchResult mdl r =
             (\ppl -> ( { m | foundPeople = ppl }, Cmd.none ))
 
 
-toggleAttending : Model -> Data.PersonId -> ( Model, Cmd Msg )
 toggleAttending mdl pid =
     let
         ( chin, fnd ) =
@@ -142,7 +105,6 @@ toggleAttending mdl pid =
     ( { mdl | waitingCheckIn = chin, foundPeople = fnd }, Cmd.none )
 
 
-toggleCheckIn : String -> ( List Data.Person, List Data.Person ) -> ( List Data.Person, List Data.Person )
 toggleCheckIn pid ( chkin, found ) =
     let
         personFilter p =
@@ -170,14 +132,12 @@ toggleCheckIn pid ( chkin, found ) =
 -- VIEW:
 
 
-searchPersonsView : (Msg -> msg) -> Html msg
 searchPersonsView fmsg =
     Grid.containerFluid []
         [ Html.map fmsg <| searchView
         ]
 
 
-selectForCheckInView : (Msg -> msg) -> Model -> Html msg
 selectForCheckInView fmsg mdl =
     Grid.containerFluid []
         [ Html.map fmsg <| foundPeopleView mdl
@@ -185,7 +145,6 @@ selectForCheckInView fmsg mdl =
         ]
 
 
-searchView : Html Msg
 searchView =
     Grid.row []
         [ Grid.col []
@@ -196,11 +155,20 @@ searchView =
                         [ InputGroup.config
                             (InputGroup.text
                                 [ Input.placeholder "Last Name"
-                                , Input.onInput (deb1 UpdateSearchLastName)
+                                , Input.onInput UpdateSearchLastName
                                 ]
                             )
                             |> InputGroup.large
                             |> InputGroup.view
+                        ]
+                    ]
+                , Form.row []
+                    [ Form.col []
+                        [ Button.button
+                            [ Button.onClick SearchClick, Button.large ]
+                            [ Html.i [ class "far fa-search" ] []
+                            , text " Search"
+                            ]
                         ]
                     ]
                 ]
@@ -208,7 +176,6 @@ searchView =
         ]
 
 
-waitingCheckInView : Model -> Html Msg
 waitingCheckInView mdl =
     Grid.row []
         [ Grid.col [ Col.xs12 ]
@@ -221,7 +188,6 @@ waitingCheckInView mdl =
         ]
 
 
-foundPeopleView : Model -> Html Msg
 foundPeopleView mdl =
     Grid.row []
         [ Grid.col [] <|
