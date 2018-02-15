@@ -203,7 +203,7 @@ view mdl =
         page =
             case mdl.page of
                 Search ->
-                    [ Html.map Find <| Find.searchPersonsView mdl ]
+                    searchPageView mdl
 
                 Select ->
                     selectPageView mdl
@@ -220,13 +220,28 @@ view mdl =
     Grid.containerFluid [] body
 
 
+searchPageView : Model -> List (Html Msg)
+searchPageView mdl =
+    let
+        searchForm =
+            Grid.row [ Row.middleXs ]
+                [ Grid.col [ Col.xs12 ]
+                    [ h2 [] [ text "Find Your Family" ]
+                    , Html.map Find <| Find.searchPersonsView mdl
+                    ]
+                ]
+    in
+    [ searchForm
+    ]
+
+
 selectPageView : Model -> List (Html Msg)
 selectPageView mdl =
     let
         title =
             Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xs10 ]
-                    [ h2 [ class "text-justify" ] [ text "Select Your Family Members" ]
+                [ Grid.col [ Col.xs12 ]
+                    [ h2 [ class "text-center" ] [ text "Select Your Family Members" ]
                     ]
                 ]
 
@@ -238,7 +253,14 @@ selectPageView mdl =
                 ]
 
         waiting =
-            Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
+            let
+                a =
+                    if not <| List.isEmpty mdl.waitingCheckIn then
+                        [ class "pb-3" ]
+                    else
+                        []
+            in
+            Grid.row [ Row.attrs a, Row.centerXs ]
                 [ Grid.col [ Col.xs12 ]
                     [ Html.map Find <| Find.waitingCheckInView mdl
                     ]
@@ -246,10 +268,11 @@ selectPageView mdl =
 
         backButton =
             Grid.row [ Row.attrs [ class "pb-3" ] ]
-                [ Grid.col [ Col.xs2 ]
+                [ Grid.col [ Col.xs12 ]
                     [ Button.button
                         [ Button.onClick SearchPageClick
                         , Button.outlineSecondary
+                        , Button.block
                         ]
                         [ Html.i [ class "fas fa-arrow-left" ] []
                         , text <| " " ++ "Back"
@@ -269,40 +292,52 @@ selectPageView mdl =
         addFamilyButtons mdl =
             let
                 addFamily =
-                    Grid.col [ Col.xs6 ]
+                    Grid.col [ Col.xs12, Col.attrs [ class "pb-3" ] ]
                         [ Button.button
                             [ Button.onClick SearchPageClick
                             , Button.secondary
+                            , Button.block
                             ]
-                            [ Html.i [ class "fas fa-user" ] []
-                            , text "Add Family"
+                            [ -- Html.i [ class "pb-3" ] []
+                              text "Add Another Family To Check In"
                             ]
                         ]
 
                 newFamily =
-                    Grid.col
-                        [ Col.xs6 ]
+                    Grid.col [ Col.xs12, Col.attrs [ class "pb-3" ] ]
                         [ Button.button
-                            [ Button.secondary
+                            [ Button.info
+                            , Button.block
                             ]
-                            [ Html.i [ class "fas fa-user-plus" ] []
-                            , text "Register Family"
+                            [ --Html.i [ class "fas fa-user-plus" ] []
+                              text "I can't find us!"
                             ]
                         ]
             in
-            Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ] <|
+            Grid.row [ Row.centerXs ] <|
                 if not <| List.isEmpty mdl.waitingCheckIn then
-                    [ newFamily
+                    [ addFamily
+                    , newFamily
                     ]
                 else
                     [ newFamily ]
+
+        header =
+            Grid.row [ Row.centerXs ] <|
+                if not <| List.isEmpty mdl.waitingCheckIn then
+                    [ Grid.col [ Col.xsAuto ]
+                        [ h3 [] [ text "You're checking in" ]
+                        ]
+                    ]
+                else
+                    []
     in
     [ title
-    , backButton
     , found
-    , hr [] []
-    , addFamilyButtons mdl
+    , backButton
+    , header
     , waiting
+    , addFamilyButtons mdl
     , checkInButton mdl
     ]
 
@@ -336,7 +371,14 @@ finishedPageView mdl =
         groupId gid =
             Grid.row [ Row.centerXs ]
                 [ Grid.col [ Col.xsAuto ]
-                    [ h2 [] [ text <| toString gid ]
+                    [ h1 [] [ text <| toString gid ]
+                    ]
+                ]
+
+        checkInTitle =
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xs10 ]
+                    [ h3 [] [ text "You're Checking In" ]
                     ]
                 ]
     in
@@ -349,5 +391,6 @@ finishedPageView mdl =
             , inst
             , groupId gid
             , cancelCheckin
+            , checkInTitle
             , Data.listPersonView Nothing mdl.waitingCheckIn
             ]

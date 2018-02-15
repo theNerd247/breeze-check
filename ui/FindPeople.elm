@@ -4,7 +4,6 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
-import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Progress as Progress
@@ -147,39 +146,34 @@ toggleCheckIn pid ( chkin, found ) =
 
 searchPersonsView : HasFind m -> Html Msg
 searchPersonsView mdl =
-    Grid.row [ Row.middleXs ]
-        [ Grid.col [ Col.xs12 ]
-            [ h2 [] [ text "Find Your Family" ]
-            , Form.form []
-                [ Form.row [ Row.centerXs ]
-                    [ Form.col [ Col.xs12 ]
-                        [ InputGroup.config
-                            (InputGroup.text
-                                [ Input.placeholder "Last Name"
-                                , Input.onInput UpdateSearchLastName
-                                , Input.value mdl.searchLastName
-                                ]
-                            )
-                            |> InputGroup.large
-                            |> InputGroup.view
+    Form.form []
+        [ Form.row [ Row.centerXs ]
+            [ Form.col [ Col.xs12 ]
+                [ InputGroup.config
+                    (InputGroup.text
+                        [ Input.placeholder "Last Name"
+                        , Input.onInput UpdateSearchLastName
+                        , Input.value mdl.searchLastName
+                        ]
+                    )
+                    |> InputGroup.large
+                    |> InputGroup.view
+                ]
+            ]
+        , Form.row [ Row.centerXs ]
+            [ Form.col [ Col.xsAuto ] <|
+                if not <| String.isEmpty mdl.searchLastName then
+                    [ Button.button
+                        [ Button.onClick SearchClick
+                        , Button.large
+                        , Button.outlinePrimary
+                        ]
+                        [ Html.i [ class "fas fa-search" ] []
+                        , text " Search"
                         ]
                     ]
-                , Form.row [ Row.centerXs ]
-                    [ Form.col [ Col.xsAuto ] <|
-                        if not <| String.isEmpty mdl.searchLastName then
-                            [ Button.button
-                                [ Button.onClick SearchClick
-                                , Button.large
-                                , Button.outlinePrimary
-                                ]
-                                [ Html.i [ class "fas fa-search" ] []
-                                , text " Search"
-                                ]
-                            ]
-                        else
-                            []
-                    ]
-                ]
+                else
+                    []
             ]
         ]
 
