@@ -4,7 +4,6 @@ import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import CheckIn as CheckIn
 import Data as Data
@@ -19,6 +18,8 @@ import Html as Html
         , div
         , h1
         , h2
+        , h3
+        , h4
         , header
         , hr
         , main_
@@ -26,7 +27,7 @@ import Html as Html
         , program
         , text
         )
-import Html.Attributes exposing (class, for)
+import Html.Attributes exposing (class, for, style)
 import Nested exposing (modifyCmd)
 
 
@@ -82,6 +83,7 @@ model =
     , findPeopleLoading = False
     , page = Search
     , eventName = ""
+    , personNotFound = False
     }
 
 
@@ -158,7 +160,7 @@ searchPageUpdate msg mdl =
 selectPageUpdate : Msg -> Model -> Model
 selectPageUpdate msg mdl =
     case msg of
-        CheckIn CheckIn.CheckInClick ->
+        CheckIn (CheckIn.CheckInResponse (Ok (Ok _))) ->
             { mdl | page = Finished }
 
         SearchPageClick ->
@@ -204,78 +206,148 @@ view mdl =
                     [ Html.map Find <| Find.searchPersonsView mdl ]
 
                 Select ->
-                    let
-                        title =
-                            Grid.row [ Row.centerXs ]
-                                [ Grid.col [ Col.xs10 ]
-                                    [ h2 [ class "text-center" ] [ text "Select Your Family Members" ]
-                                    ]
-                                ]
-                    in
-                    [ title
-                    , Html.map Find <| Find.foundPeopleView mdl
-                    , hr [] []
-                    , Html.map Find <| Find.waitingCheckInView mdl
-                    , br [] []
-                    , selectPageButtonsView mdl
-                    , hr [] []
-                    ]
+                    selectPageView mdl
 
                 Finished ->
-                    [ Html.map CheckIn <| CheckIn.checkedInView mdl.groupId
-                    , Html.map CheckIn <| CheckIn.cancelCheckInView
-                    ]
+                    finishedPageView mdl
 
         body =
             []
                 |> flip List.append titleRow
-                --|> flip List.append [ pageProgressView mdl.page ]
                 |> flip List.append errors
                 |> flip List.append page
     in
-    Grid.container [] body
+    Grid.containerFluid [] body
 
 
-pageProgressView : Page -> Html msg
-pageProgressView pg =
+selectPageView : Model -> List (Html Msg)
+selectPageView mdl =
     let
-        ops =
-            List.append [] <|
-                -- Progress.height 10 ] <|
-                case pg of
-                    Search ->
-                        [ Progress.value 33 ]
+        title =
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xs10 ]
+                    [ h2 [ class "text-justify" ] [ text "Select Your Family Members" ]
+                    ]
+                ]
 
-                    Select ->
-                        [ Progress.value 66, Progress.info ]
+        found =
+            Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
+                [ Grid.col [ Col.xs12 ]
+                    [ Html.map Find <| Find.foundPeopleView mdl
+                    ]
+                ]
 
-                    Finished ->
-                        [ Progress.value 100, Progress.success ]
+        waiting =
+            Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
+                [ Grid.col [ Col.xs12 ]
+                    [ Html.map Find <| Find.waitingCheckInView mdl
+                    ]
+                ]
+
+        backButton =
+            Grid.row [ Row.attrs [ class "pb-3" ] ]
+                [ Grid.col [ Col.xs2 ]
+                    [ Button.button
+                        [ Button.onClick SearchPageClick
+                        , Button.outlineSecondary
+                        ]
+                        [ Html.i [ class "fas fa-arrow-left" ] []
+                        , text <| " " ++ "Back"
+                        ]
+                    ]
+                ]
+
+        checkInButton mdl =
+            Grid.row [ Row.attrs [ class "pb-3" ] ] <|
+                if not <| List.isEmpty mdl.waitingCheckIn then
+                    [ Grid.col [ Col.xs12 ]
+                        [ Html.map CheckIn <| CheckIn.checkInButtonView ]
+                    ]
+                else
+                    []
+
+        addFamilyButtons mdl =
+            let
+                addFamily =
+                    Grid.col [ Col.xs6 ]
+                        [ Button.button
+                            [ Button.onClick SearchPageClick
+                            , Button.secondary
+                            ]
+                            [ Html.i [ class "fas fa-user" ] []
+                            , text "Add Family"
+                            ]
+                        ]
+
+                newFamily =
+                    Grid.col
+                        [ Col.xs6 ]
+                        [ Button.button
+                            [ Button.secondary
+                            ]
+                            [ Html.i [ class "fas fa-user-plus" ] []
+                            , text "Register Family"
+                            ]
+                        ]
+            in
+            Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ] <|
+                if not <| List.isEmpty mdl.waitingCheckIn then
+                    [ newFamily
+                    ]
+                else
+                    [ newFamily ]
     in
-    Grid.row [] [ Grid.col [ Col.xs12 ] [ Progress.progress ops ] ]
+    [ title
+    , backButton
+    , found
+    , hr [] []
+    , addFamilyButtons mdl
+    , waiting
+    , checkInButton mdl
+    ]
 
 
-selectPageButtonsView : Model -> Html Msg
-selectPageButtonsView mdl =
-    Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xsAuto ] <|
-            [ searchPageButtonView
+finishedPageView : Model -> List (Html Msg)
+finishedPageView mdl =
+    let
+        title =
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ h2 [] [ text "You're Almost Done!" ]
+                    ]
+                ]
+
+        inst =
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xs10 ]
+                    [ p [ class "text-center" ]
+                        [ text "Stop by the check-in desk and show them this number"
+                        ]
+                    ]
+                ]
+
+        cancelCheckin =
+            Grid.row [ Row.centerXs, Row.attrs [ class "pb-3" ] ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ Html.map CheckIn <| CheckIn.cancelCheckInView
+                    ]
+                ]
+
+        groupId gid =
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ h2 [] [ text <| toString gid ]
+                    ]
+                ]
+    in
+    case mdl.groupId of
+        Nothing ->
+            []
+
+        Just gid ->
+            [ title
+            , inst
+            , groupId gid
+            , cancelCheckin
+            , Data.listPersonView Nothing mdl.waitingCheckIn
             ]
-        , Grid.col [ Col.xsAuto ] <|
-            if not <| List.isEmpty mdl.waitingCheckIn then
-                [ Html.map CheckIn <| CheckIn.checkInButtonView ]
-            else
-                []
-        ]
-
-
-searchPageButtonView : Html Msg
-searchPageButtonView =
-    Button.button
-        [ Button.large
-        , Button.onClick SearchPageClick
-        , Button.outlineSecondary
-        ]
-        [ Html.i [ class "fas fa-arrow-left" ] []
-        , text " Search"
-        ]

@@ -1,9 +1,6 @@
 module CheckIn exposing (..)
 
 import Bootstrap.Button as Button
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
 import ErrorMsg as Err
@@ -74,58 +71,27 @@ cancelCheckinResponse mdl r =
 -- VIEW
 
 
-checkedInView : Maybe Data.GroupId -> Html Msg
-checkedInView mgid =
-    case mgid of
-        Just gid ->
-            Grid.containerFluid []
-                [ Grid.row [ Row.centerXs ]
-                    [ Grid.col [ Col.xsAuto ]
-                        [ h2 [] [ text "You're Almost Done!" ]
-                        ]
-                    ]
-                , Grid.row [ Row.centerXs ]
-                    [ Grid.col [ Col.xs10 ]
-                        [ p [ class "text-center" ] [ text "Stop by the check-in desk to finish checking in" ]
-                        ]
-                    ]
-                ]
-
-        Nothing ->
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xs10 ]
-                    [ h2 [] [ text "Uh oh!" ]
-                    , p []
-                        [ text "Some how you checked in without checking in...hit the cancel button below"
-                        ]
-                    ]
-                ]
-
-
 checkInButtonView : Html Msg
 checkInButtonView =
     Button.button
-        [ Button.outlineSuccess
-        , Button.large
+        [ Button.success
+        , Button.block
         , Button.onClick CheckInClick
         ]
         [ text "Check In "
-        , Html.i [ class "fas fa-arrow-right" ] []
+
+        --, Html.i [ class "fas fa-sign-in-alt" ] []
         ]
 
 
 cancelCheckInView : Html Msg
 cancelCheckInView =
-    Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xsAuto ]
-            [ Button.button
-                [ Button.outlineInfo
-                , Button.large
-                , Button.onClick
-                    CancelCheckInClick
-                ]
-                [ Html.i [ class "fas fa-arrow-left" ] []
-                , text " Cancel Check In"
-                ]
-            ]
+    Button.button
+        [ Button.outlineInfo
+        , Button.large
+        , Button.onClick
+            CancelCheckInClick
+        ]
+        [ Html.i [ class "fas fa-arrow-left" ] []
+        , text " Cancel Check In"
         ]

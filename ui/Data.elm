@@ -84,26 +84,42 @@ decodeEventName =
 -- VIEW
 
 
-listPersonView : (PersonId -> msg) -> List Person -> Html.Html msg
+listPersonView : Maybe (PersonId -> msg) -> List Person -> Html.Html msg
 listPersonView selected =
     List.map (personView selected >> List.singleton >> ListGroup.li []) >> ListGroup.ul
 
 
-personView : (PersonId -> msg) -> Person -> Html.Html msg
+personView : Maybe (PersonId -> msg) -> Person -> Html.Html msg
 personView selected p =
     let
         icon =
             if p.checkedIn then
-                class "far fa-check-square text-success"
+                [ class "far fa-check-square text-success" ]
             else
-                class "far fa-square"
+                [ class "far fa-square" ]
+
+        checkBox =
+            case selected of
+                Nothing ->
+                    []
+
+                _ ->
+                    [ Grid.col [ Col.xs2, Col.pushXs5 ] [ Html.i icon [] ] ]
+
+        withClick x =
+            case selected of
+                Nothing ->
+                    x
+
+                Just f ->
+                    Html.a [ onClick (f p.pid) ] [ x ]
     in
-    Html.a [ onClick (selected p.pid) ]
-        [ Grid.containerFluid []
-            [ Grid.row []
-                [ Grid.col [ Col.xs5 ] [ Html.text p.firstName ]
-                , Grid.col [ Col.xs5 ] [ Html.text p.lastName ]
-                , Grid.col [ Col.xs2, Col.pushXs5 ] [ Html.i [ icon ] [] ]
-                ]
+    withClick <|
+        Grid.containerFluid
+            []
+            [ [ Grid.col [ Col.xs5 ] [ Html.text p.firstName ]
+              , Grid.col [ Col.xs5 ] [ Html.text p.lastName ]
+              ]
+                |> flip List.append checkBox
+                |> Grid.row []
             ]
-        ]

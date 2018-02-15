@@ -31,6 +31,7 @@ type alias Errors =
 
 type Msg
     = CloseError Int
+    | NewError String
 
 
 type alias HasErrors m =
@@ -55,6 +56,9 @@ update msg errs =
         CloseError eid ->
             { errs | errors = List.filter (\x -> x.errorId /= eid) errs.errors }
 
+        NewError e ->
+            newError e errs
+
 
 view : HasErrors m -> Html Msg
 view =
@@ -63,7 +67,7 @@ view =
 
 errorView : Error -> Html Msg
 errorView msg =
-    Alert.danger
+    Alert.info
         [ text msg.errorMsg
         , button [ class "close", onClick (CloseError msg.errorId) ] [ text "x" ]
         ]
