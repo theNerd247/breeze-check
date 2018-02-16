@@ -28,6 +28,7 @@ import Html as Html
         , text
         )
 import Html.Attributes exposing (class, for, style)
+import Navs as Navs
 import Nested exposing (modifyCmd)
 
 
@@ -58,7 +59,7 @@ type Msg
     = Find Find.Msg
     | CheckIn CheckIn.Msg
     | Err Err.Msg
-    | SearchPageClick
+    | SetPage Page
     | GetEventName
     | EventNameResult (BreezeApi.Response Data.EventName)
 
@@ -95,7 +96,9 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     let
         mdl =
-            pageUpdate msg m
+            m
+                |> pageUpdate msg
+                |> setPageUpdate msg
     in
     case msg of
         Find msg ->
@@ -141,10 +144,24 @@ pageUpdate msg mdl =
             searchPageUpdate msg mdl
 
         Select ->
-            selectPageUpdate (Debug.log "msg" msg) (Debug.log "mdl" mdl)
+            selectPageUpdate msg mdl
 
         Finished ->
             finishedPageUpdate msg mdl
+
+
+setPageUpdate : Msg -> Model -> Model
+setPageUpdate msg mdl =
+    case msg of
+        SetPage p ->
+            { mdl | page = p }
+
+        _ ->
+            mdl
+
+
+
+-- UPDATE functions to occur only when on specific pages
 
 
 searchPageUpdate : Msg -> Model -> Model
@@ -162,9 +179,6 @@ selectPageUpdate msg mdl =
     case msg of
         CheckIn (CheckIn.CheckInResponse (Ok (Ok _))) ->
             { mdl | page = Finished }
-
-        SearchPageClick ->
-            { mdl | page = Search }
 
         _ ->
             mdl
@@ -200,6 +214,14 @@ view mdl =
             [ Html.map Err <| Err.view mdl
             ]
 
+        tabs =
+            [ Grid.row [ Row.attrs [ class "fixed-bottom" ] ]
+                [ Grid.col [ Col.xs12 ]
+                    [ pageTabs mdl
+                    ]
+                ]
+            ]
+
         page =
             case mdl.page of
                 Search ->
@@ -210,28 +232,63 @@ view mdl =
 
                 Finished ->
                     finishedPageView mdl
-
-        body =
-            []
-                |> flip List.append titleRow
-                |> flip List.append errors
-                |> flip List.append page
     in
-    Grid.containerFluid [] body
+    tabs
+        |> List.append page
+        |> List.append errors
+        |> List.append titleRow
+        |> Grid.containerFluid [ class "clearfix" ]
+
+
+pageTabs : Model -> Html Msg
+pageTabs mdl =
+    let
+        searchIcon =
+            Html.i [ class "fa fa-search" ] []
+
+        selectIcon =
+            Html.i [ class "fa fa-list-ul" ] []
+
+        finishIcon =
+            Html.i [ class "fa fa-check" ] []
+
+        navIndex =
+            case mdl.page of
+                Search ->
+                    0
+
+                Select ->
+                    1
+
+                Finished ->
+                    2
+    in
+    Navs.view navIndex
+        [ Navs.navItem searchIcon (SetPage Search)
+        , Navs.navItem selectIcon (SetPage Select)
+        , Navs.navItem finishIcon (SetPage Finished)
+        ]
 
 
 searchPageView : Model -> List (Html Msg)
 searchPageView mdl =
     let
-        searchForm =
-            Grid.row [ Row.middleXs ]
-                [ Grid.col [ Col.xs12 ]
+        title =
+            Grid.row []
+                [ Grid.col [ Col.xsAuto ]
                     [ h2 [] [ text "Find Your Family" ]
-                    , Html.map Find <| Find.searchPersonsView mdl
+                    ]
+                ]
+
+        searchForm =
+            Grid.row []
+                [ Grid.col [ Col.xs12 ]
+                    [ Html.map Find <| Find.searchPersonsView mdl
                     ]
                 ]
     in
-    [ searchForm
+    [ title
+    , searchForm
     ]
 
 
@@ -270,7 +327,7 @@ selectPageView mdl =
             Grid.row [ Row.attrs [ class "pb-3" ] ]
                 [ Grid.col [ Col.xs12 ]
                     [ Button.button
-                        [ Button.onClick SearchPageClick
+                        [ Button.onClick (SetPage Search)
                         , Button.outlineSecondary
                         , Button.block
                         ]
@@ -294,7 +351,7 @@ selectPageView mdl =
                 addFamily =
                     Grid.col [ Col.xs12, Col.attrs [ class "pb-3" ] ]
                         [ Button.button
-                            [ Button.onClick SearchPageClick
+                            [ Button.onClick (SetPage Search)
                             , Button.secondary
                             , Button.block
                             ]
