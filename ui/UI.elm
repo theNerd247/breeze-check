@@ -215,12 +215,11 @@ view mdl =
             ]
 
         tabs =
-            [ Grid.row [ Row.attrs [ class "fixed-bottom" ] ]
+            Grid.row [ Row.attrs [ class "fixed-bottom" ] ]
                 [ Grid.col [ Col.xs12 ]
                     [ pageTabs mdl
                     ]
                 ]
-            ]
 
         page =
             case mdl.page of
@@ -232,12 +231,16 @@ view mdl =
 
                 Finished ->
                     finishedPageView mdl
+
+        body =
+            page
+                |> List.append errors
+                |> List.append titleRow
     in
-    tabs
-        |> List.append page
-        |> List.append errors
-        |> List.append titleRow
-        |> Grid.containerFluid [ class "clearfix" ]
+    Grid.containerFluid [ class "clearfix" ]
+        [ Grid.containerFluid [ class "mb-5" ] body
+        , tabs
+        ]
 
 
 pageTabs : Model -> Html Msg
@@ -391,7 +394,6 @@ selectPageView mdl =
     in
     [ title
     , found
-    , backButton
     , header
     , waiting
     , addFamilyButtons mdl
