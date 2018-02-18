@@ -215,11 +215,14 @@ view mdl =
             ]
 
         tabs =
-            Grid.row [ Row.attrs [ class "fixed-bottom" ] ]
-                [ Grid.col [ Col.xs12 ]
-                    [ pageTabs mdl
+            Grid.row [ Row.attrs [ class "fixed-bottom" ] ] <|
+                if mdl.page == Finished then
+                    []
+                else
+                    [ Grid.col [ Col.xs12 ]
+                        [ pageTabs mdl
+                        ]
                     ]
-                ]
 
         page =
             case mdl.page of
@@ -247,13 +250,16 @@ pageTabs : Model -> Html Msg
 pageTabs mdl =
     let
         searchIcon =
-            Html.i [ class "fa fa-search" ] []
+            Html.span []
+                [ Html.i [ class "fa fa-search" ] []
+                , text " Search"
+                ]
 
         selectIcon =
-            Html.i [ class "fa fa-list-ul" ] []
-
-        finishIcon =
-            Html.i [ class "fa fa-check" ] []
+            Html.span []
+                [ Html.i [ class "fa fa-list-ul" ] []
+                , text " Check-in"
+                ]
 
         navIndex =
             case mdl.page of
@@ -263,13 +269,12 @@ pageTabs mdl =
                 Select ->
                     1
 
-                Finished ->
-                    2
+                _ ->
+                    -1
     in
     Navs.view navIndex
         [ Navs.navItem searchIcon (SetPage Search)
         , Navs.navItem selectIcon (SetPage Select)
-        , Navs.navItem finishIcon (SetPage Finished)
         ]
 
 
@@ -301,13 +306,13 @@ selectPageView mdl =
         title =
             Grid.row [ Row.centerXs ]
                 [ Grid.col [ Col.xs12 ]
-                    [ h2 [ class "text-center" ] [ text "Select Your Family Members" ]
+                    [ h4 [ class "text-center" ] [ text "Select Your Family Members" ]
                     ]
                 ]
 
         found =
             Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
-                [ Grid.col [ Col.xs12 ]
+                [ Grid.col [ Col.xs12 ] <|
                     [ Html.map Find <| Find.foundPeopleView mdl
                     ]
                 ]
@@ -327,20 +332,23 @@ selectPageView mdl =
                 ]
 
         backButton =
-            Grid.row [ Row.attrs [ class "pb-3" ] ]
-                [ Grid.col [ Col.xs12 ]
-                    [ Button.button
-                        [ Button.onClick (SetPage Search)
-                        , Button.outlineSecondary
-                        , Button.block
-                        ]
-                        [ Html.i [ class "fas fa-arrow-left" ] []
-                        , text <| " " ++ "Back"
+            if mdl.personNotFound then
+                Grid.row [ Row.attrs [ class "pb-3" ] ]
+                    [ Grid.col [ Col.xs12 ]
+                        [ Button.button
+                            [ Button.onClick (SetPage Search)
+                            , Button.primary
+                            , Button.block
+                            ]
+                            [ Html.i [ class "fas fa-search" ] []
+                            , text <| " Search"
+                            ]
                         ]
                     ]
-                ]
+            else
+                div [] []
 
-        checkInButton mdl =
+        checkInButton =
             Grid.row [ Row.attrs [ class "pb-3" ] ] <|
                 if not <| List.isEmpty mdl.waitingCheckIn then
                     [ Grid.col [ Col.xs12 ]
@@ -349,7 +357,7 @@ selectPageView mdl =
                 else
                     []
 
-        addFamilyButtons mdl =
+        addFamilyButtons =
             let
                 addFamily =
                     Grid.col [ Col.xs12, Col.attrs [ class "pb-3" ] ]
@@ -358,8 +366,7 @@ selectPageView mdl =
                             , Button.secondary
                             , Button.block
                             ]
-                            [ -- Html.i [ class "pb-3" ] []
-                              text "Add Another Family To Check In"
+                            [ text "Add Another Family To Check In"
                             ]
                         ]
 
@@ -369,8 +376,7 @@ selectPageView mdl =
                             [ Button.info
                             , Button.block
                             ]
-                            [ --Html.i [ class "fas fa-user-plus" ] []
-                              text "I can't find us!"
+                            [ text "I can't find us!"
                             ]
                         ]
             in
@@ -394,10 +400,11 @@ selectPageView mdl =
     in
     [ title
     , found
+    , backButton
     , header
     , waiting
-    , addFamilyButtons mdl
-    , checkInButton mdl
+    , addFamilyButtons
+    , checkInButton
     ]
 
 
