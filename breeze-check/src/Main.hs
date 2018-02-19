@@ -74,7 +74,7 @@ spec = Spec ["Data"] $
       , toElmDecoderSourceWith ops p
       ]
     ops = Elm.defaultOptions 
-      { fieldLabelModifier = pack . removeUnderscorePrefix . unpack
+      { Elm.fieldLabelModifier = pack . removeUnderscorePrefix . unpack
       }
 
 main = do 
