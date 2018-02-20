@@ -1,16 +1,16 @@
-{stdenv, elmPackages}: 
+{stdenv, elm}: 
 
 stdenv.mkDerivation {
   name = "breeze-check-ui-1.0.0";
   src = ./.;
-  buildInputs = [elmPackages.elm];
+  buildInputs = [elm];
 
   buildPhase = ''
     elm make --output elm.js UI.elm
   '';
 
   installPhase = ''
-    mkdir $out
+    mkdir -p $out
     mv elm.js $out
   '';
 }
