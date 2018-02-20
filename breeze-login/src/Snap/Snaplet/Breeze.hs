@@ -284,11 +284,11 @@ eventInfoHandle = withTop breezeLens $ runAesonApi $ do
   ename <- use eventName
   return $ object [("event-id", fromString eid), ("event-name", fromString ename)]
 
-mkBreeze :: (MonadIO m) => FilePath -> m Breeze
-mkBreeze fp = do
+mkBreeze :: (MonadIO m) => m Breeze
+mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
   gcntr <- liftIO $ newTVarIO 0
-  (lgr, cleanup) <- liftIO $ initFastLogger (LogFileNoRotate (fp <> "/breeze.log") 1024)
+  (lgr, cleanup) <- liftIO $ initFastLogger (LogFileNoRotate "/var/log/breeze/breeze.log" 1024)
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
@@ -302,7 +302,7 @@ mkBreeze fp = do
     }
 
 initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
-initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system" (Just $ return "breeze") $ do
+initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system" Nothing $ do
   addRoutes 
     [ ("findperson", getPersonsHandle)
     , ("checkin", userCheckInHandle)
@@ -313,7 +313,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("cancel", cancelCheckinHandle)
     ] 
   addPostInitHook initEvent
-  b <- getSnapletFilePath >>= mkBreeze  
+  b <- mkBreeze  
   wrapSite $ \s -> do
     s `catch` handleBreeze
   onUnload (b^.loggerCleanup)

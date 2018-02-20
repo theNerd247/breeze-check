@@ -1,6 +1,4 @@
-let
-  pkgs = import <nixpkgs> {};
-in
+with import <nixpkgs> {};
 
 {breeze-ui = 
   pkgs.callPackage ./default.nix { 

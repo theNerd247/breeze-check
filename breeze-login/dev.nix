@@ -1,6 +1,4 @@
 let
-  ui = (import ../ui/dev.nix).ui;
-
   config = {
     packageOverrides = pkgs: rec {
 
@@ -28,7 +26,7 @@ let
     };
   };
 
-  pkgs = import <nixpkgs> { inherit config; };
+  pkgs = import <nixpkgs> {inherit config;};
 
 in
 {breeze-login = pkgs.haskellPackages.breeze-login;
