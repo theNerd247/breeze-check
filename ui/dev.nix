@@ -2,5 +2,8 @@ let
   pkgs = import <nixpkgs> {};
 in
 
-{ui = pkgs.callPackage ./default.nix {};
+{breeze-ui = 
+  pkgs.callPackage ./default.nix { 
+    elm = pkgs.elmPackages.elm;
+  };
 }

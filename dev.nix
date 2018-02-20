@@ -2,9 +2,9 @@ let
   pkgs = import <nixpkgs> {};
 in
   
-{breeze-check = pkgs.stdenv.callPackage ./. {
-    stdenv = pkgs.stdenv;
-    breeze-login = (import breeze-login/dev.nix).breeze-login;
-    breeze-ui = (import ui/dev.nix).ui;
+{breeze-check = pkgs.callPackage ./. {
+    inherit (pkgs) buildEnv;
+    inherit (import breeze-login/dev.nix) breeze-login;
+    inherit (import ui/dev.nix) breeze-ui;
   };
 }

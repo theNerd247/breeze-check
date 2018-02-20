@@ -1,6 +1,6 @@
-{stdenv, breeze-login, breeze-ui}:
+{buildEnv, breeze-login, breeze-ui}:
 
-stdenv.mkDerivation {
+buildEnv {
   name = "breeze-check-1.0.0";
-  buildInputs = [breeze-login breeze-ui];
+  paths = [breeze-login breeze-ui];
 }

@@ -1,11 +1,13 @@
 let
+  ui = (import ../ui/dev.nix).ui;
+
   config = {
     packageOverrides = pkgs: rec {
 
       haskellPackages = pkgs.haskellPackages.override {
         overrides = new: old: rec {
 
-          breeze-login = new.callPackage ./. {};
+          breeze-login = new.callPackage ./default.nix {};
 
           snap = old.snap.override {
             heist = pkgs.haskell.lib.dontCheck old.heist;

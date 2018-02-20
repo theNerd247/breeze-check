@@ -6,7 +6,8 @@ stdenv.mkDerivation {
   buildInputs = [elm];
 
   buildPhase = ''
-    elm make --output elm.js UI.elm
+    export HOME=$PWD
+    elm make --yes --output elm.js UI.elm
   '';
 
   installPhase = ''
