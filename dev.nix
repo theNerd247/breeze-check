@@ -1,10 +1,8 @@
-let 
-  pkgs = import <nixpkgs> {};
-in
+{pkgs ? import <nixpkgs> {}}:
   
 {breeze-check = import ./default.nix {
     inherit (pkgs) buildEnv;
-    inherit (import ./breeze-login/dev.nix) breeze-login;
+    breeze-login = (import ./breeze-login/dev.nix).breeze-login-minimal;
     inherit (import ./ui/dev.nix) breeze-ui;
   };
 }

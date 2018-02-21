@@ -6,7 +6,7 @@ let
   ghc = 
     pkgs.haskellPackages.ghcWithPackages (pkgs: 
       with pkgs;
-      breeze-login.buildInputs
+      breeze-login-minimal.buildInputs
     );
 in
   ghc

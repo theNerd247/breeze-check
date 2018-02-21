@@ -47,7 +47,7 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
   h <- nestSnaplet "" heist $ heistInit "templates"
   addRoutes  
     [ ("", heistServe)
-    , ("ui", serveDirectory "ui")
+    , ("js", serveDirectory "js")
     ]
   wrapSite $ \s -> do 
     allowAny

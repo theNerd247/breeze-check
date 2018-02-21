@@ -288,7 +288,7 @@ mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
   gcntr <- liftIO $ newTVarIO 0
-  (lgr, cleanup) <- liftIO $ initFastLogger (LogFileNoRotate "/var/log/breeze/breeze.log" 1024)
+  (lgr, cleanup) <- liftIO $ initFastLogger (LogFileNoRotate "breeze.log" 1024)
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"

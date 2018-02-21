@@ -8,10 +8,11 @@ stdenv.mkDerivation {
   buildPhase = ''
     export HOME=$PWD
     elm make --yes --output elm.js UI.elm
+
   '';
 
   installPhase = ''
-    mkdir -p $out
-    mv elm.js $out
+    mkdir -p $out/js
+    cp elm.js $out/js/elm.js
   '';
 }

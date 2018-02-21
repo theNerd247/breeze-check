@@ -16,4 +16,8 @@ mkDerivation {
   ];
   homepage = "https://github.com/githubuser/breeze-login#readme";
   license = stdenv.lib.licenses.bsd3;
+  postBuild = ''
+    mkdir -p $out
+    cp -r --no-preserve=mode ./snaplets $out/snaplets
+  '';
 }
