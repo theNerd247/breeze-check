@@ -1,13 +1,7 @@
 {pkgs ? import <nixpkgs> {}}:
 
 let
-  server = 
-    let
-      s = (import ./breeze-login/dev.nix).breeze-login;
-    in
-    pkgs.haskellPackages.ghcWithPackages (pkgs: 
-      s.buildInputs
-    );
+  server = (import ./breeze-login/shell.nix {});
 
   ui = 
     (import ./ui/shell.nix).buildInputs;
