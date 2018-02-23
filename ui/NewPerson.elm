@@ -154,43 +154,37 @@ deleteAt x ix ne =
 
 newFamilysView : HasNewPersons m -> Html Msg
 newFamilysView mdl =
-    let
-        familyForm ix f =
-            newFamilyForm f
-                |> List.map (Html.map <| UpdateAt ix)
-                |> List.append [ Form.row [] [ Form.col [] [ deleteFamilyButton ix ] ] ]
-                |> Form.group []
-    in
     mdl.newPersons
-        |> NE.indexedMap familyForm
+        |> NE.indexedMap newFamilyForm
         |> NE.toList
         |> flip List.append [ addFamilyInput ]
         |> Form.form []
         |> Html.map UpdateForm
 
 
-newFamilyForm : NewFamily -> List (Html FamilyMsg)
-newFamilyForm nf =
+newFamilyForm : Int -> NewFamily -> Html FormMsg
+newFamilyForm fix nf =
     let
         lastNameForm =
             Form.row []
-                [ Form.col []
+                [ Form.col [ Col.xs10 ]
                     [ Input.text
                         [ Input.placeholder "Last Name"
                         , Input.value nf.lastName
-                        , Input.onInput UpdateLastName
+                        , Input.onInput <| UpdateAt fix << UpdateLastName
                         ]
                     ]
+                , Form.col [ Col.xs2 ] [ deleteFamilyButton fix ]
                 ]
 
         firstNameForm ix n =
             Form.row []
-                [ Form.col [ Col.xs2 ] [ deleteMemberButton ix ]
+                [ Form.col [ Col.xs2 ] [ Html.map (UpdateAt fix) <| deleteMemberButton ix ]
                 , Form.col [ Col.xs10 ]
                     [ Input.text
                         [ Input.placeholder "Family Member"
                         , Input.value n
-                        , Input.onInput <| UpdateMembers << ReplaceAt ix
+                        , Input.onInput <| UpdateAt fix << UpdateMembers << ReplaceAt ix
                         ]
                     ]
                 ]
@@ -201,12 +195,11 @@ newFamilyForm nf =
                 |> flip List.append
                     [ Form.row []
                         [ Form.col [ Col.xs2 ] [ Html.i [ class "fas fa-user-plus" ] [] ]
-                        , Form.col [ Col.xs10 ] [ addMemberInput ]
+                        , Form.col [ Col.xs10 ] [ Html.map (UpdateAt fix) <| addMemberInput ]
                         ]
                     ]
     in
-    lastNameForm
-        :: membersForm
+    Form.group [] <| lastNameForm :: membersForm
 
 
 deleteFamilyButton : Int -> Html FormMsg
