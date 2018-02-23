@@ -315,7 +315,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
   addPostInitHook initEvent
   b <- mkBreeze  
   wrapSite $ \s -> do
-    s `catch` handleBreeze
+    s `catch` handleHTTP `catch` handleBreeze
   onUnload (b^.loggerCleanup)
   return b
   where
@@ -323,3 +323,8 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     handleBreeze e = withTop breezeLens $ runAesonApi $ do 
       breezeLog Error . show $ e
       return e
+
+    handleHTTP :: (HasBreezeApp b) => HTTP.HttpException -> Handler b v ()
+    handleHTTP e = withTop breezeLens $ runAesonApi $ do 
+      breezeLog Error . show $ e
+      return $ BreezeException $ "We couldn't connect to the server. Try again in a few minutes"

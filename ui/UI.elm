@@ -30,21 +30,25 @@ import Html as Html
 import Html.Attributes exposing (class, for, style)
 import Navs as Navs
 import Nested exposing (modifyCmd)
+import NewPerson as NewPerson
 
 
 type Page
     = Search
     | Select
+    | NewPersons
     | Finished
 
 
 type alias Model =
-    CheckIn.HasCheckin
-        (Find.HasFind
-            (Err.HasErrors
-                { page : Page
-                , eventName : String
-                }
+    NewPerson.HasNewPersons
+        (CheckIn.HasCheckin
+            (Find.HasFind
+                (Err.HasErrors
+                    { page : Page
+                    , eventName : String
+                    }
+                )
             )
         )
 
@@ -59,6 +63,7 @@ type Msg
     = Find Find.Msg
     | CheckIn CheckIn.Msg
     | Err Err.Msg
+    | NewPerson NewPerson.Msg
     | SetPage Page
     | GetEventName
     | EventNameResult (BreezeApi.Response Data.EventName)
@@ -82,9 +87,10 @@ model =
     , waitingCheckIn = []
     , searchLastName = ""
     , findPeopleLoading = False
-    , page = Search
+    , page = NewPersons
     , eventName = ""
     , personNotFound = False
+    , newPersons = NewPerson.initModel
     }
 
 
@@ -100,7 +106,7 @@ update msg m =
                 |> pageUpdate msg
                 |> setPageUpdate msg
     in
-    case msg of
+    case Debug.log "msg: " msg of
         Find msg ->
             modifyCmd Find <| Find.update msg mdl
 
@@ -115,6 +121,9 @@ update msg m =
 
         EventNameResult r ->
             eventNameResult mdl r
+
+        NewPerson msg ->
+            modifyCmd NewPerson <| NewPerson.update msg mdl
 
         _ ->
             ( mdl, Cmd.none )
@@ -148,6 +157,9 @@ pageUpdate msg mdl =
 
         Finished ->
             finishedPageUpdate msg mdl
+
+        NewPersons ->
+            newPersonsUpdate msg mdl
 
 
 setPageUpdate : Msg -> Model -> Model
@@ -194,6 +206,11 @@ finishedPageUpdate msg mdl =
             mdl
 
 
+newPersonsUpdate : Msg -> Model -> Model
+newPersonsUpdate _ mdl =
+    mdl
+
+
 
 -- VIEW
 
@@ -215,14 +232,22 @@ view mdl =
             ]
 
         tabs =
-            Grid.row [ Row.attrs [ class "fixed-bottom" ] ] <|
-                if mdl.page == Finished then
-                    []
-                else
-                    [ Grid.col [ Col.xs12 ]
-                        [ pageTabs mdl
+            if
+                mdl.page
+                    == Search
+                    && List.isEmpty mdl.foundPeople
+                    && List.isEmpty mdl.waitingCheckIn
+            then
+                div [] []
+            else
+                Grid.row [ Row.attrs [ class "fixed-bottom" ] ] <|
+                    if mdl.page == Finished then
+                        []
+                    else
+                        [ Grid.col [ Col.xs12 ]
+                            [ pageTabs mdl
+                            ]
                         ]
-                    ]
 
         page =
             case mdl.page of
@@ -234,6 +259,9 @@ view mdl =
 
                 Finished ->
                     finishedPageView mdl
+
+                NewPersons ->
+                    newPersonsView mdl
 
         body =
             page
@@ -375,6 +403,7 @@ selectPageView mdl =
                         [ Button.button
                             [ Button.info
                             , Button.block
+                            , Button.onClick (SetPage NewPersons)
                             ]
                             [ text "I can't find us!"
                             ]
@@ -460,3 +489,13 @@ finishedPageView mdl =
             , checkInTitle
             , Data.listPersonView Nothing mdl.waitingCheckIn
             ]
+
+
+newPersonsView : Model -> List (Html Msg)
+newPersonsView mdl =
+    [ Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xs12 ]
+            [ Html.map NewPerson <| NewPerson.newFamilysView mdl
+            ]
+        ]
+    ]

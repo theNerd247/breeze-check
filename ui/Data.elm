@@ -80,6 +80,25 @@ decodeEventName =
     field "event-name" string
 
 
+type alias NewPerson =
+    { lastName : String
+    , firstName : String
+    }
+
+
+encodeNewPerson : NewPerson -> Encode.Value
+encodeNewPerson np =
+    Encode.object
+        [ ( "lastName", Encode.string np.lastName )
+        , ( "firstName", Encode.string np.firstName )
+        ]
+
+
+encodeNewPersons : List NewPerson -> Encode.Value
+encodeNewPersons =
+    Encode.list << List.map encodeNewPerson
+
+
 
 -- VIEW
 
