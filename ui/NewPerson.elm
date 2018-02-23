@@ -100,7 +100,11 @@ newFamilyUpdate msg mdl =
             { mdl | lastName = l }
 
         UpdateMembers msg ->
-            { mdl | memberNames = updateArray "" (flip always) msg mdl.memberNames }
+            { mdl
+                | memberNames =
+                    updateArray "" (flip always) msg mdl.memberNames
+                        |> NE.filter (not << String.isEmpty) ""
+            }
 
 
 updateArray : a -> (m -> a -> a) -> ArrayMsg m a -> Nonempty a -> Nonempty a
@@ -149,14 +153,23 @@ deleteAt x ix ne =
 
 
 newFamilysView : HasNewPersons m -> Html Msg
-newFamilysView =
-    Form.form []
-        << NE.toList
-        << NE.indexedMap (\i -> Html.map (UpdateForm << UpdateAt i) << newFamilyForm)
-        << .newPersons
+newFamilysView mdl =
+    let
+        familyForm ix f =
+            newFamilyForm f
+                |> List.map (Html.map <| UpdateAt ix)
+                |> List.append [ Form.row [] [ Form.col [] [ deleteFamilyButton ix ] ] ]
+                |> Form.group []
+    in
+    mdl.newPersons
+        |> NE.indexedMap familyForm
+        |> NE.toList
+        |> flip List.append [ addFamilyInput ]
+        |> Form.form []
+        |> Html.map UpdateForm
 
 
-newFamilyForm : NewFamily -> Html FamilyMsg
+newFamilyForm : NewFamily -> List (Html FamilyMsg)
 newFamilyForm nf =
     let
         lastNameForm =
@@ -194,7 +207,28 @@ newFamilyForm nf =
     in
     lastNameForm
         :: membersForm
-        |> Form.group []
+
+
+deleteFamilyButton : Int -> Html FormMsg
+deleteFamilyButton ix =
+    Button.button
+        [ Button.danger
+        , Button.onClick <| DeleteAt ix
+
+        --, Button.attrs [ class "text-danger" ]
+        ]
+        [ Html.i [ class "fas fa-minus-circle" ] []
+
+        --, text "Delete"
+        ]
+
+
+addFamilyInput : Html FormMsg
+addFamilyInput =
+    Input.text
+        [ Input.placeholder "New Family Last Name"
+        , Input.onInput <| Create << (\l -> { initNewFamily | lastName = l })
+        ]
 
 
 deleteMemberButton : Int -> Html FamilyMsg
