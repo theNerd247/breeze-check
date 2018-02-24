@@ -64,14 +64,44 @@ instance ToJSON CheckInStatus
 instance Default CheckInStatus where
   def = CheckedOut
 
+data Name = Name
+  { _firstName :: FirstName
+  , _lastName  :: LastName
+  } deriving (Show, Data, Eq, Ord, Generic, ElmType)
+
+makeClassy ''Name
+
+instance Default Name
+
+instance FromJSON Name where
+  parseJSON (Object o) = Name
+    <$> (o .: "first_name")
+    <*> (o .: "last_name")
+  parseJSON _ = mempty
+
+instance ToJSON Name where
+  toJSON = genericToJSON customAesonOptions
+
 data Person = Person
   { _pid       :: PersonId
-  , _firstName :: FirstName
-  , _lastName  :: LastName
+  , _personName :: Name
   , _checkedIn :: CheckInStatus
   } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
+
+instance HasName Person where
+  name = personName
+
+instance FromJSON Person where
+  parseJSON v@(Object o) = Person
+    <$> o .: "id" 
+    <*> parseJSON v
+    <*> pure CheckedOut
+  parseJSON _ = mempty
+
+instance ToJSON Person where
+  toJSON = genericToJSON customAesonOptions
 
 data ParseAttendance = ParseAttendance { attendingPerson :: Person, raw :: Value }
   deriving (Show)
@@ -81,8 +111,7 @@ instance Default Person
 instance FromJSON ParseAttendance where
   parseJSON v@(Object o) = fmap (flip ParseAttendance v) $ Person
     <$> (o .: "person_id")
-    <*> (o .: "details" >>= (.: "first_name"))
-    <*> (o .: "details" >>= (.: "last_name"))
+    <*> (o .: "details" >>= parseJSON)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
     where
       parseCheckedOut :: String -> CheckInStatus
@@ -103,17 +132,6 @@ instance Indexable Person where
     , ixFun $ (:[]) . FName . (view firstName)
     , ixFun $ (:[]) . LName . (view lastName)
     ]
-
-instance FromJSON Person where
-  parseJSON v@(Object o) = Person
-    <$> o .: "id" 
-    <*> o .: "first_name" 
-    <*> o .: "last_name" 
-    <*> pure CheckedOut
-  parseJSON _ = mempty
-
-instance ToJSON Person where
-  toJSON = genericToJSON customAesonOptions
 
 data Address = Address
   { _street :: String
@@ -147,6 +165,18 @@ instance FromJSON EventInfo where
   parseJSON (Object o) = EventInfo
     <$> (o .: "id")
     <*> (o .: "name")
+
+data NewPerson = NewPerson
+  { _newName :: Name
+  } deriving (Show, Eq, Ord, Data, Generic)
+
+makeLenses ''NewPerson
+
+instance FromJSON NewPerson where
+  parseJSON = genericParseJSON customAesonOptions
+
+instance HasName NewPerson where
+  name = newName
 
 data Breeze = Breeze
   { _apiKey  :: String

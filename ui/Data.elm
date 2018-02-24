@@ -36,8 +36,8 @@ decodePerson : Decoder Person
 decodePerson =
     decode Person
         |> required "pid" string
-        |> required "firstName" string
-        |> required "lastName" string
+        |> requiredAt [ "personName", "firstName" ] string
+        |> requiredAt [ "personName", "lastName" ] string
         |> hardcoded False
 
 
@@ -89,8 +89,8 @@ type alias NewPerson =
 encodeNewPerson : NewPerson -> Encode.Value
 encodeNewPerson np =
     Encode.object
-        [ ( "lastName", Encode.string np.lastName )
-        , ( "firstName", Encode.string np.firstName )
+        [ ( "last_name", Encode.string np.lastName )
+        , ( "first_name", Encode.string np.firstName )
         ]
 
 

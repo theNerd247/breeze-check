@@ -40,21 +40,11 @@ import qualified Network.HTTP.Simple as HTTP
 data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
 data Checkin = Checkin EventId PersonId 
-data NewPerson = NewPerson FirstName LastName Address Email (Maybe ChurchInfo) (Maybe Phone)
+data MakeNewPerson = MakeNewPerson NewPerson
 data GetEvents = GetEvents
 
 class HasBreezeApp b where
   breezeLens :: SnapletLens b Breeze
-
-instance FromJSON NewPerson where
-  parseJSON (Object o) = NewPerson
-    <$> o .: "firstName"
-    <*> o .: "lastName"
-    <*> o .: "address"
-    <*> o .: "email"
-    <*> o .: "churchInfo"
-    <*> o .: "phone"
-  parseJSON _ = mempty
 
 class BreezeApi a where
   type BreezeResponse a :: *
@@ -89,20 +79,20 @@ instance BreezeApi Checkin where
     , ("direction"   , Just "in")
     ]
 
-instance BreezeApi NewPerson where
-  type BreezeResponse NewPerson = Person
-  runBreeze b (NewPerson f l a email mcinfo mphone) = runApiReq b "/people/add"
-    [ ("first"       , Just . Char8.pack $ f)
-    , ("last"        , Just . Char8.pack $ l)
-    , ("fields_json" , Just . toStrict . encode $
-        [ field "697961327" "address" True $ object
-            [ "street" .= (a^.street)
-            , "city"   .= (a^.city)
-            , "state"  .= (a^.state)
-            , "zip"    .= (a^.zipcode)
-            ]
+instance BreezeApi MakeNewPerson where
+  type BreezeResponse MakeNewPerson = Person
+  runBreeze b (MakeNewPerson np) = runApiReq b "/people/add"
+    [ ("first"       , Just . Char8.pack $ np^.firstName)
+    , ("last"        , Just . Char8.pack $ np^.lastName)
+    {-, ("fields_json" , Just . toStrict . encode $-}
+        {-[ field "697961327" "address" True $ object-}
+            {-[ "street" .= (a^.street)-}
+            {-, "city"   .= (a^.city)-}
+            {-, "state"  .= (a^.state)-}
+            {-, "zip"    .= (a^.zipcode)-}
+            {-]-}
             -- TODO: add missing fields
-        ])
+        {-])-}
     ]
     where
       field :: String -> String -> Bool -> Value -> Value
@@ -169,12 +159,6 @@ getPersonsHandle = withTop breezeLens $ runAesonApi $ do
         (insert p db)
         (return db)
         (getOne $ db @= (p^.pid))
-
-addPersonHandle :: (HasBreezeApp b)  => Handler b v ()
-addPersonHandle = withTop breezeLens $ runAesonApi $ do
-  newPersonInfo <- fromBody
-  person <- runBreeze' (newPersonInfo :: NewPerson)
-  return person
 
 updatePerson :: (Person -> Person) -> Person -> IxSet Person -> IxSet Person
 updatePerson f p = updateIx (p^.pid) (f p)
@@ -284,6 +268,11 @@ eventInfoHandle = withTop breezeLens $ runAesonApi $ do
   ename <- use eventName
   return $ object [("event-id", fromString eid), ("event-name", fromString ename)]
 
+newPersonsHandle :: (HasBreezeApp b) => Handler b v ()
+newPersonsHandle = withTop breezeLens $ runAesonApi $ do
+  persons <- fromBody
+  forM (persons :: [NewPerson]) $ runBreeze' . MakeNewPerson
+
 mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
@@ -311,6 +300,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("getgroup", getCheckInGroupHandle)
     , ("approve", approveCheckinHandle) 
     , ("cancel", cancelCheckinHandle)
+    , ("newpersons", newPersonsHandle)
     ] 
   addPostInitHook initEvent
   b <- mkBreeze  
