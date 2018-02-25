@@ -1,5 +1,6 @@
 {
   network.description = "mvc breeze checkin";
+  network.enableRollback = true;
 
   breeze-check = {config, pkgs, ...}:
   let
