@@ -41,7 +41,7 @@ type Page
 
 
 type alias Model =
-    NewPerson.HasNewPersons
+    NewPerson.HasNewFamilies
         (CheckIn.HasCheckin
             (Find.HasFind
                 (Err.HasErrors
@@ -90,7 +90,7 @@ model =
     , page = NewPersons
     , eventName = ""
     , personNotFound = False
-    , newPersons = NewPerson.initModel
+    , newFamilies = NewPerson.initModel
     }
 
 
@@ -123,7 +123,11 @@ update msg m =
             eventNameResult mdl r
 
         NewPerson msg ->
-            modifyCmd NewPerson <| NewPerson.update msg mdl
+            let
+                f m ps =
+                    { m | waitingCheckIn = List.append m.waitingCheckIn ps, page = Select }
+            in
+            modifyCmd NewPerson <| NewPerson.update f msg mdl
 
         _ ->
             ( mdl, Cmd.none )

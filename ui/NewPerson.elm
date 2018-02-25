@@ -4,8 +4,10 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
+import ErrorMsg as Err
 import Html as Html exposing (Html, text)
 import Html.Attributes exposing (class)
 import List.Nonempty as NE exposing (Nonempty(..))
@@ -25,8 +27,8 @@ type alias NewFamily =
     }
 
 
-type alias HasNewPersons m =
-    { m | newPersons : Nonempty NewFamily }
+type alias HasNewFamilies m =
+    Err.HasErrors { m | newFamilies : Nonempty NewFamily }
 
 
 type Msg
@@ -63,7 +65,7 @@ initNewFamily =
     }
 
 
-newFamilyToNewPersons : NewFamily -> List Data.NewPerson
+newFamilyToNewPersons : NewFamily -> NE.Nonempty Data.NewPerson
 newFamilyToNewPersons family =
     let
         newPerson n =
@@ -71,26 +73,41 @@ newFamilyToNewPersons family =
             , firstName = n
             }
     in
-    NE.toList <| NE.map newPerson family.memberNames
+    NE.map newPerson family.memberNames
 
 
 
 -- Update
 
 
-update : Msg -> HasNewPersons m -> ( HasNewPersons m, Cmd Msg )
-update msg mdl =
+update : (HasNewFamilies m -> List Data.Person -> HasNewFamilies m) -> Msg -> HasNewFamilies m -> ( HasNewFamilies m, Cmd Msg )
+update f msg mdl =
     case msg of
         UpdateForm msg ->
             formUpdate msg mdl
 
-        _ ->
-            ( mdl, Cmd.none )
+        NewPersonsClicked ->
+            ( mdl
+            , mdl.newFamilies
+                |> NE.concatMap newFamilyToNewPersons
+                |> NE.toList
+                |> flip BreezeApi.newPersons NewPersonsResponse
+            )
+
+        NewPersonsResponse r ->
+            let
+                m =
+                    BreezeApi.fromResponse r
+                        |> BreezeApi.fromResult
+                            (flip Err.newError mdl)
+                            (f mdl)
+            in
+            ( m, Cmd.none )
 
 
-formUpdate : FormMsg -> HasNewPersons m -> ( HasNewPersons m, Cmd Msg )
+formUpdate : FormMsg -> HasNewFamilies m -> ( HasNewFamilies m, Cmd Msg )
 formUpdate msg mdl =
-    ( { mdl | newPersons = updateArray initNewFamily newFamilyUpdate msg mdl.newPersons }, Cmd.none )
+    ( { mdl | newFamilies = updateArray initNewFamily newFamilyUpdate msg mdl.newFamilies }, Cmd.none )
 
 
 newFamilyUpdate : FamilyMsg -> NewFamily -> NewFamily
@@ -148,14 +165,15 @@ deleteAt x ix ne =
         Nonempty (NE.head ne) (List.append (List.take (ix - 1) xs) (List.drop ix xs))
 
 
-newFamilysView : HasNewPersons m -> Html Msg
+newFamilysView : HasNewFamilies m -> Html Msg
 newFamilysView mdl =
-    mdl.newPersons
+    mdl.newFamilies
         |> NE.indexedMap newFamilyForm
         |> NE.toList
-        |> flip List.append [ addFamilyButton ]
+        |> flip List.append [ Form.row [] [ Form.col [] [ addFamilyButton ] ] ]
+        |> List.map (Html.map UpdateForm)
+        |> flip List.append [ Form.row [ Row.centerXs ] [ Form.col [ Col.xsAuto ] [ newFamiliesSubmitButton ] ] ]
         |> Form.form []
-        |> Html.map UpdateForm
 
 
 newFamilyForm : Int -> NewFamily -> Html FormMsg
@@ -248,3 +266,12 @@ deleteFamilyButton =
 deleteMemberButton : Int -> Html FamilyMsg
 deleteMemberButton =
     deleteButton << UpdateMembers << DeleteAt
+
+
+newFamiliesSubmitButton : Html Msg
+newFamiliesSubmitButton =
+    Button.button
+        [ Button.info
+        , Button.onClick NewPersonsClicked
+        ]
+        [ text "Submit" ]

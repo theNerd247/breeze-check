@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
+import Control.Exception.Base (SomeException)
 import Control.Lens hiding ((.=))
 import Control.Monad.Catch (catch)
 import Control.Monad.Reader
@@ -21,6 +22,7 @@ import Data.Text (pack, unpack)
 import Elm
 import FastLogger
 import Network.HTTP.Simple hiding (Proxy)
+import Simple.Aeson
 import Snap
 import Snap.Snaplet.Breeze
 import Snap.Snaplet.Heist
@@ -77,7 +79,20 @@ spec = Spec ["Data"] $
       { Elm.fieldLabelModifier = pack . removeUnderscorePrefix . unpack
       }
 
+
+handleServerErrors :: Logger -> SomeException -> Snap ()
+handleServerErrors lgger e = do 
+  rq <- getRequest
+  liftIO $ lgger FastLogger.Error $ 
+    (show rq)
+    ++ "\n" ++ (show e)
+  writeLBS 
+    . encode 
+    $ BreezeException "An error occured in the server! Try again in a few minutes"
+
 main = do 
-  {-putStrLn "Generating Elm defs"-}
-  {-specsToDir [spec] "./ui/"-}
-  serveSnaplet defaultConfig appInit
+  (l, clnLogger) <- liftIO $ initFastLogger $ LogStderr 1024
+  serveSnaplet 
+    (setErrorHandler (handleServerErrors l) mempty) 
+    appInit
+  clnLogger

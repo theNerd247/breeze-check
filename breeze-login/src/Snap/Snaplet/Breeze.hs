@@ -277,7 +277,7 @@ mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
   gcntr <- liftIO $ newTVarIO 0
-  (lgr, cleanup) <- liftIO $ initFastLogger (LogFileNoRotate "breeze.log" 1024)
+  (lgr, cleanup) <- liftIO $ initFastLogger $ LogStderr 1024
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
@@ -305,7 +305,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
   addPostInitHook initEvent
   b <- mkBreeze  
   wrapSite $ \s -> do
-    s `catch` handleHTTP `catch` handleBreeze
+    s `catch` handleBreeze
   onUnload (b^.loggerCleanup)
   return b
   where
@@ -313,8 +313,3 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     handleBreeze e = withTop breezeLens $ runAesonApi $ do 
       breezeLog Error . show $ e
       return e
-
-    handleHTTP :: (HasBreezeApp b) => HTTP.HttpException -> Handler b v ()
-    handleHTTP e = withTop breezeLens $ runAesonApi $ do 
-      breezeLog Error . show $ e
-      return $ BreezeException $ "We couldn't connect to the server. Try again in a few minutes"
