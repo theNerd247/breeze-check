@@ -125,7 +125,13 @@ update msg m =
         NewPerson msg ->
             let
                 f m ps =
-                    { m | waitingCheckIn = List.append m.waitingCheckIn ps, page = Select }
+                    { m
+                        | waitingCheckIn =
+                            ps
+                                |> List.map (\p -> { p | checkedIn = True })
+                                |> List.append m.waitingCheckIn
+                        , page = Select
+                    }
             in
             modifyCmd NewPerson <| NewPerson.update f msg mdl
 

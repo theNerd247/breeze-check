@@ -88,10 +88,15 @@ type alias NewPerson =
 
 encodeNewPerson : NewPerson -> Encode.Value
 encodeNewPerson np =
-    Encode.object
-        [ ( "last_name", Encode.string np.lastName )
-        , ( "first_name", Encode.string np.firstName )
-        ]
+    Debug.log "encoding: " <|
+        Encode.object
+            [ ( "newName"
+              , Encode.object
+                    [ ( "last_name", Encode.string np.lastName )
+                    , ( "first_name", Encode.string np.firstName )
+                    ]
+              )
+            ]
 
 
 encodeNewPersons : List NewPerson -> Encode.Value

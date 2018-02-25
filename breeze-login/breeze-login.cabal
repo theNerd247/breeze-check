@@ -33,7 +33,7 @@ executable breeze-login
                      , lens
                      , mtl
                      , stm
-                     , simple
+                     , simple-core
                      , simple-aeson
                      , simple-snap
                      , simple-string

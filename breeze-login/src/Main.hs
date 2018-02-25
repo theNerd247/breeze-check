@@ -83,7 +83,7 @@ spec = Spec ["Data"] $
 handleServerErrors :: Logger -> SomeException -> Snap ()
 handleServerErrors lgger e = do 
   rq <- getRequest
-  liftIO $ lgger FastLogger.Error $ 
+  liftIO $ lgger $ 
     (show rq)
     ++ "\n" ++ (show e)
   writeLBS 
@@ -91,7 +91,7 @@ handleServerErrors lgger e = do
     $ BreezeException "An error occured in the server! Try again in a few minutes"
 
 main = do 
-  (l, clnLogger) <- liftIO $ initFastLogger $ LogStderr 1024
+  (l, clnLogger) <- liftIO $ initErrLogger
   serveSnaplet 
     (setErrorHandler (handleServerErrors l) mempty) 
     appInit

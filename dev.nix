@@ -1,4 +1,4 @@
-{pkgs ? import <nixpkgs> {}}:
+{ pkgs ? import <nixpkgs> {} }:
   
 {breeze-check = import ./default.nix {
     inherit (pkgs) buildEnv;

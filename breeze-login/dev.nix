@@ -18,7 +18,8 @@ let
             heist = pkgs.haskell.lib.dontCheck old.heist;
           };
 
-          simple = new.callPackage ../../simple/simple {};
+          simple-core = 
+            new.callPackage ../../simple/simple-core {};
 
           simple-aeson = 
             new.callPackage ../../simple/simple-aeson { };

@@ -122,8 +122,8 @@ runApiReq config path params = do
             . HTTP.setRequestQueryString params
   req <- fmap modReq $ HTTP.parseRequest ((config^.apiUrl) ++ (addRoot path))
   res <- HTTP.getResponseBody <$> HTTP.httpJSONEither req
-  let ltype = either (const Error) (const Info) res
-  liftIO $ (config^.logger) ltype (show req <> "\n" <> (show res))
+  let lgr = either (const $ config^.errLogger) (const $ config^.infoLogger) res
+  liftIO $ lgr $ show req <> "\n" <> (show res)
   either throwM return res 
   where
     addRoot xs@('/':_) = xs
@@ -187,7 +187,10 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
     _ -> do
       withTVarWrite checkInGroupCounter (+1)
       gid <- withTVarRead checkInGroupCounter id
-      breezeLog Info $ "Creating log group " <> (show gid) <> (fold $ notCheckedIn^..folded.to show.to (<>"\n"))
+      il <- use infoLogger
+      liftIO $ il $ "Creating log group " 
+              <> (show gid) 
+              <> (fold $ notCheckedIn^..folded.to show.to (<>"\n"))
       withTVarWrite personDB $ 
         notCheckedIn
           ^..folded
@@ -196,7 +199,7 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
           ^.folded
           ^.to appEndo
       ps <- withTVarRead personDB $ toList . (@+ persons)
-      breezeLog Info $ foldMapOf folded show ps
+      liftIO $ il $ foldMapOf folded show ps
       return gid
 
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
@@ -235,11 +238,10 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
             .to Endo
           ^.folded
           ^.to appEndo
-      breezeLog Info $ "Logged in: " <> (toCheckIn^..folded.to show.to (<> "\n")^.folded)
+      il <- use infoLogger
+      liftIO $ il $ "Logged in: " <> (toCheckIn^..folded.to show.to (<> "\n")^.folded)
       return True
     False -> throwM $ BreezeException $ "Failed to check in group: " <> (show gid)
-
-breezeLog p m = use logger >>= \f -> liftIO $ f p m
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
@@ -277,15 +279,18 @@ mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
   gcntr <- liftIO $ newTVarIO 0
-  (lgr, cleanup) <- liftIO $ initFastLogger $ LogStderr 1024
+  (ilgr, icln) <- liftIO $ initInfoLogger
+  (elgr, ecln) <- liftIO $ initErrLogger
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
     , _eventId = ""
     , _eventName = ""
     , _personDB = pdb
-    , _logger = lgr
-    , _loggerCleanup = cleanup
+    , _infoLogger = ilgr
+    , _errLogger = elgr
+    , _infoLoggerCleanup = icln
+    , _errLoggerCleanup = ecln
     , _checkInGroupCounter = gcntr
     , _debug = True
     }
@@ -306,10 +311,13 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
   b <- mkBreeze  
   wrapSite $ \s -> do
     s `catch` handleBreeze
-  onUnload (b^.loggerCleanup)
+  onUnload $ do 
+    liftIO $ b^.infoLoggerCleanup
+    liftIO $ b^.errLoggerCleanup
   return b
   where
     handleBreeze :: (HasBreezeApp b) => BreezeException -> Handler b v ()
     handleBreeze e = withTop breezeLens $ runAesonApi $ do 
-      breezeLog Error . show $ e
+      el <- use errLogger
+      liftIO $ el $ show e
       return e

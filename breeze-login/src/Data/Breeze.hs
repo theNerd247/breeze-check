@@ -184,8 +184,10 @@ data Breeze = Breeze
   , _eventName :: String
   , _apiUrl :: String
   , _personDB :: TVar (IxSet Person)
-  , _logger :: Logger
-  , _loggerCleanup :: IO ()
+  , _infoLogger :: Logger
+  , _infoLoggerCleanup :: IO ()
+  , _errLogger :: Logger
+  , _errLoggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
   , _debug :: Bool
   } deriving (Data, Generic)
