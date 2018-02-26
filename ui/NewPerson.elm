@@ -6,7 +6,7 @@ import Bootstrap.Form.Input as Input
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
-import Data as Data
+import Data exposing (..)
 import ErrorMsg as Err
 import Html as Html exposing (Html, text)
 import Html.Attributes exposing (class)
@@ -22,9 +22,15 @@ type alias FirstName =
 
 
 type alias NewFamily =
-    { lastName : String
-    , memberNames : Nonempty String
-    }
+    HasLastName
+        (HasAddress
+            (HasEmail
+                (HasCurrentChurch
+                    { memberNames : Nonempty String
+                    }
+                )
+            )
+        )
 
 
 type alias HasNewFamilies m =
@@ -33,7 +39,7 @@ type alias HasNewFamilies m =
 
 type Msg
     = NewPersonsClicked
-    | NewPersonsResponse (BreezeApi.Response (List Data.Person))
+    | NewPersonsResponse (BreezeApi.Response (List Person))
     | UpdateForm FormMsg
 
 
@@ -62,16 +68,22 @@ initNewFamily : NewFamily
 initNewFamily =
     { lastName = ""
     , memberNames = NE.fromElement ""
+    , currentChurch = ""
+    , address = initAddress
+    , email = ""
     }
 
 
-newFamilyToNewPersons : NewFamily -> NE.Nonempty Data.NewPerson
+newFamilyToNewPersons : NewFamily -> NE.Nonempty NewPerson
 newFamilyToNewPersons family =
     let
         newPerson n =
-            { lastName = family.lastName
-            , firstName = n
-            }
+            initNewPerson
+                |> copyEmail family
+                |> copyAddress family
+                |> copyFirstName { firstName = n }
+                |> copyLastName family
+                |> copyCurrentChurch family
     in
     NE.map newPerson family.memberNames
 
@@ -80,7 +92,7 @@ newFamilyToNewPersons family =
 -- Update
 
 
-update : (HasNewFamilies m -> List Data.Person -> HasNewFamilies m) -> Msg -> HasNewFamilies m -> ( HasNewFamilies m, Cmd Msg )
+update : (HasNewFamilies m -> List Person -> HasNewFamilies m) -> Msg -> HasNewFamilies m -> ( HasNewFamilies m, Cmd Msg )
 update f msg mdl =
     case msg of
         UpdateForm msg ->

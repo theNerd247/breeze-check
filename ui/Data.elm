@@ -24,20 +24,79 @@ decodeGroupId =
     withBreezeErrDecoder int
 
 
-type alias Person =
-    { pid : String
-    , firstName : String
-    , lastName : String
-    , checkedIn : Bool
+type alias HasFirstName m =
+    { m | firstName : String }
+
+
+initFirstName : HasFirstName {}
+initFirstName =
+    { firstName = "" }
+
+
+copyFirstName : HasFirstName m -> HasFirstName n -> HasFirstName n
+copyFirstName m n =
+    { n | firstName = m.firstName }
+
+
+type alias HasLastName m =
+    { m | lastName : String }
+
+
+initLastName : HasLastName {}
+initLastName =
+    { lastName = "" }
+
+
+copyLastName : HasLastName m -> HasLastName n -> HasLastName n
+copyLastName m n =
+    { n | lastName = m.lastName }
+
+
+type alias Name =
+    HasName {}
+
+
+type alias HasName m =
+    HasFirstName (HasLastName m)
+
+
+initName : Name
+initName =
+    { firstName = initFirstName.firstName
+    , lastName = initLastName.lastName
     }
+
+
+decodeName : Decoder Name
+decodeName =
+    decode (\f l -> { firstName = f, lastName = l })
+        |> required "firstName" string
+        |> required "lastName" string
+
+
+type alias Person =
+    HasName
+        { pid : String
+        , checkedIn : Bool
+        }
+
+
+type alias HasPerson m =
+    { m | person : Person }
 
 
 decodePerson : Decoder Person
 decodePerson =
-    decode Person
+    decode
+        (\p n c ->
+            { lastName = n.lastName
+            , firstName = n.firstName
+            , pid = p
+            , checkedIn = c
+            }
+        )
         |> required "pid" string
-        |> requiredAt [ "personName", "firstName" ] string
-        |> requiredAt [ "personName", "lastName" ] string
+        |> required "personName" decodeName
         |> hardcoded False
 
 
@@ -80,23 +139,95 @@ decodeEventName =
     field "event-name" string
 
 
+type alias Address =
+    { street : String
+    , city : String
+    , state : String
+    , zip : String
+    }
+
+
+type alias HasAddress m =
+    { m | address : Address }
+
+
+copyAddress : HasAddress m -> HasAddress n -> HasAddress n
+copyAddress m n =
+    { n | address = m.address }
+
+
+encodeAddress : HasAddress m -> Encode.Value
+encodeAddress m =
+    Encode.object
+        [ ( "street", Encode.string m.address.street )
+        , ( "city", Encode.string m.address.city )
+        , ( "state", Encode.string m.address.state )
+        , ( "zip", Encode.string m.address.zip )
+        ]
+
+
+initAddress : Address
+initAddress =
+    { street = ""
+    , city = ""
+    , state = ""
+    , zip = ""
+    }
+
+
+type alias CurrentChurch =
+    String
+
+
+type alias HasCurrentChurch m =
+    { m | currentChurch : CurrentChurch }
+
+
+copyCurrentChurch : HasCurrentChurch m -> HasCurrentChurch n -> HasCurrentChurch n
+copyCurrentChurch m n =
+    { n | currentChurch = m.currentChurch }
+
+
+type alias Email =
+    String
+
+
+type alias HasEmail m =
+    { m | email : Email }
+
+
+copyEmail : HasEmail m -> HasEmail n -> HasEmail n
+copyEmail m n =
+    { n | email = m.email }
+
+
 type alias NewPerson =
-    { lastName : String
-    , firstName : String
+    HasName (HasAddress (HasCurrentChurch (HasEmail {})))
+
+
+initNewPerson : NewPerson
+initNewPerson =
+    { firstName = ""
+    , lastName = ""
+    , address = initAddress
+    , email = ""
+    , currentChurch = ""
     }
 
 
 encodeNewPerson : NewPerson -> Encode.Value
 encodeNewPerson np =
-    Debug.log "encoding: " <|
-        Encode.object
-            [ ( "newName"
-              , Encode.object
-                    [ ( "last_name", Encode.string np.lastName )
-                    , ( "first_name", Encode.string np.firstName )
-                    ]
-              )
-            ]
+    Encode.object
+        [ ( "newName"
+          , Encode.object
+                [ ( "last_name", Encode.string np.lastName )
+                , ( "first_name", Encode.string np.firstName )
+                ]
+          )
+        , ( "address", encodeAddress np )
+        , ( "currentChurch", Encode.string np.currentChurch )
+        , ( "email", Encode.string np.email )
+        ]
 
 
 encodeNewPersons : List NewPerson -> Encode.Value
