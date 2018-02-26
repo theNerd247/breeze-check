@@ -85,19 +85,21 @@ instance BreezeApi Checkin where
 
 instance BreezeApi MakeNewPerson where
   type BreezeResponse MakeNewPerson = Person
-  runBreeze b (MakeNewPerson np) = runApiReq b "/people/add"
-    [ ("first"       , Just . Char8.pack $ np^.firstName)
-    , ("last"        , Just . Char8.pack $ np^.lastName)
-    {-, ("fields_json" , Just . toStrict . encode $-}
-        {-[ field "697961327" "address" True $ object-}
-            {-[ "street" .= (a^.street)-}
-            {-, "city"   .= (a^.city)-}
-            {-, "state"  .= (a^.state)-}
-            {-, "zip"    .= (a^.zipcode)-}
-            {-]-}
-            -- TODO: add missing fields
-        {-])-}
-    ]
+  runBreeze b (MakeNewPerson np) = do
+    ps <- runApiReq b "/people/add"
+      [ ("first"       , Just . Char8.pack $ np^.firstName)
+      , ("last"        , Just . Char8.pack $ np^.lastName)
+      {-, ("fields_json" , Just . toStrict . encode $-}
+          {-[ field "697961327" "address" True $ object-}
+              {-[ "street" .= (a^.street)-}
+              {-, "city"   .= (a^.city)-}
+              {-, "state"  .= (a^.state)-}
+              {-, "zip"    .= (a^.zipcode)-}
+              {-]-}
+              -- TODO: add missing fields
+          {-])-}
+      ]
+    return $ (ps :: BreezePerson)^.bPerson
     where
       field :: String -> String -> Bool -> Value -> Value
       field i t r d = object
@@ -173,44 +175,45 @@ withTVarRead l f = use l >>= liftIO . atomically . fmap f . readTVar
 withTVarWrite :: (MonadState s m, MonadIO m) => Lens' s (TVar a) -> (a -> a) -> m ()
 withTVarWrite l f = use l >>= liftIO . atomically . flip modifyTVar f 
 
-createNewPeople :: (HasBreezeApp b) => [Person] -> Handler b v [PersonId]
-createNewPeople ps = withTop breezeLens $ do
+chainTVarWrite :: (MonadState s m, MonadIO m, Foldable f) => Lens' s (TVar a) -> (x -> a -> a) -> f x -> m () 
+chainTVarWrite l f xs = withTVarWrite l $
+  xs^..folded.to f.to Endo
+    ^.folded.to appEndo
+
+addPendingNewPeople :: (HasBreezeApp b) => [Person] -> GroupId -> Handler b v ()
+addPendingNewPeople ps gid = withTop breezeLens $ do
   -- filter the list for new people and send the api request for a new person
   newPeople <-
     ps ^..folded
         . filtered (view $ newPersonInfo . to (isn't _Nothing))
-       ^. to (mapMOf each (runBreeze' . MakeNewPerson))
+       & checkedIn .~ WaitingApproval gid
 
   -- save the new people
-  withTVarWrite personDB $ 
-      newPeople
-        ^..folded
-          .to insert
-          .to Endo
-        ^.folded
-         .to appEndo
+  chainTVarWrite personDB insert newPeople
 
-  -- filter the list for not new people and concat with the returned persons
-  return $ 
-        ps^..folded
-            .filtered (view $ newPersonInfo . to (isn't _Just))
-          ^.to (++newPeople)
-          ^..folded.pid
+createAndCheckIn :: (HasBreezeApp b) => [Person] -> Handler b v Bool
+createAndCheckIn ps = withTop breezeLens $ do
+  ps ^..folded
+      . filtered (view $ newPersonInfo . to (isn't _Nothing))
+     & mapMOf each $ \np -> do 
+       p <- runBreeze' $ MakeNewPerson np
+       withTVarWrite personDB $ \db ->  --TODO: Create index that will allow us to replace this item with its corresponding pid
 
 
 userCheckInHandle :: (HasBreezeApp b) => Handler b v ()
 userCheckInHandle = withTop breezeLens $ runAesonApi $ do
-  persons <- fromBody >>= createNewPeople
-  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ persons)
+  ps <- fromBody
+  let pids = ps^..folded.filtered (view $ newPersonInfo . to (isn't _Just))
+  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ pids)
   case notCheckedIn of
     -- TODO: redo case where requested person being checked in is already
     -- waiting or has already been checked in
     [] -> do
       cgid <- withTVarRead checkInGroupCounter id
-      waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ persons)
+      waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ pids)
       let mid = firstOf traverse waiting ^? _Just . checkedIn . _WaitingApproval
       maybe 
-        (throwM $ BreezeException $ "Could not find persons to login: " <> (show persons)) 
+        (throwM $ BreezeException $ "Could not find persons to login: " <> (show pids)) 
         (return) 
         mid
     _ -> do
@@ -220,15 +223,8 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
       liftIO $ il $ "Creating log group " 
               <> (show gid) 
               <> (fold $ notCheckedIn^..folded.to show.to (<>"\n"))
-      withTVarWrite personDB $ 
-        notCheckedIn
-          ^..folded
-            .to (updatePerson $ set checkedIn $ WaitingApproval gid)
-            .to Endo
-          ^.folded
-          ^.to appEndo
-      ps <- withTVarRead personDB $ toList . (@+ persons)
-      liftIO $ il $ foldMapOf folded show ps
+      chainTVarWrite personDB (updatePerson $ set checkedIn $ WaitingApproval gid) notCheckedIn
+      addPendingNewPeople ps gid
       return gid
 
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()

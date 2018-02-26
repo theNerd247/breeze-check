@@ -9,7 +9,6 @@ module Data.Breeze where
 
 import Control.Concurrent.STM (TVar)
 import Control.Lens hiding (Indexable, (.=))
-import Control.Applicative ((<|>))
 import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
@@ -125,7 +124,7 @@ instance HasName Person where
 
 instance FromJSON Person where
   parseJSON v@(Object o) = Person
-    <$> ((o .: "id") <|> (o .: "pid"))
+    <$> o .: "pid"
     <*> o .: "name"
     <*> (o .: "checkedIn" >>= return . toCheckin)
     <*> o .: "newPersonInfo"
@@ -159,6 +158,7 @@ instance Indexable Person where
     , ixFun $ \x -> x^? checkedIn . _WaitingApproval . to (:[]) ^. non []
     , ixFun $ (:[]) . FName . (view firstName)
     , ixFun $ (:[]) . LName . (view lastName)
+    , ixFun $ (:[]) . (view  newPersonInfo)
     ]
 
 newtype BreezePerson = BreezePerson 
