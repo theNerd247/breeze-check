@@ -131,6 +131,8 @@ update msg m =
                                 |> List.map (\p -> { p | checkedIn = True })
                                 |> List.append m.waitingCheckIn
                         , page = Select
+                        , searchLastName = ""
+                        , personNotFound = False
                     }
             in
             modifyCmd NewPerson <| NewPerson.update f msg mdl
