@@ -305,7 +305,6 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("getgroup", getCheckInGroupHandle)
     , ("approve", approveCheckinHandle) 
     , ("cancel", cancelCheckinHandle)
-    , ("newpersons", newPersonsHandle)
     ] 
   addPostInitHook initEvent
   b <- mkBreeze  

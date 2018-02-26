@@ -61,11 +61,16 @@ copyLastName m n =
 
 
 type alias Name =
-    HasName {}
+    HasFirstName (HasLastName {})
 
 
 type alias HasName m =
-    HasFirstName (HasLastName m)
+    { m | name : Name }
+
+
+setName : Name -> HasName n -> HasName n
+setName n m =
+    { m | name = n }
 
 
 initName : Name
@@ -80,6 +85,14 @@ decodeName =
     decode (\f l -> { firstName = f, lastName = l })
         |> required "firstName" string
         |> required "lastName" string
+
+
+encodeName : HasName m -> Encode.Value
+encodeName n =
+    Encode.object
+        [ ( "first_name", Encode.string n.name.firstName )
+        , ( "last_name", Encode.string n.name.lastName )
+        ]
 
 
 type alias BreezeException =
@@ -134,7 +147,7 @@ encodeAddress m =
         [ ( "street", Encode.string m.address.street )
         , ( "city", Encode.string m.address.city )
         , ( "state", Encode.string m.address.state )
-        , ( "zip", Encode.string m.address.zip )
+        , ( "zipcode", Encode.string m.address.zip )
         ]
 
 
@@ -178,7 +191,7 @@ type alias NewPersonInfo =
 
 
 type alias HasNewPersonInfo m =
-    { m | newPersonInfo : NewPersonInfo }
+    { m | newPersonInfo : Maybe NewPersonInfo }
 
 
 initNewPersonInfo : NewPersonInfo
@@ -192,9 +205,9 @@ initNewPersonInfo =
 encodeNewPersonInfo : NewPersonInfo -> Encode.Value
 encodeNewPersonInfo np =
     Encode.object
-        [ ( "address", encodeAddress np )
-        , ( "currentChurch", Encode.string np.currentChurch )
-        , ( "email", Encode.string np.email )
+        [ ( "newAddress", encodeAddress np )
+        , ( "newCurrentChurch", Encode.string np.currentChurch )
+        , ( "newEmail", Encode.string np.email )
         ]
 
 
@@ -205,10 +218,11 @@ encodeNewPersonInfos =
 
 type alias Person =
     HasName
-        { pid : String
-        , checkedIn : Bool
-        , newPersonInfo : Maybe NewPersonInfo
-        }
+        (HasNewPersonInfo
+            { pid : String
+            , checkedIn : Bool
+            }
+        )
 
 
 type alias HasPerson m =
@@ -219,9 +233,8 @@ initNewPerson : Person
 initNewPerson =
     { pid = ""
     , checkedIn = False
-    , firstName = ""
-    , lastName = ""
     , newPersonInfo = Nothing
+    , name = initName
     }
 
 
@@ -234,15 +247,14 @@ decodePerson : Decoder Person
 decodePerson =
     decode
         (\p n ->
-            { lastName = n.lastName
-            , firstName = n.firstName
+            { name = n
             , pid = p
             , checkedIn = False
             , newPersonInfo = Nothing
             }
         )
         |> required "pid" string
-        |> required "personName" decodeName
+        |> required "name" decodeName
 
 
 decodePersons : Decoder (Result BreezeException (List Person))
@@ -253,8 +265,7 @@ decodePersons =
 encodePerson : Person -> Encode.Value
 encodePerson p =
     Encode.object
-        [ ( "firstName", Encode.string p.firstName )
-        , ( "lastName", Encode.string p.lastName )
+        [ ( "name", encodeName p )
         , ( "pid", Encode.string p.pid )
         , ( "checkedIn", Encode.bool p.checkedIn )
         , ( "newPersonInfo"
@@ -307,8 +318,8 @@ personView selected p =
     withClick <|
         Grid.containerFluid
             []
-            [ [ Grid.col [ Col.xs5 ] [ Html.text p.firstName ]
-              , Grid.col [ Col.xs5 ] [ Html.text p.lastName ]
+            [ [ Grid.col [ Col.xs5 ] [ Html.text p.name.firstName ]
+              , Grid.col [ Col.xs5 ] [ Html.text p.name.lastName ]
               ]
                 |> flip List.append checkBox
                 |> Grid.row []

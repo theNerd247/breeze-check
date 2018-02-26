@@ -87,8 +87,11 @@ newFamilyToPersons family =
     let
         newPerson n =
             initNewPerson
-                |> copyFirstName { firstName = n }
-                |> copyLastName family
+                |> setName
+                    (initName
+                        |> copyFirstName { firstName = n }
+                        |> copyLastName family
+                    )
                 |> setNewPersonInfo
                     (initNewPersonInfo
                         |> copyEmail family

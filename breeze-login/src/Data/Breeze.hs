@@ -82,10 +82,38 @@ instance FromJSON Name where
 instance ToJSON Name where
   toJSON = genericToJSON customAesonOptions
 
+data Address = Address
+  { _street :: String
+  , _city :: String
+  , _state :: String
+  , _zipcode :: String
+  } deriving (Show, Eq, Ord, Data, Generic, ElmType) 
+
+makeClassy ''Address
+
+instance FromJSON Address where
+  parseJSON = genericParseJSON customAesonOptions
+
+instance ToJSON Address where
+  toJSON = genericToJSON customAesonOptions
+
+data NewPersonInfo = NewPersonInfo
+  { _newAddress :: Address
+  , _newCurrentChurch :: String
+  , _newEmail :: String
+  } deriving (Show, Eq , Ord, Data, Generic, ElmType)
+
+makeLenses ''NewPersonInfo
+
+instance FromJSON NewPersonInfo where
+  parseJSON = genericParseJSON customAesonOptions
+
+
 data Person = Person
   { _pid       :: PersonId
   , _personName :: Name
   , _checkedIn :: CheckInStatus
+  , _newPersonInfo :: Maybe NewPersonInfo
   } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
@@ -96,8 +124,12 @@ instance HasName Person where
 instance FromJSON Person where
   parseJSON v@(Object o) = Person
     <$> o .: "id" 
-    <*> parseJSON v
-    <*> pure CheckedOut
+    <*> o .: "name"
+    <*> (o .: "checkedIn" >>= return toCheckin)
+    <*> o .: "newPersonInfo"
+    where
+      toCheckin True = CheckedIn
+      toCheckin False = CheckedOut
   parseJSON _ = mempty
 
 instance ToJSON Person where
@@ -107,18 +139,6 @@ data ParseAttendance = ParseAttendance { attendingPerson :: Person, raw :: Value
   deriving (Show)
 
 instance Default Person
-
-instance FromJSON ParseAttendance where
-  parseJSON v@(Object o) = fmap (flip ParseAttendance v) $ Person
-    <$> (o .: "person_id")
-    <*> (o .: "details" >>= parseJSON)
-    <*> (o .: "check_out" >>= return . parseCheckedOut )
-    where
-      parseCheckedOut :: String -> CheckInStatus
-      parseCheckedOut s 
-        | s == "0000-00-00 00:00:00" = CheckedIn
-        | otherwise = CheckedOut
-  parseJSON x = typeMismatch "ParseAttendance" x
 
 newtype FName = FName String deriving (Eq, Ord, Data)
 
@@ -133,20 +153,18 @@ instance Indexable Person where
     , ixFun $ (:[]) . LName . (view lastName)
     ]
 
-data Address = Address
-  { _street :: String
-  , _city :: String
-  , _state :: String
-  , _zipcode :: String
-  } deriving (Show, Data, Generic, ElmType) 
-
-makeClassy ''Address
-
-instance FromJSON Address where
-  parseJSON = genericParseJSON customAesonOptions
-
-instance ToJSON Address where
-  toJSON = genericToJSON customAesonOptions
+instance FromJSON ParseAttendance where
+  parseJSON v@(Object o) = fmap (flip ParseAttendance v) $ Person
+    <$> (o .: "person_id")
+    <*> (o .: "details" >>= parseJSON)
+    <*> (o .: "check_out" >>= return . parseCheckedOut )
+    <*> pure Nothing
+    where
+      parseCheckedOut :: String -> CheckInStatus
+      parseCheckedOut s 
+        | s == "0000-00-00 00:00:00" = CheckedIn
+        | otherwise = CheckedOut
+  parseJSON x = typeMismatch "ParseAttendance" x
 
 data CheckinDirection = In | Out
 
