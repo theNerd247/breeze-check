@@ -8,7 +8,7 @@
 module Data.Breeze where
 
 import Control.Concurrent.STM (TVar)
-import Control.Lens hiding (Indexable)
+import Control.Lens hiding (Indexable, (.=))
 import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
@@ -108,7 +108,6 @@ makeLenses ''NewPersonInfo
 instance FromJSON NewPersonInfo where
   parseJSON = genericParseJSON customAesonOptions
 
-
 data Person = Person
   { _pid       :: PersonId
   , _personName :: Name
@@ -125,7 +124,7 @@ instance FromJSON Person where
   parseJSON v@(Object o) = Person
     <$> o .: "id" 
     <*> o .: "name"
-    <*> (o .: "checkedIn" >>= return toCheckin)
+    <*> (o .: "checkedIn" >>= return . toCheckin)
     <*> o .: "newPersonInfo"
     where
       toCheckin True = CheckedIn
@@ -133,7 +132,16 @@ instance FromJSON Person where
   parseJSON _ = mempty
 
 instance ToJSON Person where
-  toJSON = genericToJSON customAesonOptions
+  toJSON p = object 
+    [ "pid" .= (p^.pid)
+    , "name" .= (p^.pid)
+    , "checkedIn" .= (p^.checkedIn.to checkInStatusBool)
+    , "newPersonInfo" .= (Nothing :: Maybe String)
+    ]
+    where
+      checkInStatusBool CheckedIn = True
+      checkInStatusBool (WaitingApproval _) = True
+      checkInStatusBool CheckedOut = False
 
 data ParseAttendance = ParseAttendance { attendingPerson :: Person, raw :: Value }
   deriving (Show)
@@ -165,12 +173,6 @@ instance FromJSON ParseAttendance where
         | s == "0000-00-00 00:00:00" = CheckedIn
         | otherwise = CheckedOut
   parseJSON x = typeMismatch "ParseAttendance" x
-
-data CheckinDirection = In | Out
-
-instance Show CheckinDirection where
-  show In = "in"
-  show Out = "out"
 
 data EventInfo = EventInfo
   { _eid :: EventId
