@@ -59,6 +59,8 @@ data CheckInStatus = CheckedOut
 
 makePrisms ''CheckInStatus
 
+instance FromJSON CheckInStatus
+
 instance ToJSON CheckInStatus
 
 instance Default CheckInStatus where
@@ -120,6 +122,7 @@ makeClassy ''Person
 instance HasName Person where
   name = personName
 
+
 instance FromJSON Person where
   parseJSON v@(Object o) = Person
     <$> o .: "id" 
@@ -143,9 +146,6 @@ instance ToJSON Person where
       checkInStatusBool (WaitingApproval _) = True
       checkInStatusBool CheckedOut = False
 
-data ParseAttendance = ParseAttendance { attendingPerson :: Person, raw :: Value }
-  deriving (Show)
-
 instance Default Person
 
 newtype FName = FName String deriving (Eq, Ord, Data)
@@ -161,8 +161,29 @@ instance Indexable Person where
     , ixFun $ (:[]) . LName . (view lastName)
     ]
 
+newtype BreezePerson = BreezePerson 
+    { _bPerson :: Person 
+    } 
+    deriving (Show, Eq, Ord, Data, Generic)
+
+makeLenses ''BreezePerson
+
+instance FromJSON BreezePerson where
+  parseJSON v@(Object o) = fmap BreezePerson $ Person
+    <$> o .: "id" 
+    <*> parseJSON v
+    <*> pure CheckedOut
+    <*> pure Nothing
+  parseJSON _ = mempty
+
+
+newtype ParseAttendance = ParseAttendance { _attendingPerson :: Person }
+  deriving (Show)
+
+makeLenses ''ParseAttendance
+
 instance FromJSON ParseAttendance where
-  parseJSON v@(Object o) = fmap (flip ParseAttendance v) $ Person
+  parseJSON v@(Object o) = fmap ParseAttendance $ Person
     <$> (o .: "person_id")
     <*> (o .: "details" >>= parseJSON)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
@@ -185,18 +206,6 @@ instance FromJSON EventInfo where
   parseJSON (Object o) = EventInfo
     <$> (o .: "id")
     <*> (o .: "name")
-
-data NewPerson = NewPerson
-  { _newName :: Name
-  } deriving (Show, Eq, Ord, Data, Generic)
-
-makeLenses ''NewPerson
-
-instance FromJSON NewPerson where
-  parseJSON = genericParseJSON customAesonOptions
-
-instance HasName NewPerson where
-  name = newName
 
 data Breeze = Breeze
   { _apiKey  :: String

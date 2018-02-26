@@ -40,7 +40,7 @@ import qualified Network.HTTP.Simple as HTTP
 data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
 data Checkin = Checkin EventId PersonId 
-data MakeNewPerson = MakeNewPerson NewPerson
+data MakeNewPerson = MakeNewPerson Person
 data GetEvents = GetEvents
 
 class HasBreezeApp b where
@@ -52,25 +52,29 @@ class BreezeApi a where
 
 instance BreezeApi FindPeople where
   type BreezeResponse FindPeople = [Person]
-  runBreeze b (FindPeople lname maddr) = runApiReq b "/people" $ 
-    [ ("details", Just . Char8.pack . show $ 0)
-    , ("filter_json", Just . toStrict . encode $ object
-        [ "189467778_last"   .= lname
-        {-, "697961327_street" .= (maddr^.street)-}
-        {-, "697961327_city"   .= (maddr^.city)-}
-        {-, "697961327_state"  .= (maddr^.state)-}
-        {-, "697961327_zip"    .= (maddr^.zipcode)-}
-        ])
-    ]
+  runBreeze b (FindPeople lname maddr) = do 
+    ps <- runApiReq b "/people" $ 
+      [ ("details", Just . Char8.pack . show $ 0)
+      , ("filter_json", Just . toStrict . encode $ object
+          [ "189467778_last"   .= lname
+          {-, "697961327_street" .= (maddr^.street)-}
+          {-, "697961327_city"   .= (maddr^.city)-}
+          {-, "697961327_state"  .= (maddr^.state)-}
+          {-, "697961327_zip"    .= (maddr^.zipcode)-}
+          ])
+      ]
+    return $ (ps :: [BreezePerson])^..folded.bPerson
 
 instance BreezeApi GetAttendance where
-  type BreezeResponse GetAttendance = [ParseAttendance]
-  runBreeze b (GetAttendance eid) = runApiReq b "/events/attendance/list"
-    [ ("instance_id", Just . Char8.pack $ eid)
-    , ("details",     Just "true")
-    , ("type",        Just "person")
-    ]
-  
+  type BreezeResponse GetAttendance = [Person]
+  runBreeze b (GetAttendance eid) = do 
+    ps <- runApiReq b "/events/attendance/list"
+      [ ("instance_id", Just . Char8.pack $ eid)
+      , ("details",     Just "true")
+      , ("type",        Just "person")
+      ]
+    return $ (ps :: [ParseAttendance])^..folded.attendingPerson
+    
 instance BreezeApi Checkin where
   type BreezeResponse Checkin = Bool
   runBreeze b (Checkin eid pid) = runApiReq b "/events/attendance/add"
@@ -138,7 +142,7 @@ getAttendance' config = flip evalStateT config $ do
   let eid = config^.eventId
   eas <- runBreeze' $ GetAttendance eid
   withTVarWrite personDB $ appEndo . fold $
-    eas^..folded.to attendingPerson & mapped %~ Endo . updateAttending
+    eas & mapped %~ Endo . updateAttending
   where
     updateAttending :: Person -> IxSet Person -> IxSet Person
     updateAttending p db = maybe
@@ -169,16 +173,41 @@ withTVarRead l f = use l >>= liftIO . atomically . fmap f . readTVar
 withTVarWrite :: (MonadState s m, MonadIO m) => Lens' s (TVar a) -> (a -> a) -> m ()
 withTVarWrite l f = use l >>= liftIO . atomically . flip modifyTVar f 
 
+createNewPeople :: (HasBreezeApp b) => [Person] -> Handler b v [PersonId]
+createNewPeople ps = withTop breezeLens $ do
+  -- filter the list for new people and send the api request for a new person
+  newPeople <-
+    ps ^..folded
+        . filtered (view $ newPersonInfo . to (isn't _Nothing))
+       ^. to (mapMOf each (runBreeze' . MakeNewPerson))
+
+  -- save the new people
+  withTVarWrite personDB $ 
+      newPeople
+        ^..folded
+          .to insert
+          .to Endo
+        ^.folded
+         .to appEndo
+
+  -- filter the list for not new people and concat with the returned persons
+  return $ 
+        ps^..folded
+            .filtered (view $ newPersonInfo . to (isn't _Just))
+          ^.to (++newPeople)
+          ^..folded.pid
+
+
 userCheckInHandle :: (HasBreezeApp b) => Handler b v ()
 userCheckInHandle = withTop breezeLens $ runAesonApi $ do
-  persons <- fromBody
-  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (persons :: [PersonId]))
+  persons <- fromBody >>= createNewPeople
+  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ persons)
   case notCheckedIn of
     -- TODO: redo case where requested person being checked in is already
     -- waiting or has already been checked in
     [] -> do
       cgid <- withTVarRead checkInGroupCounter id
-      waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ (persons :: [PersonId])) 
+      waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ persons)
       let mid = firstOf traverse waiting ^? _Just . checkedIn . _WaitingApproval
       maybe 
         (throwM $ BreezeException $ "Could not find persons to login: " <> (show persons)) 
@@ -269,11 +298,6 @@ eventInfoHandle = withTop breezeLens $ runAesonApi $ do
   eid <- use eventId
   ename <- use eventName
   return $ object [("event-id", fromString eid), ("event-name", fromString ename)]
-
-newPersonsHandle :: (HasBreezeApp b) => Handler b v ()
-newPersonsHandle = withTop breezeLens $ runAesonApi $ do
-  persons <- fromBody
-  forM (persons :: [NewPerson]) $ runBreeze' . MakeNewPerson
 
 mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
