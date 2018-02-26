@@ -38,6 +38,7 @@ type FirstName = String
 type LastName = String
 type PersonId = String
 type Phone = String
+type TempPersonId = PersonId
 
 customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix }
 
@@ -55,6 +56,7 @@ instance ToJSON BreezeException
 data CheckInStatus = CheckedOut 
                    | WaitingApproval CheckInGroupId 
                    | CheckedIn
+                   | WaitingCreation CheckInGroupId TempPersonId
                    deriving (Show, Eq, Ord, Data, Generic, ElmType)
 
 makePrisms ''CheckInStatus
@@ -141,9 +143,8 @@ instance ToJSON Person where
     , "newPersonInfo" .= (Nothing :: Maybe String)
     ]
     where
-      checkInStatusBool CheckedIn = True
-      checkInStatusBool (WaitingApproval _) = True
       checkInStatusBool CheckedOut = False
+      checkInStatusBool _ = True
 
 instance Default Person
 

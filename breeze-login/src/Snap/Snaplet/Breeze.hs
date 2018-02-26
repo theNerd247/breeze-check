@@ -193,11 +193,18 @@ addPendingNewPeople ps gid = withTop breezeLens $ do
 
 createAndCheckIn :: (HasBreezeApp b) => [Person] -> Handler b v Bool
 createAndCheckIn ps = withTop breezeLens $ do
+  eid <- use eventId
   ps ^..folded
-      . filtered (view $ newPersonInfo . to (isn't _Nothing))
+      . filtered (view $ checkedInStatus . to (is _WaitingCreation))
      & mapMOf each $ \np -> do 
        p <- runBreeze' $ MakeNewPerson np
-       withTVarWrite personDB $ \db ->  --TODO: Create index that will allow us to replace this item with its corresponding pid
+       r <- runBreeze' $ Checkin eid p^.pid
+       withTVarWrite personDB $ updateIx (np^.checkedInStatus) $ 
+          np 
+            & pid .~ (p^.pid) 
+            & checkedInStatus .~ CheckedIn
+       return r
+     & allOf folded id
 
 
 userCheckInHandle :: (HasBreezeApp b) => Handler b v ()
