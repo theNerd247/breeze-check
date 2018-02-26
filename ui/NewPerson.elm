@@ -5,7 +5,6 @@ import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import BreezeApi as BreezeApi
 import Data exposing (..)
 import ErrorMsg as Err
 import Html as Html exposing (Html, text)
@@ -39,7 +38,6 @@ type alias HasNewFamilies m =
 
 type Msg
     = NewPersonsClicked
-    | NewPersonsResponse (BreezeApi.Response (List Person))
     | UpdateForm FormMsg
 
 
@@ -84,16 +82,19 @@ initNewFamily =
     }
 
 
-newFamilyToNewPersons : NewFamily -> NE.Nonempty NewPerson
-newFamilyToNewPersons family =
+newFamilyToPersons : NewFamily -> NE.Nonempty Person
+newFamilyToPersons family =
     let
         newPerson n =
             initNewPerson
-                |> copyEmail family
-                |> copyAddress family
                 |> copyFirstName { firstName = n }
                 |> copyLastName family
-                |> copyCurrentChurch family
+                |> setNewPersonInfo
+                    (initNewPersonInfo
+                        |> copyEmail family
+                        |> copyAddress family
+                        |> copyCurrentChurch family
+                    )
     in
     NE.map newPerson family.memberNames
 
@@ -109,22 +110,12 @@ update f msg mdl =
             formUpdate msg mdl
 
         NewPersonsClicked ->
-            ( mdl
-            , mdl.newFamilies
-                |> NE.concatMap newFamilyToNewPersons
+            ( mdl.newFamilies
+                |> NE.concatMap newFamilyToPersons
                 |> NE.toList
-                |> flip BreezeApi.newPersons NewPersonsResponse
+                |> f mdl
+            , Cmd.none
             )
-
-        NewPersonsResponse r ->
-            let
-                m =
-                    BreezeApi.fromResponse r
-                        |> BreezeApi.fromResult
-                            (flip Err.newError mdl)
-                            (f mdl)
-            in
-            ( m, Cmd.none )
 
 
 formUpdate : FormMsg -> HasNewFamilies m -> ( HasNewFamilies m, Cmd Msg )

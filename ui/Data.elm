@@ -15,13 +15,13 @@ type alias GroupId =
     Int
 
 
-type alias PersonId =
-    String
-
-
 decodeGroupId : Decoder (Result BreezeException GroupId)
 decodeGroupId =
     withBreezeErrDecoder int
+
+
+type alias PersonId =
+    String
 
 
 type alias FirstName =
@@ -82,37 +82,6 @@ decodeName =
         |> required "lastName" string
 
 
-type alias Person =
-    HasName
-        { pid : String
-        , checkedIn : Bool
-        }
-
-
-type alias HasPerson m =
-    { m | person : Person }
-
-
-decodePerson : Decoder Person
-decodePerson =
-    decode
-        (\p n c ->
-            { lastName = n.lastName
-            , firstName = n.firstName
-            , pid = p
-            , checkedIn = c
-            }
-        )
-        |> required "pid" string
-        |> required "personName" decodeName
-        |> hardcoded False
-
-
-decodePersons : Decoder (Result BreezeException (List Person))
-decodePersons =
-    withBreezeErrDecoder <| list decodePerson
-
-
 type alias BreezeException =
     { breezeErr : String
     }
@@ -131,11 +100,6 @@ withBreezeErrDecoder d =
         , map Ok d
         , fail "Something went wrong when fetching data"
         ]
-
-
-encodePersonIds : List Person -> Encode.Value
-encodePersonIds =
-    Encode.list << List.map (Encode.string << .pid)
 
 
 type alias EventName =
@@ -209,38 +173,101 @@ copyEmail m n =
     { n | email = m.email }
 
 
-type alias NewPerson =
-    HasName (HasAddress (HasCurrentChurch (HasEmail {})))
+type alias NewPersonInfo =
+    HasAddress (HasCurrentChurch (HasEmail {}))
 
 
-initNewPerson : NewPerson
-initNewPerson =
-    { firstName = ""
-    , lastName = ""
-    , address = initAddress
+type alias HasNewPersonInfo m =
+    { m | newPersonInfo : NewPersonInfo }
+
+
+initNewPersonInfo : NewPersonInfo
+initNewPersonInfo =
+    { address = initAddress
     , email = ""
     , currentChurch = ""
     }
 
 
-encodeNewPerson : NewPerson -> Encode.Value
-encodeNewPerson np =
+encodeNewPersonInfo : NewPersonInfo -> Encode.Value
+encodeNewPersonInfo np =
     Encode.object
-        [ ( "newName"
-          , Encode.object
-                [ ( "last_name", Encode.string np.lastName )
-                , ( "first_name", Encode.string np.firstName )
-                ]
-          )
-        , ( "address", encodeAddress np )
+        [ ( "address", encodeAddress np )
         , ( "currentChurch", Encode.string np.currentChurch )
         , ( "email", Encode.string np.email )
         ]
 
 
-encodeNewPersons : List NewPerson -> Encode.Value
-encodeNewPersons =
-    Encode.list << List.map encodeNewPerson
+encodeNewPersonInfos : List NewPersonInfo -> Encode.Value
+encodeNewPersonInfos =
+    Encode.list << List.map encodeNewPersonInfo
+
+
+type alias Person =
+    HasName
+        { pid : String
+        , checkedIn : Bool
+        , newPersonInfo : Maybe NewPersonInfo
+        }
+
+
+type alias HasPerson m =
+    { m | person : Person }
+
+
+initNewPerson : Person
+initNewPerson =
+    { pid = ""
+    , checkedIn = False
+    , firstName = ""
+    , lastName = ""
+    , newPersonInfo = Nothing
+    }
+
+
+setNewPersonInfo : NewPersonInfo -> Person -> Person
+setNewPersonInfo n m =
+    { m | newPersonInfo = Just n }
+
+
+decodePerson : Decoder Person
+decodePerson =
+    decode
+        (\p n ->
+            { lastName = n.lastName
+            , firstName = n.firstName
+            , pid = p
+            , checkedIn = False
+            , newPersonInfo = Nothing
+            }
+        )
+        |> required "pid" string
+        |> required "personName" decodeName
+
+
+decodePersons : Decoder (Result BreezeException (List Person))
+decodePersons =
+    withBreezeErrDecoder <| list decodePerson
+
+
+encodePerson : Person -> Encode.Value
+encodePerson p =
+    Encode.object
+        [ ( "firstName", Encode.string p.firstName )
+        , ( "lastName", Encode.string p.lastName )
+        , ( "pid", Encode.string p.pid )
+        , ( "checkedIn", Encode.bool p.checkedIn )
+        , ( "newPersonInfo"
+          , p.newPersonInfo
+                |> Maybe.map encodeNewPersonInfo
+                |> Maybe.withDefault Encode.null
+          )
+        ]
+
+
+encodePersons : List Person -> Encode.Value
+encodePersons =
+    Encode.list << List.map encodePerson
 
 
 

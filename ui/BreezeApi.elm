@@ -77,7 +77,7 @@ checkIn : (Response Data.GroupId -> msg) -> List Data.Person -> Cmd msg
 checkIn f ppl =
     sendPost
         "checkin"
-        (Http.jsonBody <| Data.encodePersonIds ppl)
+        (Http.jsonBody <| Data.encodePersons ppl)
         Data.decodeGroupId
         f
 
@@ -102,13 +102,6 @@ eventInfo f =
         (Data.withBreezeErrDecoder Data.decodeEventName)
         f
 
-newPersons : List Data.NewPerson -> (Response (List Data.Person) -> msg) -> Cmd msg
-newPersons ps f =
-  sendPost
-    "newpersons"
-    (Http.jsonBody <| Data.encodeNewPersons ps)
-    Data.decodePersons
-    f
 
 fromResult : (a -> c) -> (b -> c) -> Result.Result a b -> c
 fromResult f g r =
