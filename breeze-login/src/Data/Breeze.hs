@@ -9,6 +9,7 @@ module Data.Breeze where
 
 import Control.Concurrent.STM (TVar)
 import Control.Lens hiding (Indexable, (.=))
+import Control.Applicative ((<|>))
 import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
@@ -122,10 +123,9 @@ makeClassy ''Person
 instance HasName Person where
   name = personName
 
-
 instance FromJSON Person where
   parseJSON v@(Object o) = Person
-    <$> o .: "id" 
+    <$> ((o .: "id") <|> (o .: "pid"))
     <*> o .: "name"
     <*> (o .: "checkedIn" >>= return . toCheckin)
     <*> o .: "newPersonInfo"
@@ -137,7 +137,7 @@ instance FromJSON Person where
 instance ToJSON Person where
   toJSON p = object 
     [ "pid" .= (p^.pid)
-    , "name" .= (p^.pid)
+    , "name" .= (p^.personName)
     , "checkedIn" .= (p^.checkedIn.to checkInStatusBool)
     , "newPersonInfo" .= (Nothing :: Maybe String)
     ]
