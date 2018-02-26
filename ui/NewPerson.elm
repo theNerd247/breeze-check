@@ -26,7 +26,7 @@ type alias NewFamily =
         (HasAddress
             (HasEmail
                 (HasCurrentChurch
-                    { memberNames : Nonempty String
+                    { memberNames : Nonempty FirstName
                     }
                 )
             )
@@ -56,7 +56,17 @@ type alias FormMsg =
 
 type FamilyMsg
     = UpdateLastName String
+    | UpdateAddress AddressMsg
+    | UpdateEmail String
+    | UpdateCurrentChurch String
     | UpdateMembers (ArrayMsg () String)
+
+
+type AddressMsg
+    = UpdateStreet String
+    | UpdateCity String
+    | UpdateState String
+    | UpdateZip String
 
 
 initModel : Nonempty NewFamily
@@ -130,6 +140,31 @@ newFamilyUpdate msg mdl =
 
         UpdateMembers msg ->
             { mdl | memberNames = updateArray "" (flip always) msg mdl.memberNames }
+
+        UpdateAddress m ->
+            { mdl | address = updateAddress m mdl.address }
+
+        UpdateEmail e ->
+            { mdl | email = e }
+
+        UpdateCurrentChurch c ->
+            { mdl | currentChurch = c }
+
+
+updateAddress : AddressMsg -> Address -> Address
+updateAddress msg mdl =
+    case msg of
+        UpdateStreet s ->
+            { mdl | street = s }
+
+        UpdateCity c ->
+            { mdl | city = c }
+
+        UpdateState s ->
+            { mdl | state = s }
+
+        UpdateZip z ->
+            { mdl | zip = z }
 
 
 updateArray : a -> (m -> a -> a) -> ArrayMsg m a -> Nonempty a -> Nonempty a
@@ -236,8 +271,66 @@ newFamilyForm fix nf =
                             [ Html.map (UpdateAt fix) <| addMemberButton ]
                         ]
                     ]
+
+        addressForm =
+            [ Form.row []
+                [ Form.col [ Col.xs12 ]
+                    [ Input.text
+                        [ Input.placeholder "Street"
+                        , Input.onInput <| UpdateAt fix << UpdateAddress << UpdateStreet
+                        ]
+                    ]
+                ]
+            , Form.row []
+                [ Form.col [ Col.xs4 ]
+                    [ Input.text
+                        [ Input.placeholder "City"
+                        , Input.onInput <| UpdateAt fix << UpdateAddress << UpdateCity
+                        ]
+                    ]
+                , Form.col [ Col.xs4 ]
+                    [ Input.text
+                        [ Input.placeholder "State"
+                        , Input.onInput <| UpdateAt fix << UpdateAddress << UpdateState
+                        ]
+                    ]
+                , Form.col [ Col.xs4 ]
+                    [ Input.text
+                        [ Input.placeholder "Zip"
+                        , Input.onInput <| UpdateAt fix << UpdateAddress << UpdateZip
+                        ]
+                    ]
+                ]
+            ]
+
+        emailForm =
+            [ Form.row []
+                [ Form.col [ Col.xs12 ]
+                    [ Input.text
+                        [ Input.placeholder "Email"
+                        , Input.onInput <| UpdateAt fix << UpdateEmail
+                        ]
+                    ]
+                ]
+            ]
+
+        currentChurchForm =
+            [ Form.row []
+                [ Form.col [ Col.xs12 ]
+                    [ Input.text
+                        [ Input.placeholder "Current Church"
+                        , Input.onInput <| UpdateAt fix << UpdateCurrentChurch
+                        ]
+                    ]
+                ]
+            ]
     in
-    Form.group [] <| lastNameForm :: membersForm
+    [ lastNameForm ]
+        |> flip List.append membersForm
+        |> flip List.append addressForm
+        |> flip List.append emailForm
+        |> flip List.append currentChurchForm
+        |> Form.group []
 
 
 addButton : msg -> String -> Html msg

@@ -24,8 +24,12 @@ decodeGroupId =
     withBreezeErrDecoder int
 
 
+type alias FirstName =
+    String
+
+
 type alias HasFirstName m =
-    { m | firstName : String }
+    { m | firstName : FirstName }
 
 
 initFirstName : HasFirstName {}
@@ -38,8 +42,12 @@ copyFirstName m n =
     { n | firstName = m.firstName }
 
 
+type alias LastName =
+    String
+
+
 type alias HasLastName m =
-    { m | lastName : String }
+    { m | lastName : LastName }
 
 
 initLastName : HasLastName {}
