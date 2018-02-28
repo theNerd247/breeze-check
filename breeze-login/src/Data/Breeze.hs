@@ -156,7 +156,10 @@ instance Indexable Person where
   empty = ixSet 
     [ ixFun $ (:[]) . (view checkedIn)
     , ixFun $ (:[]) . (view pid)
-    , ixFun $ \x -> x^? checkedIn . _WaitingApproval . to (:[]) ^. non []
+    , ixFun $ \x -> case x^.checkedIn of
+                      WaitingApproval gid -> [gid]
+                      WaitingCreation gid _ -> [gid]
+                      _ -> []
     , ixFun $ (:[]) . FName . (view firstName)
     , ixFun $ (:[]) . LName . (view lastName)
     , ixFun $ (:[]) . (view  newPersonInfo)
