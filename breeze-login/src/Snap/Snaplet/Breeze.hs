@@ -43,6 +43,7 @@ data GetAttendance = GetAttendance EventId
 data Checkin = Checkin EventId Person 
 data MakeNewPerson = MakeNewPerson Person
 data GetEvents = GetEvents
+data GetFields = GetFields
 
 class HasBreezeApp b where
   breezeLens :: SnapletLens b Breeze
@@ -97,26 +98,30 @@ instance BreezeApi Checkin where
 instance BreezeApi MakeNewPerson where
   type BreezeResponse MakeNewPerson = Person
   runBreeze b (MakeNewPerson np) = do
-    ps <- runApiReq b "/people/add"
+    ps <- runApiReq b "/people/add" $ 
       [ ("first"       , Just . Char8.pack $ np^.firstName)
       , ("last"        , Just . Char8.pack $ np^.lastName)
-      {-, ("fields_json" , Just . toStrict . encode $-}
-          {-[ field "697961327" "address" True $ object-}
-              {-[ "street" .= (a^.street)-}
-              {-, "city"   .= (a^.city)-}
-              {-, "state"  .= (a^.state)-}
-              {-, "zip"    .= (a^.zipcode)-}
-              {-]-}
-              -- TODO: add missing fields
-          {-])-}
-      ]
+      ] ++
+      case np^.newPersonInfo of
+        Nothing -> []
+        (Just a) -> 
+          [("fields_json" , Just . toStrict . encode $
+            [ field "697961327" "address" True $ object
+                [ "street_address" .= (a^.street)
+                , "city"   .= (a^.city)
+                , "state"  .= (a^.state)
+                , "zip"    .= (a^.zipcode)
+                ]
+            ])
+          ]
     return $ (ps :: BreezePerson)^.bPerson
+
     where
       field :: String -> String -> Bool -> Value -> Value
       field i t r d = object
         [ "field_id"       .= i 
         , "field_type"     .= t
-        , "field_response" .= r
+        , "response"       .= r
         , "details"        .= d
         ]
 
@@ -131,6 +136,9 @@ instance BreezeApi GetEvents where
       , ("end", Just . Char8.pack $ e)
       ]
 
+instance BreezeApi GetFields where
+  type BreezeResponse GetFields = Value
+  runBreeze b _ = runApiReq b "/profile" []
 
 {-runApiReq :: (HasBreeze s, MonadThrow m, MonadIO m, FromJSON b) => s -> [Char] -> [(Char8.ByteString, Maybe Char8.ByteString)] -> m b-}
 runApiReq config path params = do
@@ -312,6 +320,7 @@ mkBreeze = do
     , _checkInGroupCounter = gcntr
     , _debug = True
     }
+
 
 initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
 initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system" Nothing $ do

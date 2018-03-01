@@ -112,6 +112,9 @@ makeLenses ''NewPersonInfo
 instance FromJSON NewPersonInfo where
   parseJSON = genericParseJSON customAesonOptions
 
+instance HasAddress NewPersonInfo where
+  address = newAddress
+
 data Person = Person
   { _pid       :: PersonId
   , _personName :: Name
