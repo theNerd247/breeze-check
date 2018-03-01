@@ -6,7 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-import Control.Exception.Base (SomeException)
+import Control.Exception.Base (SomeException(..), fromException)
 import Control.Lens hiding ((.=))
 import Control.Monad.Catch (catch)
 import Control.Monad.Reader
@@ -27,6 +27,7 @@ import Snap
 import Snap.Snaplet.Breeze
 import Snap.Snaplet.Heist
 import Snap.Util.FileServe
+import Version
 import qualified Data.ByteString.Char8 as Char8
 import qualified Simple as Simple
 
@@ -45,24 +46,16 @@ instance HasHeist App where
 
 appInit :: SnapletInit App App
 appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
-  b <- nestSnaplet "" breezeApp initBreeze
+  b <- nestSnaplet "breeze" breezeApp initBreeze
   h <- nestSnaplet "" heist $ heistInit "templates"
   addRoutes  
     [ ("", heistServe)
     , ("js", serveDirectory "js")
     ]
-  wrapSite $ \s -> do 
-    allowAny
-    s
   return $ App 
     { _breezeApp = b
     , _heist = h
     }
-
-allowAny :: Handler b v ()
-allowAny = modifyResponse $ setHeader "Access-Control-Allow-Origin" "*"
-
-{-logAllErrors f = f `catch` (writeLogger Snap.Snaplet.FastLogger.Error . show)-}
 
 spec = Spec ["Data"] $
   [ "import Json.Decode exposing (..)"
@@ -86,9 +79,15 @@ handleServerErrors lgger e = do
   liftIO $ lgger $ 
     (show rq)
     ++ "\n" ++ (show e)
-  writeLBS 
-    . encode 
-    $ BreezeException "An error occured in the server! Try again in a few minutes"
+  case (fromException e) of 
+    (Just (WrongApiVersionException _ x)) -> 
+      writeLBS 
+        . encode $ 
+          BreezeException $ "It looks like you're running an outdated version of the app (" ++ x ++ "). Try refreshing the page you're on"
+    Nothing -> 
+      writeLBS 
+        . encode $ 
+          BreezeException "An error occured in the server! Try again in a few minutes"
 
 main = do 
   (l, clnLogger) <- liftIO $ initErrLogger

@@ -6,34 +6,35 @@
 module Snap.Snaplet.Breeze where
 
 import Control.Concurrent.STM.TVar
-import Control.Monad.STM
 import Control.Lens hiding ((.=))
+import Control.Lens.Extras (is)
+import Control.Monad (forM)
 import Control.Monad.Catch hiding (Handler)
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Control.Monad.STM
 import Control.Monad.State hiding (state)
 import Control.Monad.Trans.Except
-import Control.Monad (forM)
 import Data.Aeson hiding (Error)
 import Data.Aeson.Lens
 import Data.Breeze
-import Control.Lens.Extras (is)
 import Data.ByteString.Lazy.Char8 (toStrict, fromStrict)
 import Data.Default
 import Data.Foldable (fold)
-import Data.Monoid ((<>), Endo(..))
 import Data.IxSet
-import Data.List.NonEmpty (NonEmpty (..))
 import Data.List (isPrefixOf, (\\))
+import Data.List.NonEmpty (NonEmpty (..))
+import Data.Monoid ((<>), Endo(..))
 import Data.Proxy
+import Data.String (fromString)
 import Data.Text (Text)
 import Data.Time
 import FastLogger
-import Data.String (fromString)
 import Simple.Aeson (runAesonApi, fromBody)
 import Simple.Snap
 import Simple.String (fromParam, skipParse)
 import Snap
+import Version
 import qualified Data.ByteString.Char8 as Char8
 import qualified Data.List as List
 import qualified Network.HTTP.Simple as HTTP
@@ -321,13 +322,14 @@ mkBreeze = do
     , _infoLoggerCleanup = icln
     , _errLoggerCleanup = ecln
     , _checkInGroupCounter = gcntr
+    , _breezeVersion = "1.0.0"
     , _debug = True
     }
 
 
 initBreeze :: (HasBreezeApp b) => SnapletInit b Breeze
 initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system" Nothing $ do
-  addRoutes 
+  addRoutes $ chkApi <$>
     [ ("findperson", getPersonsHandle)
     , ("checkin", userCheckInHandle)
     , ("attendance", listAttendanceHandle)
@@ -350,3 +352,4 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
       el <- use errLogger
       liftIO $ el $ show e
       return e
+    chkApi (r, h) = (r, checkApiVersion >> h)

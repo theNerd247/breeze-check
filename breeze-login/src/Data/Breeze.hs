@@ -14,6 +14,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.Data
 import Data.Default
+import Version
 import Data.IxSet
 import Elm hiding (Options, fieldLabelModifier, defaultOptions)
 import FastLogger (Logger)
@@ -225,7 +226,11 @@ data Breeze = Breeze
   , _errLogger :: Logger
   , _errLoggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
+  , _breezeVersion :: Version
   , _debug :: Bool
   } deriving (Data, Generic)
 
 makeClassy ''Breeze
+
+instance HasVersion Breeze where
+  apiVersion = breezeVersion
