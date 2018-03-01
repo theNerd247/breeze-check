@@ -1,4 +1,5 @@
 let
+
   config = {
     packageOverrides = pkgs: rec {
 
@@ -9,26 +10,21 @@ let
 
           breeze-login-minimal = pkgs.haskell.lib.overrideCabal (
             pkgs.haskell.lib.justStaticExecutables (
-              new.callPackage ./default.nix {}
+              new.callPackage ./default.nix { }
             )
-            )
-            ( old: { enableSharedExecutables = false; });
+          )
+          ( old: { enableSharedExecutables = false; });
 
           snap = old.snap.override {
             heist = pkgs.haskell.lib.dontCheck old.heist;
           };
 
-          simple-core = 
-            new.callPackage ../../simple/simple-core {};
+          inherit (pkgs.callPackage ./nix/simple.nix {})
+            simple-core
+            simple-aeson
+            simple-string
+            simple-snap;
 
-          simple-aeson = 
-            new.callPackage ../../simple/simple-aeson { };
-
-          simple-string = 
-            new.callPackage ../../simple/simple-string { };
-
-          simple-snap = 
-            new.callPackage ../../simple/simple-snap { };
         };
       };
     };
