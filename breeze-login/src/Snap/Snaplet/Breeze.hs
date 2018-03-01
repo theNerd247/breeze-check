@@ -106,18 +106,21 @@ instance BreezeApi MakeNewPerson where
         Nothing -> []
         (Just a) -> 
           [("fields_json" , Just . toStrict . encode $
-            [ field "697961327" "address" True $ object
+            [ field "697961327" "address" (toJSON True) $ object
                 [ "street_address" .= (a^.street)
                 , "city"   .= (a^.city)
                 , "state"  .= (a^.state)
                 , "zip"    .= (a^.zipcode)
                 ]
+            , field "2005562485" "email" (toJSON True) $ object
+                [ "address" .= (a^.newEmail) ]
+            , field "2105844304" "textarea" (toJSON $ a^.newCurrentChurch) Null
             ])
           ]
     return $ (ps :: BreezePerson)^.bPerson
 
     where
-      field :: String -> String -> Bool -> Value -> Value
+      field :: String -> String -> Value -> Value -> Value
       field i t r d = object
         [ "field_id"       .= i 
         , "field_type"     .= t
