@@ -12,7 +12,7 @@
     <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
 
     <!-- Elm application  -->
-    <script src="js/elm.js"></script>
+    <script src="js/elm.1.0.0.js"></script>
   </head>
   <body>
     <script type="text/javascript">Elm.Main.fullscreen()</script>

@@ -1,6 +1,7 @@
 {stdenv, elm}: 
 
 stdenv.mkDerivation {
+  version = "1.0.0";
   name = "breeze-check-ui-1.0.0";
   src = ./.;
   buildInputs = [elm];
@@ -13,6 +14,6 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/js
-    cp elm.js $out/js/elm.js
+    cp elm.js $out/js/elm.$version.js
   '';
 }
