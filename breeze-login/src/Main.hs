@@ -80,10 +80,10 @@ handleServerErrors lgger e = do
     (show rq)
     ++ "\n" ++ (show e)
   case (fromException e) of 
-    (Just (WrongApiVersionException _ x)) -> 
+    (Just (WrongApiVersionException _ _)) -> 
       writeLBS 
         . encode $ 
-          BreezeException $ "It looks like you're running an outdated version of the app (" ++ x ++ "). Try refreshing the page you're on"
+          BreezeException $ "It looks like you're running an outdated version of the app. Try refreshing the page."
     Nothing -> 
       writeLBS 
         . encode $ 
