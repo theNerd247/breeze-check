@@ -27,14 +27,12 @@ sendApiGetRequest meth bdy path decoder f =
             Http.request
                 { method = meth
                 , headers = []
-                , url = "breeze/" ++ (addApiVersion path)
+                , url = path
                 , body = bdy
                 , expect = Http.expectJson decoder
                 , timeout = Just <| 8 * second
                 , withCredentials = False
                 }
-        addApiVersion p = 
-          if String.contains "?" p then p ++ "&api=1.0.0" else p ++ "?api=1.0.0"
     in
     Http.send f req
 
