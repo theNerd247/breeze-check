@@ -51,16 +51,10 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     [ ("", heistServe)
     , ("js", serveDirectory "js")
     ]
-  wrapSite $ \s -> do 
-    allowAny
-    s
   return $ App 
     { _breezeApp = b
     , _heist = h
     }
-
-allowAny :: Handler b v ()
-allowAny = modifyResponse $ setHeader "Access-Control-Allow-Origin" "*"
 
 {-logAllErrors f = f `catch` (writeLogger Snap.Snaplet.FastLogger.Error . show)-}
 
