@@ -1,17 +1,17 @@
 { mkDerivation, aeson, aeson-lens, base, bytestring, data-default
 , elm-export, exceptions, fast-logger, http-conduit, ixset, lens
-, mtl, simple-core, simple-aeson, simple-snap, simple-string, snap
+, mtl, simple-aeson, simple-core, simple-snap, simple-string, snap
 , snap-core, stdenv, stm, text, time, transformers
 }:
 mkDerivation {
   pname = "breeze-login";
-  version = "0.1.0.0";
+  version = "1.0.2";
   src = ./.;
   isLibrary = false;
   isExecutable = true;
   executableHaskellDepends = [
     aeson aeson-lens base bytestring data-default elm-export exceptions
-    fast-logger http-conduit ixset lens mtl simple-core simple-aeson
+    fast-logger http-conduit ixset lens mtl simple-aeson simple-core
     simple-snap simple-string snap snap-core stm text time transformers
   ];
   homepage = "https://github.com/githubuser/breeze-login#readme";

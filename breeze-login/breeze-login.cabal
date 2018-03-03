@@ -1,5 +1,5 @@
 name:                breeze-login
-version:             0.1.0.0
+version:             1.0.2
 -- synopsis:
 -- description:
 homepage:            https://github.com/githubuser/breeze-login#readme
@@ -32,13 +32,13 @@ executable breeze-login
                      , ixset
                      , lens
                      , mtl
-                     , stm
-                     , simple-core
                      , simple-aeson
+                     , simple-core
                      , simple-snap
                      , simple-string
                      , snap
                      , snap-core
+                     , stm
                      , text
                      , time
                      , transformers

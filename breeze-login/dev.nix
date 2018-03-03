@@ -15,9 +15,7 @@ let
           )
           ( old: { enableSharedExecutables = false; });
 
-          snap = old.snap.override {
-            heist = pkgs.haskell.lib.dontCheck old.heist;
-          };
+          heist = pkgs.haskell.lib.dontCheck old.heist;
 
           inherit (pkgs.callPackage ./nix/simple.nix {})
             simple-core

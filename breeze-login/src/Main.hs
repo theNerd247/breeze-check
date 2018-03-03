@@ -25,7 +25,7 @@ import Network.HTTP.Simple hiding (Proxy)
 import Simple.Aeson
 import Snap
 import Snap.Snaplet.Breeze
-import Snap.Snaplet.Heist
+import Snap.Snaplet.Heist.Compiled
 import Snap.Util.FileServe
 import qualified Data.ByteString.Char8 as Char8
 import qualified Simple as Simple
