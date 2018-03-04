@@ -262,7 +262,7 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
   eid <- use eventId
   il <- use infoLogger
-  toCheckIn <- withTVarRead personDB $ toList . getEQ (gid :: Int)
+  toCheckIn <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
   vs <- forM toCheckIn $ \p -> do
       checkedInPerson <- runBreeze' $ Checkin eid p
       withTVarWrite personDB $ 
@@ -271,7 +271,9 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
           _ -> updateIx (p^.pid) checkedInPerson
       liftIO $ il $ "Logged in: " <> (show checkedInPerson)
       return True
-  return $ allOf folded id vs
+  case vs of
+    [] -> throwM $ BreezeException $ "Uh oh! It seems the family of group id: " ++ (show gid) ++ " canceled their check in before you could approve!"
+    _ -> return $ allOf folded id vs
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do

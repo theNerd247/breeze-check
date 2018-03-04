@@ -114,7 +114,7 @@ updateCheckInApprovedResponse r mdl =
         m =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
-                    (flip Err.newError mdl)
+                    (flip Err.newError {mdl | checkInGroup = [], groupCheckedIn = False})
                     (\p -> { mdl | groupCheckedIn = p })
     in
     ( m, Cmd.none )
@@ -146,8 +146,8 @@ view mdl =
     in
     Grid.containerFluid [ class "clearfix" ]
         [ Grid.row []
-            [ Grid.col [] body
-            , Grid.col [] [ uiView ]
+            [ Grid.col [Col.xs12, Col.md6] body
+            , Grid.col [Col.xs12, Col.md6] [ uiView ]
             ]
         ]
 

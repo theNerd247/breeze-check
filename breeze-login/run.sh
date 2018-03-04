@@ -12,8 +12,8 @@ rm -r ./js
 mkdir js
 
 echo "running ui version: $v"
-ln ../ui/elm.js ./js/elm.$v.js
-ln ../ui/elm-admin.js ./js/elm-admin.$v.js
+ln "../ui/elm.$v.js" "./js/elm.$v.js"
+ln "../ui/elm-admin.$v.js" "./js/elm-admin.$v.js"
 
 # replace the version number in the template file so our web app points to the
 # right place
