@@ -281,39 +281,6 @@ encodePersons =
     Encode.list << List.map encodePerson
 
 
-type alias CheckInGroup =
-    { groupId : GroupId
-    , checkedInPersons : List Person
-    , allowedPhotos : Bool
-    }
-
-
-type alias HasCheckInGroup m =
-    { m | checkInGroup : Maybe CheckInGroup }
-
-
-initCheckInGroup : CheckInGroup
-initCheckInGroup =
-    { groupId = 0
-    , checkedInPersons = []
-    , allowedPhotos = False
-    }
-
-
-decodeCheckInGroup : Decoder CheckInGroup
-decodeCheckInGroup =
-    decode
-        (\g p a ->
-            { groupId = g
-            , checkedInPersons = p
-            , allowedPhotos = a
-            }
-        )
-        |> required "groupId" decodeGroupId
-        |> required "persons" decodePersons
-        |> required "allowedPhotos" bool
-
-
 
 -- VIEW
 

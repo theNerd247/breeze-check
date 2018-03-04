@@ -103,11 +103,19 @@ eventInfo f =
         f
 
 
-getCheckInGroup : Data.GroupId -> (Response Data.CheckInGroup -> msg) -> Cmd msg
+getCheckInGroup : Data.GroupId -> (Response (List Data.Person) -> msg) -> Cmd msg
 getCheckInGroup gid f =
     sendGet
-        "getcheckingroup"
-        (Data.withBreezeErrDecoder Data.decodeCheckInGroup)
+        ("getgroup?groupid=" ++ toString gid)
+        (Data.withBreezeErrDecoder Data.decodePersons)
+        f
+
+
+approveCheckIn : Data.GroupId -> (Response Bool -> msg) -> Cmd msg
+approveCheckIn gid f =
+    sendGet
+        ("approve?groupid=" ++ toString gid)
+        (Data.withBreezeErrDecoder Decode.bool)
         f
 
 

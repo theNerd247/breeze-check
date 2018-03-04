@@ -10,8 +10,8 @@ mkdir js
 # fetch the app version from the ui default.nix
 v=$(grep "version.\?=" ../ui/default.nix | sed -e 's/.*"\(.*\)";/\1/')
 echo "running ui version: $v"
-cp ../ui/elm.js ./js/elm.$v.js
-cp ../ui/elm-admin.js ./js/elm-admin.$v.js
+ln ../ui/elm.js ./js/elm.$v.js
+ln ../ui/elm-admin.js ./js/elm-admin.$v.js
 
 # replace the version number in the template file so our web app points to the
 # right place

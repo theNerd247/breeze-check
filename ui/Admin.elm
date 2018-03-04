@@ -9,22 +9,25 @@ import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
 import ErrorMsg as Err
-import Html as Html exposing (Html, program, text)
+import Html as Html exposing (Html, h1, program, text)
 import Html.Attributes exposing (attribute, class)
 
 
 type alias Model =
-    Data.HasCheckInGroup
-        (Err.HasErrors
-            { searchGroupId : String
-            }
-        )
+    Err.HasErrors
+        { searchGroupId : String
+        , checkInGroup : List Data.Person
+        , groupCheckedIn : Bool
+        }
 
 
 type Msg
     = UpdateGroupId String
-    | SearchGroupResponse (BreezeApi.Response Data.CheckInGroup)
+    | SearchGroupResponse (BreezeApi.Response (List Data.Person))
     | SearchGroupClick
+    | CheckInApprovedClick
+    | CheckInApprovedResponse (BreezeApi.Response Bool)
+    | Err Err.Msg
 
 
 main : Program Never Model Msg
@@ -40,9 +43,16 @@ main =
 model : Model
 model =
     { searchGroupId = ""
-    , checkInGroup = Nothing
+    , checkInGroup = []
     , errors = []
+    , groupCheckedIn = False
     }
+
+
+toGroupId : String -> Data.GroupId
+toGroupId =
+    String.toInt
+        >> BreezeApi.fromResult (always 0) identity
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,26 +67,46 @@ update msg mdl =
         SearchGroupResponse r ->
             updateCheckInGroup r mdl
 
+        CheckInApprovedClick ->
+            updateCheckInApprovedClicked mdl
+
+        CheckInApprovedResponse r ->
+            updateCheckInApprovedResponse r mdl
+
+        Err msg ->
+            ( Err.update msg mdl, Cmd.none )
+
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
 updateSearchGroupClick mdl =
-    let
-        m =
-            String.toInt mdl.searchGroupId
-                |> BreezeApi.fromResult (always 0) identity
-                |> flip BreezeApi.getCheckInGroup SearchGroupResponse
-    in
-    ( mdl, m )
+    ( { mdl | groupCheckedIn = False, checkInGroup = [] }, BreezeApi.getCheckInGroup (toGroupId mdl.searchGroupId) SearchGroupResponse )
 
 
-updateCheckInGroup : BreezeApi.Response Data.CheckInGroup -> Model -> ( Model, Cmd Msg )
+updateCheckInGroup : BreezeApi.Response (List Data.Person) -> Model -> ( Model, Cmd Msg )
 updateCheckInGroup r mdl =
     let
         m =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
                     (flip Err.newError mdl)
-                    (\p -> { mdl | checkInGroup = Just p })
+                    (\p -> { mdl | checkInGroup = p })
+    in
+    ( m, Cmd.none )
+
+
+updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
+updateCheckInApprovedClicked mdl =
+    ( mdl, BreezeApi.approveCheckIn (toGroupId mdl.searchGroupId) CheckInApprovedResponse )
+
+
+updateCheckInApprovedResponse : BreezeApi.Response Bool -> Model -> ( Model, Cmd Msg )
+updateCheckInApprovedResponse r mdl =
+    let
+        m =
+            BreezeApi.fromResponse r
+                |> BreezeApi.fromResult
+                    (flip Err.newError mdl)
+                    (\p -> { mdl | groupCheckedIn = p })
     in
     ( m, Cmd.none )
 
@@ -85,33 +115,46 @@ view : Model -> Html Msg
 view mdl =
     let
         checkInGroupRow =
-            case mdl.checkInGroup of
-                Nothing ->
-                    []
-
-                Just m ->
-                    [ checkInGroupView m ]
+            [ checkInGroupView mdl ]
 
         groupInputRow =
-            Grid.row [ Row.centerXs ]
+            Grid.row
+                [ Row.centerXs ]
                 [ Grid.col [ Col.xs12 ] [ groupInputView mdl ] ]
+
+        errors =
+            [ Html.map Err <| Err.view mdl
+            ]
 
         body =
             []
                 |> List.append checkInGroupRow
                 |> List.append [ groupInputRow ]
+                |> List.append errors
     in
     Grid.containerFluid [ class "clearfix" ]
         [ Grid.containerFluid [ class "mb-5" ] body
         ]
 
 
-checkInGroupView : Data.CheckInGroup -> Html Msg
+checkInGroupView : Model -> Html Msg
 checkInGroupView mdl =
-    Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xs12 ] [ groupPhotoView mdl.allowedPhotos ]
-        , Grid.col [ Col.xs12 ] [ Data.listPersonView Nothing mdl.checkedInPersons ]
-        ]
+    Grid.row [ Row.centerXs ] <|
+        if List.isEmpty mdl.checkInGroup then
+            []
+        else
+            [ Grid.col [ Col.xs12 ] [ groupPhotoView False ]
+            , Grid.col [ Col.xs12 ] [ Data.listPersonView Nothing mdl.checkInGroup ]
+            , Grid.col [ Col.xs12 ] <|
+                if mdl.groupCheckedIn then
+                    [ h1 []
+                        [ checkMark
+                        , text " Checked In!"
+                        ]
+                    ]
+                else
+                    [ approveCheckInButton ]
+            ]
 
 
 groupInputView : Model -> Html Msg
@@ -126,13 +169,26 @@ groupInputView mdl =
         ]
 
 
+approveCheckInButton : Html Msg
+approveCheckInButton =
+    Button.button [ Button.onClick CheckInApprovedClick ] [ text "Approve Check-In" ]
+
+
 groupPhotoView : Bool -> Html Msg
 groupPhotoView hasPhotos =
     let
-        overlay =
+        status =
             if hasPhotos then
-                class "fas fa-check"
+                checkMark
             else
-                class "fas fa-times"
+                Html.i [ class "fas fa-times text-danger" ] []
     in
-    Html.i [ attribute "data-fa-mask" "fas fa-camera fa-3x", overlay ] []
+    h1 []
+        [ Html.i [ class "fas fa-camera" ] []
+        , status
+        ]
+
+
+checkMark : Html msg
+checkMark =
+    Html.i [ class "fas fa-check text-success" ] []
