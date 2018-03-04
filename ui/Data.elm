@@ -15,9 +15,9 @@ type alias GroupId =
     Int
 
 
-decodeGroupId : Decoder (Result BreezeException GroupId)
+decodeGroupId : Decoder GroupId
 decodeGroupId =
-    withBreezeErrDecoder int
+    int
 
 
 type alias PersonId =
@@ -257,9 +257,9 @@ decodePerson =
         |> required "name" decodeName
 
 
-decodePersons : Decoder (Result BreezeException (List Person))
+decodePersons : Decoder (List Person)
 decodePersons =
-    withBreezeErrDecoder <| list decodePerson
+    list decodePerson
 
 
 encodePerson : Person -> Encode.Value
@@ -279,6 +279,39 @@ encodePerson p =
 encodePersons : List Person -> Encode.Value
 encodePersons =
     Encode.list << List.map encodePerson
+
+
+type alias CheckInGroup =
+    { groupId : GroupId
+    , checkedInPersons : List Person
+    , allowedPhotos : Bool
+    }
+
+
+type alias HasCheckInGroup m =
+    { m | checkInGroup : Maybe CheckInGroup }
+
+
+initCheckInGroup : CheckInGroup
+initCheckInGroup =
+    { groupId = 0
+    , checkedInPersons = []
+    , allowedPhotos = False
+    }
+
+
+decodeCheckInGroup : Decoder CheckInGroup
+decodeCheckInGroup =
+    decode
+        (\g p a ->
+            { groupId = g
+            , checkedInPersons = p
+            , allowedPhotos = a
+            }
+        )
+        |> required "groupId" decodeGroupId
+        |> required "persons" decodePersons
+        |> required "allowedPhotos" bool
 
 
 
