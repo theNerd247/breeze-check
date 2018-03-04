@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Admin exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
@@ -11,6 +11,8 @@ import Data as Data
 import ErrorMsg as Err
 import Html as Html exposing (Html, h1, program, text)
 import Html.Attributes exposing (attribute, class)
+import Nested exposing (modifyBoth)
+import UI as UI
 
 
 type alias Model =
@@ -18,6 +20,7 @@ type alias Model =
         { searchGroupId : String
         , checkInGroup : List Data.Person
         , groupCheckedIn : Bool
+        , ui : UI.Model
         }
 
 
@@ -28,6 +31,7 @@ type Msg
     | CheckInApprovedClick
     | CheckInApprovedResponse (BreezeApi.Response Bool)
     | Err Err.Msg
+    | UI UI.Msg
 
 
 main : Program Never Model Msg
@@ -46,6 +50,7 @@ model =
     , checkInGroup = []
     , errors = []
     , groupCheckedIn = False
+    , ui = UI.model
     }
 
 
@@ -75,6 +80,10 @@ update msg mdl =
 
         Err msg ->
             ( Err.update msg mdl, Cmd.none )
+
+        UI msg ->
+            UI.update msg mdl.ui
+                |> modifyBoth (\m -> { mdl | ui = m }) UI
 
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
@@ -126,6 +135,9 @@ view mdl =
             [ Html.map Err <| Err.view mdl
             ]
 
+        uiView =
+            Html.map UI <| UI.view mdl.ui
+
         body =
             []
                 |> List.append checkInGroupRow
@@ -133,7 +145,10 @@ view mdl =
                 |> List.append errors
     in
     Grid.containerFluid [ class "clearfix" ]
-        [ Grid.containerFluid [ class "mb-5" ] body
+        [ Grid.row []
+            [ Grid.col [] body
+            , Grid.col [] [ uiView ]
+            ]
         ]
 
 

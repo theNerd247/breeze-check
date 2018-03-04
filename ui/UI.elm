@@ -1,4 +1,4 @@
-module Main exposing (..)
+module UI exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
