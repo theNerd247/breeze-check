@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
+# fetch the app version from the ui default.nix
+v=$(grep "version.\?=" ../ui/default.nix | sed -e 's/.*"\(.*\)";/\1/')
+
+# build the app
 cd ../ui/
-./build.sh
+./build.sh "$v"
 cd ../breeze-login
 
 rm -r ./js
 mkdir js
 
-# fetch the app version from the ui default.nix
-v=$(grep "version.\?=" ../ui/default.nix | sed -e 's/.*"\(.*\)";/\1/')
 echo "running ui version: $v"
 ln ../ui/elm.js ./js/elm.$v.js
 ln ../ui/elm-admin.js ./js/elm-admin.$v.js

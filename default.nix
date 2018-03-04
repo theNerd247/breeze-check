@@ -5,6 +5,7 @@ let
     installPhase = oldAttrs.installPhase + ''
       cd $out/snaplets/heist/templates/
       sed -i -e 's/elmVersion">.*<\/bind>/elmVersion">${breeze-ui.version}<\/bind>/' importElm.tpl
+      sed -i -e 's/elmVersion">.*<\/bind>/elmVersion">${breeze-ui.version}<\/bind>/' importAdminElm.tpl
     '';
   });
 in

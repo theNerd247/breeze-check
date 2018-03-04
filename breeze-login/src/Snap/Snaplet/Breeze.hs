@@ -250,14 +250,11 @@ getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
 cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  ps <- withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
-  withTVarWrite personDB $ 
-    ps
-      ^..folded
-        .to (updatePerson $ set checkedIn CheckedOut)
-        .to Endo
-      ^.folded
-      ^.to appEndo
+  ps <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
+  il <- use infoLogger
+  liftIO . il $ "Cancelling Check In For: " ++ (show gid) ++ (mconcat $ (("\n"++) . show) <$> ps)
+  chainTVarWrite personDB (updatePerson $ set checkedIn CheckedOut) (ps^..folded.filtered (view $ newPersonInfo . to (isn't _Just)))
+  chainTVarWrite personDB (deleteIx . (view newPersonInfo)) (ps^..folded.filtered (view $ newPersonInfo . to (is _Just)))
   return True
 
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()

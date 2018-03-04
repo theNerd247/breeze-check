@@ -8,11 +8,11 @@ stdenv.mkDerivation rec {
 
   buildPhase = ''
     export HOME=$PWD
-    $src/build.sh
+    $src/build.sh ${version}
   '';
 
   installPhase = ''
     mkdir -p $out/js
-    cp elm.js $out/js/elm.$version.js
+    cp elm*.*.js $out/js/
   '';
 }
