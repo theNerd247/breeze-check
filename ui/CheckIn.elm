@@ -71,8 +71,8 @@ cancelCheckinResponse mdl r =
 -- VIEW
 
 
-checkInButtonView : Html Msg
-checkInButtonView =
+checkInButton : Html Msg
+checkInButton =
     Button.button
         [ Button.success
         , Button.block
@@ -84,8 +84,8 @@ checkInButtonView =
         ]
 
 
-cancelCheckInView : Html Msg
-cancelCheckInView =
+cancelCheckInButton : Html Msg
+cancelCheckInButton =
     Button.button
         [ Button.outlineInfo
         , Button.large

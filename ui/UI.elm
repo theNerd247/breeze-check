@@ -38,6 +38,7 @@ type Page
     | Select
     | NewPersons
     | Finished
+    | Photo
 
 
 type alias Model =
@@ -164,8 +165,11 @@ pageUpdate msg mdl =
         Finished ->
             finishedPageUpdate msg mdl
 
-        NewPersons ->
-            newPersonsUpdate msg mdl
+        Photo ->
+            photoPageUpdate msg mdl
+
+        _ ->
+            mdl
 
 
 setPageUpdate : Msg -> Model -> Model
@@ -196,7 +200,7 @@ selectPageUpdate : Msg -> Model -> Model
 selectPageUpdate msg mdl =
     case msg of
         CheckIn (CheckIn.CheckInResponse (Ok (Ok _))) ->
-            { mdl | page = Finished }
+            { mdl | page = Photo }
 
         _ ->
             mdl
@@ -212,9 +216,14 @@ finishedPageUpdate msg mdl =
             mdl
 
 
-newPersonsUpdate : Msg -> Model -> Model
-newPersonsUpdate _ mdl =
-    mdl
+photoPageUpdate : Msg -> Model -> Model
+photoPageUpdate msg mdl =
+    case msg of
+        CheckIn CheckIn.CheckInClick ->
+            { mdl | page = Finished }
+
+        _ ->
+            mdl
 
 
 
@@ -268,6 +277,9 @@ view mdl =
 
                 NewPersons ->
                     newPersonsView mdl
+
+                Photo ->
+                    photoView mdl
 
         body =
             page
@@ -386,7 +398,14 @@ selectPageView mdl =
             Grid.row [ Row.attrs [ class "pb-3" ] ] <|
                 if not <| List.isEmpty mdl.waitingCheckIn then
                     [ Grid.col [ Col.xs12 ]
-                        [ Html.map CheckIn <| CheckIn.checkInButtonView ]
+                        [ Button.button
+                            [ Button.success
+                            , Button.block
+                            , Button.onClick (SetPage Photo)
+                            ]
+                            [ text "Next"
+                            ]
+                        ]
                     ]
                 else
                     []
@@ -465,7 +484,7 @@ finishedPageView mdl =
         cancelCheckin =
             Grid.row [ Row.centerXs, Row.attrs [ class "pb-3" ] ]
                 [ Grid.col [ Col.xsAuto ]
-                    [ Html.map CheckIn <| CheckIn.cancelCheckInView
+                    [ Html.map CheckIn <| CheckIn.cancelCheckInButton
                     ]
                 ]
 
@@ -502,6 +521,33 @@ newPersonsView mdl =
     [ Grid.row [ Row.centerXs ]
         [ Grid.col [ Col.xs12 ]
             [ Html.map NewPerson <| NewPerson.newFamilysView mdl
+            ]
+        ]
+    ]
+
+
+photoView : Model -> List (Html Msg)
+photoView mdl =
+    [ Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xs12 ]
+            [ h1 [] [ text "May We Take You're Picture Please?" ]
+            , p []
+                [ text
+                    """
+              We have a photographer here taking photos for our website and
+              other promotional materials here at Mountain View Church. You may
+              be in a few of our photos and we would like your permission to
+              publish any photo taken that has you or your family in it.
+                """
+                ]
+            , p []
+                [ Html.b [] [ text "We won't publish any names or contant information!" ]
+                ]
+            ]
+        ]
+    , Grid.row [ Row.centerXs ]
+        [ Grid.col [ Col.xsAuto ]
+            [ Html.map CheckIn <| CheckIn.checkInButton
             ]
         ]
     ]

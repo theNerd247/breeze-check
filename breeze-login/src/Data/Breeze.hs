@@ -120,6 +120,7 @@ data Person = Person
   , _personName :: Name
   , _checkedIn :: CheckInStatus
   , _newPersonInfo :: Maybe NewPersonInfo
+  , _noPhoto :: Bool
   } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
@@ -133,6 +134,7 @@ instance FromJSON Person where
     <*> o .: "name"
     <*> (o .: "checkedIn" >>= return . toCheckin)
     <*> o .: "newPersonInfo"
+    <*> o .: "noPhoto"
     where
       toCheckin True = CheckedIn
       toCheckin False = CheckedOut
@@ -144,10 +146,14 @@ instance ToJSON Person where
     , "name" .= (p^.personName)
     , "checkedIn" .= (p^.checkedIn.to checkInStatusBool)
     , "newPersonInfo" .= (Nothing :: Maybe String)
+    , "noPhoto" .= (p^.noPhoto)
     ]
     where
       checkInStatusBool CheckedOut = False
       checkInStatusBool _ = True
+
+instance Default Bool where
+  def = False
 
 instance Default Person
 
@@ -181,6 +187,7 @@ instance FromJSON BreezePerson where
     <*> parseJSON v
     <*> pure CheckedOut
     <*> pure Nothing
+    <*> pure False
   parseJSON _ = mempty
 
 
@@ -195,6 +202,7 @@ instance FromJSON ParseAttendance where
     <*> (o .: "details" >>= parseJSON)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
     <*> pure Nothing
+    <*> pure False
     where
       parseCheckedOut :: String -> CheckInStatus
       parseCheckedOut s 

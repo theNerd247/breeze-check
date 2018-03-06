@@ -216,12 +216,27 @@ encodeNewPersonInfos =
     Encode.list << List.map encodeNewPersonInfo
 
 
+type alias NoPicture =
+    Bool
+
+
+type alias HasNoPicture m =
+    { m | noPhoto : Bool }
+
+
+decodeNoPicture : Decoder NoPicture
+decodeNoPicture =
+    bool
+
+
 type alias Person =
     HasName
         (HasNewPersonInfo
-            { pid : String
-            , checkedIn : Bool
-            }
+            (HasNoPicture
+                { pid : String
+                , checkedIn : Bool
+                }
+            )
         )
 
 
@@ -235,6 +250,7 @@ initNewPerson =
     , checkedIn = False
     , newPersonInfo = Nothing
     , name = initName
+    , noPhoto = False
     }
 
 
@@ -246,15 +262,17 @@ setNewPersonInfo n m =
 decodePerson : Decoder Person
 decodePerson =
     decode
-        (\p n ->
+        (\p n nopic ->
             { name = n
             , pid = p
             , checkedIn = False
             , newPersonInfo = Nothing
+            , noPhoto = nopic
             }
         )
         |> required "pid" string
         |> required "name" decodeName
+        |> required "noPhoto" decodeNoPicture
 
 
 decodePersons : Decoder (List Person)
@@ -273,6 +291,7 @@ encodePerson p =
                 |> Maybe.map encodeNewPersonInfo
                 |> Maybe.withDefault Encode.null
           )
+        , ( "noPhoto", Encode.bool p.noPhoto )
         ]
 
 

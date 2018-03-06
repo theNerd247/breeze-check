@@ -1,7 +1,7 @@
 module BreezeApi exposing (..)
 
 import Data as Data
-import Http as Http
+import Http as Http exposing (Error(..))
 import Json.Decode as Decode
 import Result
 import Time exposing (second)
@@ -133,5 +133,18 @@ fromResponse :
     Response a
     -> Result.Result String a
 fromResponse resp =
-    Result.mapError toString resp
+    let
+        writeErrorString e =
+            case Debug.log ("Http Error: " ++ toString e) e of
+                BadPayload _ _ ->
+                    """
+                    Some thing went wrong in getting data from the
+                    server. You may need to delete your browser cache and refresh the
+                    page.
+                    """
+
+                _ ->
+                    "You have a network error"
+    in
+    Result.mapError writeErrorString resp
         |> Result.andThen (Result.mapError .breezeErr)
