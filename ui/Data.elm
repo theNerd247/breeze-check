@@ -15,9 +15,9 @@ type alias GroupId =
     Int
 
 
-decodeGroupId : Decoder (Result BreezeException GroupId)
+decodeGroupId : Decoder GroupId
 decodeGroupId =
-    withBreezeErrDecoder int
+    int
 
 
 type alias PersonId =
@@ -257,9 +257,9 @@ decodePerson =
         |> required "name" decodeName
 
 
-decodePersons : Decoder (Result BreezeException (List Person))
+decodePersons : Decoder (List Person)
 decodePersons =
-    withBreezeErrDecoder <| list decodePerson
+    list decodePerson
 
 
 encodePerson : Person -> Encode.Value

@@ -242,7 +242,7 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
 getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  g <- withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
+  g <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
   case g of
     [] -> throwM $ BreezeException $ "There isn't anybody for the group: " <> (show gid)
     _ -> return g
@@ -250,14 +250,11 @@ getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
 cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  ps <- withTVarRead personDB $ toList . getEQ (WaitingApproval gid)
-  withTVarWrite personDB $ 
-    ps
-      ^..folded
-        .to (updatePerson $ set checkedIn CheckedOut)
-        .to Endo
-      ^.folded
-      ^.to appEndo
+  ps <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
+  il <- use infoLogger
+  liftIO . il $ "Cancelling Check In For: " ++ (show gid) ++ (mconcat $ (("\n"++) . show) <$> ps)
+  chainTVarWrite personDB (updatePerson $ set checkedIn CheckedOut) (ps^..folded.filtered (view $ newPersonInfo . to (isn't _Just)))
+  chainTVarWrite personDB (deleteIx . (view newPersonInfo)) (ps^..folded.filtered (view $ newPersonInfo . to (is _Just)))
   return True
 
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
@@ -265,7 +262,7 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
   eid <- use eventId
   il <- use infoLogger
-  toCheckIn <- withTVarRead personDB $ toList . getEQ (gid :: Int)
+  toCheckIn <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
   vs <- forM toCheckIn $ \p -> do
       checkedInPerson <- runBreeze' $ Checkin eid p
       withTVarWrite personDB $ 
@@ -274,7 +271,9 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
           _ -> updateIx (p^.pid) checkedInPerson
       liftIO $ il $ "Logged in: " <> (show checkedInPerson)
       return True
-  return $ allOf folded id vs
+  case vs of
+    [] -> throwM $ BreezeException $ "Uh oh! It seems the family of group id: " ++ (show gid) ++ " canceled their check in before you could approve!"
+    _ -> return $ allOf folded id vs
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do

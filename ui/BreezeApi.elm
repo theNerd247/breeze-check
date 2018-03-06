@@ -69,7 +69,7 @@ findPeople f lastName =
     else
         sendGet
             ("findperson?lastname=" ++ lastName)
-            Data.decodePersons
+            (Data.withBreezeErrDecoder Data.decodePersons)
             f
 
 
@@ -78,7 +78,7 @@ checkIn f ppl =
     sendPost
         "checkin"
         (Http.jsonBody <| Data.encodePersons ppl)
-        Data.decodeGroupId
+        (Data.withBreezeErrDecoder Data.decodeGroupId)
         f
 
 
@@ -100,6 +100,22 @@ eventInfo f =
     sendGet
         "eventinfo"
         (Data.withBreezeErrDecoder Data.decodeEventName)
+        f
+
+
+getCheckInGroup : Data.GroupId -> (Response (List Data.Person) -> msg) -> Cmd msg
+getCheckInGroup gid f =
+    sendGet
+        ("getgroup?groupid=" ++ toString gid)
+        (Data.withBreezeErrDecoder Data.decodePersons)
+        f
+
+
+approveCheckIn : Data.GroupId -> (Response Bool -> msg) -> Cmd msg
+approveCheckIn gid f =
+    sendGet
+        ("approve?groupid=" ++ toString gid)
+        (Data.withBreezeErrDecoder Decode.bool)
         f
 
 

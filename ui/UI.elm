@@ -1,4 +1,4 @@
-module Main exposing (..)
+module UI exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
@@ -53,12 +53,6 @@ type alias Model =
         )
 
 
-type alias Config =
-    { eventName : String
-    , debug : Bool
-    }
-
-
 type Msg
     = Find Find.Msg
     | CheckIn CheckIn.Msg
@@ -106,7 +100,7 @@ update msg m =
                 |> pageUpdate msg
                 |> setPageUpdate msg
     in
-    case Debug.log "msg: " msg of
+    case msg of
         Find msg ->
             modifyCmd Find <| Find.update msg mdl
 
