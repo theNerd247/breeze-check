@@ -21,6 +21,7 @@ type alias Model =
         , checkInGroup : List Data.Person
         , groupCheckedIn : Bool
         , ui : UI.Model
+        , groupId : String
         }
 
 
@@ -51,6 +52,7 @@ model =
     , errors = []
     , groupCheckedIn = False
     , ui = UI.model
+    , groupId = ""
     }
 
 
@@ -88,7 +90,12 @@ update msg mdl =
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
 updateSearchGroupClick mdl =
-    ( { mdl | groupCheckedIn = False, checkInGroup = [] }, BreezeApi.getCheckInGroup (toGroupId mdl.searchGroupId) SearchGroupResponse )
+    ( { mdl
+        | groupCheckedIn = False
+        , checkInGroup = []
+      }
+    , BreezeApi.getCheckInGroup (toGroupId mdl.searchGroupId) SearchGroupResponse
+    )
 
 
 updateCheckInGroup : BreezeApi.Response (List Data.Person) -> Model -> ( Model, Cmd Msg )
@@ -98,14 +105,14 @@ updateCheckInGroup r mdl =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
                     (flip Err.newError mdl)
-                    (\p -> { mdl | checkInGroup = p })
+                    (\p -> { mdl | checkInGroup = p, groupId = mdl.searchGroupId })
     in
     ( m, Cmd.none )
 
 
 updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
 updateCheckInApprovedClicked mdl =
-    ( mdl, BreezeApi.approveCheckIn (toGroupId mdl.searchGroupId) CheckInApprovedResponse )
+    ( mdl, BreezeApi.approveCheckIn (toGroupId mdl.groupId) CheckInApprovedResponse )
 
 
 updateCheckInApprovedResponse : BreezeApi.Response Bool -> Model -> ( Model, Cmd Msg )
@@ -114,7 +121,7 @@ updateCheckInApprovedResponse r mdl =
         m =
             BreezeApi.fromResponse r
                 |> BreezeApi.fromResult
-                    (flip Err.newError {mdl | checkInGroup = [], groupCheckedIn = False})
+                    (flip Err.newError { mdl | checkInGroup = [], groupCheckedIn = False })
                     (\p -> { mdl | groupCheckedIn = p })
     in
     ( m, Cmd.none )
@@ -146,8 +153,8 @@ view mdl =
     in
     Grid.containerFluid [ class "clearfix" ]
         [ Grid.row []
-            [ Grid.col [Col.xs12, Col.md6] body
-            , Grid.col [Col.xs12, Col.md6] [ uiView ]
+            [ Grid.col [ Col.xs12, Col.md6 ] body
+            , Grid.col [ Col.xs12, Col.md6 ] [ uiView ]
             ]
         ]
 
