@@ -35,6 +35,7 @@ import Simple.Snap
 import Simple.String (fromParam, skipParse)
 import Snap
 import qualified Data.ByteString.Char8 as Char8
+import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Network.HTTP.Simple as HTTP
 
@@ -176,7 +177,7 @@ getAttendance' config = flip evalStateT config $ do
     
 getPersonsHandle :: (HasBreezeApp b) => Handler b v ()
 getPersonsHandle = withTop breezeLens $ runAesonApi $ do 
-  lname <- skipParse <$> fromParam "lastname"
+  lname <- (sanitize . skipParse) <$> fromParam "lastname"
   ps <- runBreeze' $ FindPeople lname Nothing
   let persons = ps^..folded.filtered (isPrefixOf lname . (view lastName))
   withTVarWrite personDB $ addMissingPersons persons
@@ -187,6 +188,7 @@ getPersonsHandle = withTop breezeLens $ runAesonApi $ do
         (insert p db)
         (return db)
         (getOne $ db @= (p^.pid))
+      sanitize n = n^..folded.filtered (Char.isAlpha).to Char.toLower & (ix 0) %~ Char.toUpper
 
 updatePerson :: (Person -> Person) -> Person -> IxSet Person -> IxSet Person
 updatePerson f p = updateIx (p^.pid) (f p)
