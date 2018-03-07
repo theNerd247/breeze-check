@@ -163,8 +163,8 @@ cancelCheckinResponse _ mdl =
 -- VIEW:
 
 
-searchPersonsView : HasFind m -> Html Msg
-searchPersonsView mdl =
+searchPersonsForm : HasFind m -> Html Msg
+searchPersonsForm mdl =
     Form.form []
         [ Form.row [ Row.centerXs ]
             [ Form.col [ Col.xs12 ]
