@@ -44,11 +44,9 @@ type Page
 type alias Model =
     NewPerson.HasNewFamilies
         (Find.HasFind
-            (Err.HasErrors
-                { page : Page
-                , eventName : String
-                }
-            )
+            { page : Page
+            , eventName : String
+            }
         )
 
 
@@ -126,12 +124,6 @@ update msg m =
         Err msg ->
             ( Err.update msg mdl, Cmd.none )
 
-        GetEventName ->
-            getEventName mdl
-
-        EventNameResult r ->
-            BreezeApi.update eventNameResult r mdl
-
         NewPerson msg ->
             let
                 f m ps =
@@ -154,11 +146,6 @@ update msg m =
 getEventName : Model -> ( Model, Cmd Msg )
 getEventName mdl =
     BreezeApi.eventInfo EventNameResult mdl
-
-
-eventNameResult : Data.EventName -> Model -> ( Model, Cmd Msg )
-eventNameResult n mdl =
-    ( { mdl | eventName = n }, Cmd.none )
 
 
 pageUpdate : Msg -> Model -> Model
@@ -254,23 +241,6 @@ view mdl =
             [ Html.map Err <| Err.view mdl
             ]
 
-        --tabs =
-        --if
-        --mdl.page
-        --== Search
-        --&& List.isEmpty mdl.foundPeople
-        --&& List.isEmpty mdl.waitingCheckIn
-        --then
-        --div [] []
-        --else
-        --Grid.row [ Row.attrs [ class "fixed-bottom" ] ] <|
-        --if mdl.page == Finished then
-        --[]
-        --else
-        --[ Grid.col [ Col.xs12 ]
-        --[ pageTabs mdl
-        --]
-        --]
         page =
             case mdl.page of
                 Search ->
@@ -298,123 +268,3 @@ view mdl =
 
         --, tabs
         ]
-
-
-
---pageTabs : Model -> Html Msg
---pageTabs mdl =
---let
---searchIcon =
---Html.span []
---[ Html.i [ class "fa fa-search" ] []
---, text " Search"
---]
---selectIcon =
---Html.span []
---[ Html.i [ class "fa fa-list-ul" ] []
---, text " Check-in"
---]
---navIndex =
---case mdl.page of
---Search ->
---0
---Select ->
---1
---_ ->
----1
---in
---Navs.view navIndex
---[ Navs.navItem searchIcon (SetPage Search)
---, Navs.navItem selectIcon (SetPage Select)
---]
-
-
-finishedPageView : Model -> List (Html Msg)
-finishedPageView mdl =
-    let
-        title =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
-                    [ h2 [] [ text "You're Almost Done!" ]
-                    ]
-                ]
-
-        inst =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xs10 ]
-                    [ p [ class "text-center" ]
-                        [ text "Stop by the check-in desk and show them this number"
-                        ]
-                    ]
-                ]
-
-        cancelCheckin =
-            Grid.row [ Row.centerXs, Row.attrs [ class "pb-3" ] ]
-                [ Grid.col [ Col.xsAuto ]
-                    [ Html.map Find <| Find.cancelCheckInButton
-                    ]
-                ]
-
-        groupId gid =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
-                    [ h1 [] [ text <| toString gid ]
-                    ]
-                ]
-
-        checkInTitle =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xs10 ]
-                    [ h3 [] [ text "You're Checking In" ]
-                    ]
-                ]
-    in
-    case mdl.groupId of
-        Nothing ->
-            []
-
-        Just gid ->
-            [ title
-            , inst
-            , groupId gid
-            , cancelCheckin
-            , checkInTitle
-            , Data.listPersonView Nothing mdl.waitingCheckIn
-            ]
-
-
-newPersonsView : Model -> List (Html Msg)
-newPersonsView mdl =
-    [ Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xs12 ]
-            [ Html.map NewPerson <| NewPerson.newFamilysView mdl
-            ]
-        ]
-    ]
-
-
-photoView : Model -> List (Html Msg)
-photoView mdl =
-    [ Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xs12 ]
-            [ h1 [] [ text "May We Take You're Picture Please?" ]
-            , p []
-                [ text
-                    """
-              We have a photographer here taking photos for our website and
-              other promotional materials here at Mountain View Church. You may
-              be in a few of our photos and we would like your permission to
-              publish any photo taken that has you or your family in it.
-                """
-                ]
-            , p []
-                [ Html.b [] [ text "We won't publish any names or contant information!" ]
-                ]
-            ]
-        ]
-    , Grid.row [ Row.centerXs ]
-        [ Grid.col [ Col.xsAuto ]
-            [ Html.map Find <| Find.checkInButton
-            ]
-        ]
-    ]

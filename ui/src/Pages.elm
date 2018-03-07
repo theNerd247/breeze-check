@@ -6,35 +6,23 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import ErrorMsg as Err
+import EventName as Event
 import Html as Html
     exposing
         ( Html
-        , a
-        , br
-        , button
         , div
         , h1
         , h2
         , h3
         , h4
-        , header
-        , hr
         , p
         , text
         )
 import Html.Attributes exposing (class, for, style)
 
 
-type alias HasEventName m =
-    { m | eventName : String }
-
-
 type alias HasWrapperApp m =
-    BreezeApi.HasBreezeApi (HasEventName m)
-
-
-type Msg
-    = Err Err.Msg
+    BreezeApi.HasBreezeApi (Event.HasEventName m)
 
 
 pageWrapper : HasWrapperApp m -> (Err.Msg -> msg) -> Html msg -> Html msg
