@@ -9,7 +9,6 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import Data as Data
-import ErrorMsg as Err
 import Html as Html
     exposing
         ( Html
@@ -31,21 +30,25 @@ import Platform.Cmd as Cmd
 
 
 type alias HasFind m =
-    Err.HasErrors
+    BreezeApi.HasBreezeApi
         { m
             | searchLastName : String
             , foundPeople : List Data.Person
             , waitingCheckIn : List Data.Person
-            , findPeopleLoading : Bool
             , personNotFound : Bool
+            , groupId : Maybe Data.GroupId
         }
 
 
 type Msg
     = UpdateSearchLastName String
     | SearchClick
-    | SearchResult (BreezeApi.Response (List Data.Person))
+    | SearchResult (BreezeApi.Msg (List Data.Person))
     | ToggleAttending Data.PersonId
+    | CheckInClick
+    | CheckInResponse (BreezeApi.Msg Data.GroupId)
+    | CancelCheckInClick
+    | CancelCheckInResponse (BreezeApi.Msg Bool)
 
 
 
@@ -62,10 +65,22 @@ update msg mdl =
             searchClick mdl
 
         SearchResult r ->
-            searchResult mdl r
+            BreezeApi.update searchResult r mdl
 
         ToggleAttending pid ->
             toggleAttending mdl pid
+
+        CheckInClick ->
+            BreezeApi.checkIn CheckInResponse mdl.waitingCheckIn mdl
+
+        CheckInResponse r ->
+            BreezeApi.update checkInResponse r mdl
+
+        CancelCheckInClick ->
+            BreezeApi.cancelCheckin CancelCheckInResponse mdl.groupId mdl
+
+        CancelCheckInResponse r ->
+            BreezeApi.update cancelCheckinResponse r mdl
 
 
 updateSearchLastName : HasFind m -> String -> ( HasFind m, Cmd Msg )
@@ -75,18 +90,12 @@ updateSearchLastName mdl s =
 
 searchClick : HasFind m -> ( HasFind m, Cmd Msg )
 searchClick mdl =
-    ( { mdl | findPeopleLoading = True }, BreezeApi.findPeople SearchResult mdl.searchLastName )
+    BreezeApi.findPeople SearchResult mdl.searchLastName mdl
 
 
-searchResult : HasFind m -> BreezeApi.Response (List Data.Person) -> ( HasFind m, Cmd Msg )
-searchResult mdl r =
+searchResult : List Data.Person -> HasFind m -> ( HasFind m, Cmd Msg )
+searchResult ppl mdl =
     let
-        m =
-            BreezeApi.fromResponse r
-                |> BreezeApi.fromResult
-                    (flip Err.newError mdl)
-                    (\ppl -> mp ppl)
-
         mp ps =
             case ps of
                 [] ->
@@ -104,7 +113,7 @@ searchResult mdl r =
         personFilter p =
             not <| List.member p.pid pids
     in
-    ( { m | findPeopleLoading = False }, Cmd.none )
+    ( mp ppl, Cmd.none )
 
 
 toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
@@ -138,6 +147,16 @@ toggleCheckIn pid ( chkin, found ) =
             List.append (List.map toggleAttend ci) fo
     in
     ( newChkin, newFound )
+
+
+checkInResponse : Data.GroupId -> HasFind m -> ( HasFind m, Cmd Msg )
+checkInResponse gid mdl =
+    ( { mdl | groupId = Just gid }, Cmd.none )
+
+
+cancelCheckinResponse : Bool -> HasFind m -> ( HasFind m, Cmd Msg )
+cancelCheckinResponse _ mdl =
+    ( { mdl | groupId = Nothing }, Cmd.none )
 
 
 
@@ -185,7 +204,7 @@ waitingCheckInView mdl =
 
 foundPeopleView : HasFind m -> Html Msg
 foundPeopleView mdl =
-    if mdl.findPeopleLoading then
+    if mdl.loadingStatus then
         Progress.progress
             [ Progress.value 100
             , Progress.animated
@@ -197,3 +216,29 @@ foundPeopleView mdl =
             ]
     else
         Data.listPersonView (Just ToggleAttending) mdl.foundPeople
+
+
+checkInButton : Html Msg
+checkInButton =
+    Button.button
+        [ Button.success
+        , Button.block
+        , Button.onClick CheckInClick
+        ]
+        [ text "Check In "
+
+        --, Html.i [ class "fas fa-sign-in-alt" ] []
+        ]
+
+
+cancelCheckInButton : Html Msg
+cancelCheckInButton =
+    Button.button
+        [ Button.outlineInfo
+        , Button.large
+        , Button.onClick
+            CancelCheckInClick
+        ]
+        [ Html.i [ class "fas fa-arrow-left" ] []
+        , text " Cancel Check In"
+        ]

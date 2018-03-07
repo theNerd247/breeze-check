@@ -5,7 +5,6 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
-import CheckIn as CheckIn
 import Data as Data
 import ErrorMsg as Err
 import FindPeople as Find
@@ -28,9 +27,10 @@ import Html as Html
         , text
         )
 import Html.Attributes exposing (class, for, style)
-import Navs as Navs
+import Navigation as Nav
 import Nested exposing (modifyCmd)
 import NewPerson as NewPerson
+import RouteUrl as Url
 
 
 type Page
@@ -43,25 +43,22 @@ type Page
 
 type alias Model =
     NewPerson.HasNewFamilies
-        (CheckIn.HasCheckin
-            (Find.HasFind
-                (Err.HasErrors
-                    { page : Page
-                    , eventName : String
-                    }
-                )
+        (Find.HasFind
+            (Err.HasErrors
+                { page : Page
+                , eventName : String
+                }
             )
         )
 
 
 type Msg
     = Find Find.Msg
-    | CheckIn CheckIn.Msg
     | Err Err.Msg
     | NewPerson NewPerson.Msg
     | SetPage Page
     | GetEventName
-    | EventNameResult (BreezeApi.Response Data.EventName)
+    | EventNameResult (BreezeApi.Msg Data.EventName)
 
 
 main : Program Never Model Msg
@@ -74,14 +71,25 @@ main =
         }
 
 
+app : Url.App Model Msg
+app =
+    { init = getEventName model
+    , update = update
+    , view = view
+    , subscriptions = \_ -> Sub.none
+    , delta2url = delta2url
+    , location2messages = location2messages
+    }
+
+
 model : Model
 model =
     { errors = []
+    , loadingStatus = False
     , groupId = Nothing
     , foundPeople = []
     , waitingCheckIn = []
     , searchLastName = ""
-    , findPeopleLoading = False
     , page = Search
     , eventName = ""
     , personNotFound = False
@@ -91,6 +99,16 @@ model =
 
 
 -- UPDATE
+
+
+delta2url : Model -> Model -> Maybe Url.UrlChange
+delta2url old current =
+    Nothing
+
+
+location2messages : Nav.Location -> List Msg
+location2messages l =
+    []
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -105,9 +123,6 @@ update msg m =
         Find msg ->
             modifyCmd Find <| Find.update msg mdl
 
-        CheckIn msg ->
-            modifyCmd CheckIn <| CheckIn.update msg mdl
-
         Err msg ->
             ( Err.update msg mdl, Cmd.none )
 
@@ -115,7 +130,7 @@ update msg m =
             getEventName mdl
 
         EventNameResult r ->
-            eventNameResult mdl r
+            BreezeApi.update eventNameResult r mdl
 
         NewPerson msg ->
             let
@@ -138,19 +153,12 @@ update msg m =
 
 getEventName : Model -> ( Model, Cmd Msg )
 getEventName mdl =
-    ( mdl, BreezeApi.eventInfo EventNameResult )
+    BreezeApi.eventInfo EventNameResult mdl
 
 
-eventNameResult : Model -> BreezeApi.Response Data.EventName -> ( Model, Cmd Msg )
-eventNameResult mdl r =
-    let
-        m =
-            BreezeApi.fromResponse r
-                |> BreezeApi.fromResult
-                    (\e -> Err.newError e mdl)
-                    (\n -> { mdl | eventName = n })
-    in
-    ( m, Cmd.none )
+eventNameResult : Data.EventName -> Model -> ( Model, Cmd Msg )
+eventNameResult n mdl =
+    ( { mdl | eventName = n }, Cmd.none )
 
 
 pageUpdate : Msg -> Model -> Model
@@ -199,7 +207,7 @@ searchPageUpdate msg mdl =
 selectPageUpdate : Msg -> Model -> Model
 selectPageUpdate msg mdl =
     case msg of
-        CheckIn (CheckIn.CheckInResponse (Ok (Ok _))) ->
+        Find (Find.CheckInResponse (BreezeApi.Recieved (Ok (Ok _)))) ->
             { mdl | page = Photo }
 
         _ ->
@@ -209,7 +217,7 @@ selectPageUpdate msg mdl =
 finishedPageUpdate : Msg -> Model -> Model
 finishedPageUpdate msg mdl =
     case msg of
-        CheckIn CheckIn.CancelCheckInClick ->
+        Find Find.CancelCheckInClick ->
             { mdl | page = Select }
 
         _ ->
@@ -219,7 +227,7 @@ finishedPageUpdate msg mdl =
 photoPageUpdate : Msg -> Model -> Model
 photoPageUpdate msg mdl =
     case msg of
-        CheckIn CheckIn.CheckInClick ->
+        Find Find.CheckInClick ->
             { mdl | page = Finished }
 
         _ ->
@@ -246,24 +254,23 @@ view mdl =
             [ Html.map Err <| Err.view mdl
             ]
 
-        tabs =
-            if
-                mdl.page
-                    == Search
-                    && List.isEmpty mdl.foundPeople
-                    && List.isEmpty mdl.waitingCheckIn
-            then
-                div [] []
-            else
-                Grid.row [ Row.attrs [ class "fixed-bottom" ] ] <|
-                    if mdl.page == Finished then
-                        []
-                    else
-                        [ Grid.col [ Col.xs12 ]
-                            [ pageTabs mdl
-                            ]
-                        ]
-
+        --tabs =
+        --if
+        --mdl.page
+        --== Search
+        --&& List.isEmpty mdl.foundPeople
+        --&& List.isEmpty mdl.waitingCheckIn
+        --then
+        --div [] []
+        --else
+        --Grid.row [ Row.attrs [ class "fixed-bottom" ] ] <|
+        --if mdl.page == Finished then
+        --[]
+        --else
+        --[ Grid.col [ Col.xs12 ]
+        --[ pageTabs mdl
+        --]
+        --]
         page =
             case mdl.page of
                 Search ->
@@ -288,40 +295,38 @@ view mdl =
     in
     Grid.containerFluid [ class "clearfix" ]
         [ Grid.containerFluid [ class "mb-5" ] body
-        , tabs
+
+        --, tabs
         ]
 
 
-pageTabs : Model -> Html Msg
-pageTabs mdl =
-    let
-        searchIcon =
-            Html.span []
-                [ Html.i [ class "fa fa-search" ] []
-                , text " Search"
-                ]
 
-        selectIcon =
-            Html.span []
-                [ Html.i [ class "fa fa-list-ul" ] []
-                , text " Check-in"
-                ]
-
-        navIndex =
-            case mdl.page of
-                Search ->
-                    0
-
-                Select ->
-                    1
-
-                _ ->
-                    -1
-    in
-    Navs.view navIndex
-        [ Navs.navItem searchIcon (SetPage Search)
-        , Navs.navItem selectIcon (SetPage Select)
-        ]
+--pageTabs : Model -> Html Msg
+--pageTabs mdl =
+--let
+--searchIcon =
+--Html.span []
+--[ Html.i [ class "fa fa-search" ] []
+--, text " Search"
+--]
+--selectIcon =
+--Html.span []
+--[ Html.i [ class "fa fa-list-ul" ] []
+--, text " Check-in"
+--]
+--navIndex =
+--case mdl.page of
+--Search ->
+--0
+--Select ->
+--1
+--_ ->
+---1
+--in
+--Navs.view navIndex
+--[ Navs.navItem searchIcon (SetPage Search)
+--, Navs.navItem selectIcon (SetPage Select)
+--]
 
 
 searchPageView : Model -> List (Html Msg)
@@ -484,7 +489,7 @@ finishedPageView mdl =
         cancelCheckin =
             Grid.row [ Row.centerXs, Row.attrs [ class "pb-3" ] ]
                 [ Grid.col [ Col.xsAuto ]
-                    [ Html.map CheckIn <| CheckIn.cancelCheckInButton
+                    [ Html.map Find <| Find.cancelCheckInButton
                     ]
                 ]
 
@@ -547,7 +552,7 @@ photoView mdl =
         ]
     , Grid.row [ Row.centerXs ]
         [ Grid.col [ Col.xsAuto ]
-            [ Html.map CheckIn <| CheckIn.checkInButton
+            [ Html.map Find <| Find.checkInButton
             ]
         ]
     ]

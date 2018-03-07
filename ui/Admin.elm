@@ -16,7 +16,7 @@ import UI as UI
 
 
 type alias Model =
-    Err.HasErrors
+    BreezeApi.HasBreezeApi
         { searchGroupId : String
         , checkInGroup : List Data.Person
         , groupCheckedIn : Bool
@@ -27,10 +27,10 @@ type alias Model =
 
 type Msg
     = UpdateGroupId String
-    | SearchGroupResponse (BreezeApi.Response (List Data.Person))
+    | SearchGroupResponse (BreezeApi.Msg (List Data.Person))
     | SearchGroupClick
     | CheckInApprovedClick
-    | CheckInApprovedResponse (BreezeApi.Response Bool)
+    | CheckInApprovedResponse (BreezeApi.Msg Bool)
     | Err Err.Msg
     | UI UI.Msg
 
@@ -72,13 +72,13 @@ update msg mdl =
             updateSearchGroupClick mdl
 
         SearchGroupResponse r ->
-            updateCheckInGroup r mdl
+            BreezeApi.update updateCheckInGroup r mdl
 
         CheckInApprovedClick ->
             updateCheckInApprovedClicked mdl
 
         CheckInApprovedResponse r ->
-            updateCheckInApprovedResponse r mdl
+            BreezeApi.update updateCheckInApprovedResponse r mdl
 
         Err msg ->
             ( Err.update msg mdl, Cmd.none )
@@ -94,20 +94,13 @@ updateSearchGroupClick mdl =
         | groupCheckedIn = False
         , checkInGroup = []
       }
-    , BreezeApi.getCheckInGroup (toGroupId mdl.searchGroupId) SearchGroupResponse
+    , BreezeApi.getCheckInGroup SearchGroupResponse (toGroupId mdl.searchGroupId)
     )
 
 
-updateCheckInGroup : BreezeApi.Response (List Data.Person) -> Model -> ( Model, Cmd Msg )
-updateCheckInGroup r mdl =
-    let
-        m =
-            BreezeApi.fromResponse r
-                |> BreezeApi.fromResult
-                    (flip Err.newError mdl)
-                    (\p -> { mdl | checkInGroup = p, groupId = mdl.searchGroupId })
-    in
-    ( m, Cmd.none )
+updateCheckInGroup : List Data.Person -> Model -> ( Model, Cmd Msg )
+updateCheckInGroup ps mdl =
+    ( { mdl | checkInGroup = ps, groupId = mdl.searchGroupId }, Cmd.none )
 
 
 updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
@@ -115,16 +108,9 @@ updateCheckInApprovedClicked mdl =
     ( mdl, BreezeApi.approveCheckIn (toGroupId mdl.groupId) CheckInApprovedResponse )
 
 
-updateCheckInApprovedResponse : BreezeApi.Response Bool -> Model -> ( Model, Cmd Msg )
-updateCheckInApprovedResponse r mdl =
-    let
-        m =
-            BreezeApi.fromResponse r
-                |> BreezeApi.fromResult
-                    (flip Err.newError { mdl | checkInGroup = [], groupCheckedIn = False })
-                    (\p -> { mdl | groupCheckedIn = p })
-    in
-    ( m, Cmd.none )
+updateCheckInApprovedResponse : Bool -> Model -> ( Model, Cmd Msg )
+updateCheckInApprovedResponse p mdl =
+    ( { mdl | groupCheckedIn = p }, Cmd.none )
 
 
 view : Model -> Html Msg

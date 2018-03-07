@@ -1,8 +1,10 @@
 module BreezeApi exposing (..)
 
 import Data as Data
+import ErrorMsg as Err
 import Http as Http exposing (Error(..))
 import Json.Decode as Decode
+import Nested exposing (modifyCmd)
 import Result
 import Time exposing (second)
 
@@ -11,17 +13,34 @@ type alias Response a =
     Result Http.Error (Result Data.BreezeException a)
 
 
+type alias HasLoadingStatus m =
+    { m | loadingStatus : Bool }
+
+
+type alias HasBreezeApi m =
+    Err.HasErrors (HasLoadingStatus m)
+
+
+type Msg a
+    = Recieved (Response a)
+
+
+update : (a -> HasBreezeApi m -> ( HasBreezeApi m, Cmd msg )) -> Msg a -> HasBreezeApi m -> ( HasBreezeApi m, Cmd msg )
+update f (Recieved r) mdl =
+    fromResponse r
+        |> fromResult
+            (\e -> ( Err.newError e mdl, Cmd.none ))
+            (flip f mdl)
+
+
 sendApiGetRequest :
     String --  method
-    -> Http.Body -- body
+    -> Http.Body -- bodywithBreezeErrDecoder
     -> String -- path relative to base
     -> Decode.Decoder a -- decoder to use for the data
-    ->
-        (Result Http.Error a -- conversion from recieved data to a message
-         -> msg
-        )
-    -> Cmd msg
-sendApiGetRequest meth bdy path decoder f =
+    -> HasBreezeApi m
+    -> ( HasBreezeApi m, Cmd (Msg a) )
+sendApiGetRequest meth bdy path decoder mdl =
     let
         req =
             Http.request
@@ -29,94 +48,73 @@ sendApiGetRequest meth bdy path decoder f =
                 , headers = []
                 , url = path
                 , body = bdy
-                , expect = Http.expectJson decoder
+                , expect = Http.expectJson (Data.withBreezeErrDecoder decoder)
                 , timeout = Just <| 8 * second
                 , withCredentials = False
                 }
     in
-    Http.send f req
+    ( { mdl | loadingStatus = True }, Http.send Recieved req )
 
 
-sendGet :
-    String
-    -> Decode.Decoder a
-    ->
-        (Result Http.Error a
-         -> msg
-        )
-    -> Cmd msg
-sendGet =
-    sendApiGetRequest "GET" Http.emptyBody
+sendGet p dec f mdl =
+    modifyCmd f <| sendApiGetRequest "GET" Http.emptyBody p dec mdl
 
 
-sendPost :
-    String
-    -> Http.Body
-    -> Decode.Decoder a
-    ->
-        (Result Http.Error a
-         -> msg
-        )
-    -> Cmd msg
-sendPost path bdy =
-    sendApiGetRequest "POST" bdy path
+sendPost path bdy dec f mdl =
+    modifyCmd f <| sendApiGetRequest "POST" bdy path dec mdl
 
 
-findPeople : (Response (List Data.Person) -> msg) -> String -> Cmd msg
-findPeople f lastName =
+findPeople f lastName mdl =
     if String.isEmpty lastName then
-        Cmd.none
+        ( mdl, Cmd.none )
     else
         sendGet
             ("findperson?lastname=" ++ lastName)
-            (Data.withBreezeErrDecoder Data.decodePersons)
+            Data.decodePersons
             f
+            mdl
 
 
-checkIn : (Response Data.GroupId -> msg) -> List Data.Person -> Cmd msg
-checkIn f ppl =
+checkIn f ppl mdl =
     sendPost
         "checkin"
         (Http.jsonBody <| Data.encodePersons ppl)
-        (Data.withBreezeErrDecoder Data.decodeGroupId)
+        Data.decodeGroupId
         f
+        mdl
 
 
-cancelCheckin : (Response Bool -> msg) -> Maybe Int -> Cmd msg
-cancelCheckin f mgid =
+cancelCheckin f mgid mdl =
     case mgid of
         Nothing ->
-            Cmd.none
+            ( mdl, Cmd.none )
 
         Just gid ->
             sendGet
                 ("cancel?groupid=" ++ toString gid)
-                (Data.withBreezeErrDecoder Decode.bool)
+                Decode.bool
                 f
+                mdl
 
 
-eventInfo : (Response String -> msg) -> Cmd msg
-eventInfo f =
+eventInfo f mdl =
     sendGet
         "eventinfo"
-        (Data.withBreezeErrDecoder Data.decodeEventName)
+        Data.decodeEventName
         f
+        mdl
 
 
-getCheckInGroup : Data.GroupId -> (Response (List Data.Person) -> msg) -> Cmd msg
-getCheckInGroup gid f =
+getCheckInGroup gid =
     sendGet
         ("getgroup?groupid=" ++ toString gid)
-        (Data.withBreezeErrDecoder Data.decodePersons)
-        f
+        Data.decodePersons
 
 
-approveCheckIn : Data.GroupId -> (Response Bool -> msg) -> Cmd msg
-approveCheckIn gid f =
+approveCheckIn gid =
     sendGet
         ("approve?groupid=" ++ toString gid)
-        (Data.withBreezeErrDecoder Decode.bool)
-        f
+        Decode.bool
 
 
 fromResult : (a -> c) -> (b -> c) -> Result.Result a b -> c
