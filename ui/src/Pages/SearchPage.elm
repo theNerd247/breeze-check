@@ -6,8 +6,12 @@ import FindPeople as Find
 import Html as Html exposing (Html, div, h2, text)
 
 
-searchPageView : Find.HasFind m -> (Find.Msg -> msg) -> Html msg
-searchPageView mdl f =
+type alias Msg =
+    Find.Msg
+
+
+view : Find.HasFind m -> Html Msg
+view mdl =
     let
         title =
             Grid.row []
@@ -19,7 +23,7 @@ searchPageView mdl f =
         searchForm =
             Grid.row []
                 [ Grid.col [ Col.xs12 ]
-                    [ Html.map f <| Find.searchPersonsForm mdl
+                    [ Find.searchPersonsForm mdl
                     ]
                 ]
     in

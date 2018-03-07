@@ -1,39 +1,17 @@
 module UI exposing (..)
 
-import Bootstrap.Button as Button
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
-import BreezeApi as BreezeApi
-import Data as Data
-import ErrorMsg as Err
-import FindPeople as Find
-import Html as Html
-    exposing
-        ( Html
-        , a
-        , br
-        , button
-        , div
-        , h1
-        , h2
-        , h3
-        , h4
-        , header
-        , hr
-        , main_
-        , p
-        , program
-        , text
-        )
-import Html.Attributes exposing (class, for, style)
 import Navigation as Nav
-import Nested exposing (modifyCmd)
 import NewPerson as NewPerson
+import Pages as Page
+import Pages.NewPersonsPage exposing (..)
+import Pages.PhotoPage exposing (..)
+import Pages.SearchPage exposing (..)
+import Pages.SelectPage exposing (..)
+import Pages.WaitingApprovalPage exposing (..)
 import RouteUrl as Url
 
 
-type Page
+type Pages
     = Search
     | Select
     | NewPersons
@@ -42,10 +20,9 @@ type Page
 
 
 type alias Model =
-    NewPerson.HasNewFamilies
-        (Find.HasFind
-            { page : Page
-            , eventName : String
+    Page.HasMainPage
+        (NewPerson.HasNewFamilies
+            { page : Pages
             }
         )
 

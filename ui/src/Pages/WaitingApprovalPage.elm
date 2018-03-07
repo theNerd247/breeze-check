@@ -9,8 +9,12 @@ import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
 
 
-finishedPageView : Find.HasFind m -> (Find.Msg -> msg) -> Html msg
-finishedPageView mdl f =
+type alias Msg =
+    Find.Msg
+
+
+view : Find.HasFind m -> Html Msg
+view mdl =
     let
         title =
             Grid.row [ Row.centerXs ]
@@ -31,7 +35,7 @@ finishedPageView mdl f =
         cancelCheckin =
             Grid.row [ Row.centerXs, Row.attrs [ class "pb-3" ] ]
                 [ Grid.col [ Col.xsAuto ]
-                    [ Html.map f <| Find.cancelCheckInButton
+                    [ Find.cancelCheckInButton
                     ]
                 ]
 

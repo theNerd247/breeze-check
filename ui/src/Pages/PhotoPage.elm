@@ -7,8 +7,12 @@ import FindPeople as Find
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 
 
-photoView : Find.HasFind m -> (Find.Msg -> msg) -> Html msg
-photoView mdl f =
+type alias Msg =
+    Find.Msg
+
+
+view : Find.HasFind m -> Html Msg
+view mdl =
     div []
         [ Grid.row [ Row.centerXs ]
             [ Grid.col [ Col.xs12 ]
@@ -29,7 +33,7 @@ photoView mdl f =
             ]
         , Grid.row [ Row.centerXs ]
             [ Grid.col [ Col.xsAuto ]
-                [ Html.map f <| Find.checkInButton
+                [ Find.checkInButton
                 ]
             ]
         ]

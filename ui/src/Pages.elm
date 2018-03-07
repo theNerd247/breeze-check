@@ -21,11 +21,11 @@ import Html as Html
 import Html.Attributes exposing (class, for, style)
 
 
-type alias HasWrapperApp m =
+type alias HasMainPage m =
     BreezeApi.HasBreezeApi (Event.HasEventName m)
 
 
-pageWrapper : HasWrapperApp m -> (Err.Msg -> msg) -> Html msg -> Html msg
+pageWrapper : HasMainPage m -> (Err.Msg -> msg) -> Html msg -> Html msg
 pageWrapper mdl f main =
     let
         titleRow =

@@ -8,8 +8,12 @@ import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
 
 
-selectPageView : Find.HasFind m -> (Find.Msg -> msg) -> Html msg
-selectPageView mdl f =
+type alias Msg =
+    Find.Msg
+
+
+view : Find.HasFind m -> Html Msg
+view mdl =
     let
         title =
             Grid.row [ Row.centerXs ]
@@ -21,7 +25,7 @@ selectPageView mdl f =
         found =
             Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
                 [ Grid.col [ Col.xs12 ] <|
-                    [ Html.map f <| Find.foundPeopleView mdl
+                    [ Find.foundPeopleView mdl
                     ]
                 ]
 
@@ -35,7 +39,7 @@ selectPageView mdl f =
             in
             Grid.row [ Row.attrs a, Row.centerXs ]
                 [ Grid.col [ Col.xs12 ]
-                    [ Html.map f <| Find.waitingCheckInView mdl
+                    [ Find.waitingCheckInView mdl
                     ]
                 ]
 
