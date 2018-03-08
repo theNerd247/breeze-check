@@ -9,9 +9,7 @@ fi
 version=$1
 
 function buildMain() {
-  cat "src/$1.elm" > "build/Tmp.elm"
-  sed -i -e 's/module .* exposing (..)/module Main exposing (..)/' "build/Tmp.elm"
-  elm make --output "build/$2.$version.js" "build/Tmp.elm"
+  elm make --output "build/$2.$version.js" "src/$1.elm"
 }
 
 mkdir -p build

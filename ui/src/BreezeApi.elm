@@ -105,16 +105,20 @@ eventInfo f mdl =
         mdl
 
 
-getCheckInGroup gid =
+getCheckInGroup f gid mdl =
     sendGet
         ("getgroup?groupid=" ++ toString gid)
         Data.decodePersons
+        f
+        mdl
 
 
-approveCheckIn gid =
+approveCheckIn f gid mdl =
     sendGet
         ("approve?groupid=" ++ toString gid)
         Decode.bool
+        f
+        mdl
 
 
 fromResult : (a -> c) -> (b -> c) -> Result.Result a b -> c

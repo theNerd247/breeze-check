@@ -50,6 +50,7 @@ model =
     { searchGroupId = ""
     , checkInGroup = []
     , errors = []
+    , loadingStatus = False
     , groupCheckedIn = False
     , ui = UI.model
     , groupId = ""
@@ -90,12 +91,7 @@ update msg mdl =
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
 updateSearchGroupClick mdl =
-    ( { mdl
-        | groupCheckedIn = False
-        , checkInGroup = []
-      }
-    , BreezeApi.getCheckInGroup SearchGroupResponse (toGroupId mdl.searchGroupId)
-    )
+    BreezeApi.getCheckInGroup SearchGroupResponse (toGroupId mdl.searchGroupId) { mdl | groupCheckedIn = False, checkInGroup = [] }
 
 
 updateCheckInGroup : List Data.Person -> Model -> ( Model, Cmd Msg )
@@ -105,7 +101,7 @@ updateCheckInGroup ps mdl =
 
 updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
 updateCheckInApprovedClicked mdl =
-    ( mdl, BreezeApi.approveCheckIn (toGroupId mdl.groupId) CheckInApprovedResponse )
+    BreezeApi.approveCheckIn CheckInApprovedResponse (toGroupId mdl.groupId) mdl
 
 
 updateCheckInApprovedResponse : Bool -> Model -> ( Model, Cmd Msg )

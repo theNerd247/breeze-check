@@ -15,6 +15,6 @@
     <apply template="importElm"/>
   </head>
   <body>
-    <script type="text/javascript">Elm.Main.fullscreen()</script>
+    <script type="text/javascript">Elm.UI.fullscreen()</script>
   </body>
 </html>
