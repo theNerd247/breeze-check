@@ -30,7 +30,7 @@ update f (Recieved r) mdl =
     fromResponse r
         |> fromResult
             (\e -> ( Err.newError e mdl, Cmd.none ))
-            (flip f mdl)
+            (flip f { mdl | loadingStatus = False })
 
 
 sendApiGetRequest :
