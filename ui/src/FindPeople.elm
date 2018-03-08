@@ -6,7 +6,6 @@ import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import Data as Data
 import Html as Html
@@ -207,12 +206,7 @@ waitingCheckInView mdl =
 
 foundPeopleView : HasFind m -> Html Msg
 foundPeopleView mdl =
-    if mdl.loadingStatus then
-        Progress.progress
-            [ Progress.value 100
-            , Progress.animated
-            ]
-    else if mdl.personNotFound then
+    if mdl.personNotFound then
         div []
             [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
             , h5 [ class "text-center" ] [ text mdl.searchLastName ]

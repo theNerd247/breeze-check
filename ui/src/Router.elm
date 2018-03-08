@@ -79,4 +79,4 @@ location2messages l =
         ]
         |> flip parsePath l
         |> Maybe.map (List.singleton << SetRoute)
-        |> Maybe.withDefault []
+        |> Maybe.withDefault [ SetRoute Search ]

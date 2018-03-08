@@ -13,8 +13,14 @@ type alias Response a =
     Result Http.Error (Result Data.BreezeException a)
 
 
+type LoadingStatus
+    = Waiting
+    | DoneOk
+    | DoneError
+
+
 type alias HasLoadingStatus m =
-    { m | loadingStatus : Bool }
+    { m | loadingStatus : LoadingStatus }
 
 
 type alias HasBreezeApi m =
@@ -25,12 +31,17 @@ type Msg a
     = Recieved (Response a)
 
 
+initLoadingStatus : LoadingStatus
+initLoadingStatus =
+    DoneOk
+
+
 update : (a -> HasBreezeApi m -> ( HasBreezeApi m, Cmd msg )) -> Msg a -> HasBreezeApi m -> ( HasBreezeApi m, Cmd msg )
 update f (Recieved r) mdl =
     fromResponse r
         |> fromResult
-            (\e -> ( Err.newError e mdl, Cmd.none ))
-            (flip f { mdl | loadingStatus = False })
+            (\e -> ( Err.newError e { mdl | loadingStatus = DoneError }, Cmd.none ))
+            (flip f { mdl | loadingStatus = DoneOk })
 
 
 sendApiGetRequest :
@@ -53,7 +64,7 @@ sendApiGetRequest meth bdy path decoder mdl =
                 , withCredentials = False
                 }
     in
-    ( { mdl | loadingStatus = True }, Http.send Recieved req )
+    ( { mdl | loadingStatus = Waiting }, Http.send Recieved req )
 
 
 sendGet p dec f mdl =
