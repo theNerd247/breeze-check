@@ -37,34 +37,8 @@ view mdl =
                     [ Find.foundPeopleView mdl
                     ]
                 ]
-
-        waiting =
-            let
-                a =
-                    if not <| List.isEmpty mdl.waitingCheckIn then
-                        [ class "pb-3" ]
-                    else
-                        []
-            in
-            Grid.row [ Row.attrs a, Row.centerXs ]
-                [ Grid.col [ Col.xs12 ]
-                    [ Find.waitingCheckInView mdl
-                    ]
-                ]
-
-        header =
-            Grid.row [ Row.centerXs ] <|
-                if not <| List.isEmpty mdl.waitingCheckIn then
-                    [ Grid.col [ Col.xsAuto ]
-                        [ h3 [] [ text "You're checking in" ]
-                        ]
-                    ]
-                else
-                    []
     in
     div []
         [ title
         , found
-        , header
-        , waiting
         ]

@@ -22,10 +22,11 @@ import Html as Html
 import Html.Attributes exposing (class, for, style)
 import Nested exposing (modifyCmd)
 import NewPerson as NewPerson
-import Pages.PhotoPage as PhotoPage exposing (HasPhotoPage)
-import Pages.SearchPage as SearchPage exposing (HasSearchPage)
-import Pages.SelectPage as SelectPage exposing (HasSelectPage)
-import Pages.WaitingApprovalPage as WaitingApprovalPage exposing (HasWaitingApprovalPage)
+import Pages.PhotoPage as PhotoPage
+import Pages.ReviewPage as ReviewPage
+import Pages.SearchPage as SearchPage
+import Pages.SelectPage as SelectPage
+import Pages.WaitingApprovalPage as WaitingApprovalPage
 import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
@@ -41,6 +42,7 @@ type Msg
     | SelectPage SelectPage.Msg
     | PhotoPage PhotoPage.Msg
     | WaitingApprovalPage WaitingApprovalPage.Msg
+    | ReviewPage ReviewPage.Msg
 
 
 main =
@@ -97,6 +99,9 @@ update msg mdl =
 
         WaitingApprovalPage msg ->
             modifyCmd WaitingApprovalPage <| WaitingApprovalPage.update msg mdl
+
+        ReviewPage msg ->
+            modifyCmd ReviewPage <| ReviewPage.update msg mdl
 
 
 view : Model -> Html Msg
@@ -159,6 +164,9 @@ viewPage mdl =
 
         Router.WaitingApproval ->
             Html.map WaitingApprovalPage <| WaitingApprovalPage.view mdl
+
+        Router.Review ->
+            Html.map ReviewPage <| ReviewPage.view mdl
 
 
 loadingBar : Html msg

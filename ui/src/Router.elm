@@ -3,7 +3,8 @@ module Router exposing (..)
 import Html exposing (Html)
 import Navigation as Nav
 import RouteUrl as Url
-import UrlParser exposing (map, oneOf, parsePath, s)
+import RouteUrl.Builder as Builder
+import UrlParser exposing ((<?>), customParam, map, oneOf, parsePath, top)
 
 
 type Route
@@ -11,6 +12,7 @@ type Route
     | Selected
     | Photo
     | WaitingApproval
+    | Review
 
 
 type Msg
@@ -63,20 +65,48 @@ routeName r =
         WaitingApproval ->
             "waiting"
 
+        Review ->
+            "review"
+
 
 delta2url : HasRoutes m -> HasRoutes m -> Maybe Url.UrlChange
 delta2url old new =
-    Just { url = routeName new.currentRoute, entry = Url.NewEntry }
+    Builder.builder
+        |> Builder.newEntry
+        |> Builder.replaceQuery [ ( "page", routeName new.currentRoute ) ]
+        |> Builder.toUrlChange
+        |> Just
 
 
 location2messages : Nav.Location -> List Msg
 location2messages l =
-    oneOf
-        [ map Search <| s "search"
-        , map Selected <| s "selected"
-        , map Photo <| s "photo"
-        , map WaitingApproval <| s "waiting"
-        ]
+    let
+        pg r =
+            case r of
+                Nothing ->
+                    Search
+
+                Just s ->
+                    case s of
+                        "search" ->
+                            Search
+
+                        "selected" ->
+                            Selected
+
+                        "photo" ->
+                            Photo
+
+                        "waiting" ->
+                            WaitingApproval
+
+                        "review" ->
+                            Review
+
+                        _ ->
+                            Search
+    in
+    (top <?> customParam "page" pg)
         |> flip parsePath l
         |> Maybe.map (List.singleton << SetRoute)
         |> Maybe.withDefault [ SetRoute Search ]
