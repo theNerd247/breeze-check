@@ -17,6 +17,11 @@ type alias HasWaitingApprovalPage m =
     Find.HasFind m
 
 
+update : Msg -> HasWaitingApprovalPage m -> ( HasWaitingApprovalPage m, Cmd Msg )
+update =
+    Find.update
+
+
 view : HasWaitingApprovalPage m -> Html Msg
 view mdl =
     let

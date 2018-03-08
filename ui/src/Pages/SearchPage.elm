@@ -14,6 +14,11 @@ type alias HasSearchPage m =
     Find.HasFind m
 
 
+update : Msg -> HasSearchPage m -> ( HasSearchPage m, Cmd Msg )
+update =
+    Find.update
+
+
 view : HasSearchPage m -> Html Msg
 view mdl =
     let

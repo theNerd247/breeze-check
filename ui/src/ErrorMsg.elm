@@ -31,7 +31,6 @@ type alias Errors =
 
 type Msg
     = CloseError Int
-    | NewError String
 
 
 type alias HasErrors m =
@@ -55,9 +54,6 @@ update msg errs =
     case msg of
         CloseError eid ->
             { errs | errors = List.filter (\x -> x.errorId /= eid) errs.errors }
-
-        NewError e ->
-            newError e errs
 
 
 view : HasErrors m -> Html Msg

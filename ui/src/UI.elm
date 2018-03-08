@@ -1,58 +1,39 @@
 module UI exposing (..)
 
+import ErrorMsg as Err
+import EventName as EventName
+import FindPeople as Find
+import Html as Html exposing (Html)
+import Nested exposing (modifyCmd)
 import NewPerson as NewPerson
-import Pages as Page
-import Pages.NewPersonsPage exposing (..)
-import Pages.PhotoPage exposing (..)
-import Pages.SearchPage exposing (..)
-import Pages.SelectPage exposing (..)
-import Pages.WaitingApprovalPage exposing (..)
-
-
-type Pages
-    = Search
-    | Select
-    | NewPersons
-    | Finished
-    | Photo
+import Pages as Pages exposing (HasPageWrapper, pageWrapper)
+import Pages.PhotoPage as PhotoPage exposing (HasPhotoPage)
+import Pages.SearchPage as SearchPage exposing (HasSearchPage)
+import Pages.SelectPage as SelectPage exposing (HasSelectPage)
+import Pages.WaitingApprovalPage as WaitingApprovalPage exposing (HasWaitingApprovalPage)
+import Router as Router
 
 
 type alias Model =
-    Page.HasMainPage
-        (NewPerson.HasNewFamilies
-            { page : Pages
-            }
-        )
+    Router.HasRoutes (Find.HasFind (NewPerson.HasNewFamilies (EventName.HasEventName {})))
 
 
-type Msg
-    = Find Find.Msg
-    | Err Err.Msg
-    | NewPerson NewPerson.Msg
-    | SetPage Page
-    | GetEventName
-    | EventNameResult (BreezeApi.Msg Data.EventName)
-
-
-main : Program Never Model Msg
 main =
-    program
-        { init = getEventName model
+    Router.mainWithRouter
+        { init = ( model, EventName.GetEventName )
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
         }
+        RouterMsg
 
 
-app : Url.App Model Msg
-app =
-    { init = getEventName model
-    , update = update
-    , view = view
-    , subscriptions = \_ -> Sub.none
-    , delta2url = delta2url
-    , location2messages = location2messages
-    }
+type Msg
+    = RouterMsg Router.Msg
+    | EventNameMsg EventName.Msg
+    | FindMsg Find.Msg
+    | NewPersonMsg NewPerson.Msg
+    | ErrMsg Err.Msg
 
 
 model : Model
@@ -63,10 +44,10 @@ model =
     , foundPeople = []
     , waitingCheckIn = []
     , searchLastName = ""
-    , page = Search
     , eventName = ""
     , personNotFound = False
     , newFamilies = NewPerson.initModel
+    , currentRoute = Router.Search
     }
 
 
@@ -74,32 +55,16 @@ model =
 -- UPDATE
 
 
-delta2url : Model -> Model -> Maybe Url.UrlChange
-delta2url old current =
-    Nothing
-
-
-location2messages : Nav.Location -> List Msg
-location2messages l =
-    []
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg m =
-    let
-        mdl =
-            m
-                |> pageUpdate msg
-                |> setPageUpdate msg
-    in
+update msg mdl =
     case msg of
-        Find msg ->
-            modifyCmd Find <| Find.update msg mdl
+        FindMsg msg ->
+            modifyCmd FindMsg <| Find.update msg mdl
 
-        Err msg ->
+        ErrMsg msg ->
             ( Err.update msg mdl, Cmd.none )
 
-        NewPerson msg ->
+        NewPersonMsg msg ->
             let
                 f m ps =
                     { m
@@ -107,139 +72,28 @@ update msg m =
                             ps
                                 |> List.map (\p -> { p | checkedIn = True })
                                 |> List.append m.waitingCheckIn
-                        , page = Select
                         , searchLastName = ""
                         , personNotFound = False
                     }
             in
-            modifyCmd NewPerson <| NewPerson.update f msg mdl
+            modifyCmd NewPersonMsg <| NewPerson.update f msg mdl
 
         _ ->
             ( mdl, Cmd.none )
 
 
-getEventName : Model -> ( Model, Cmd Msg )
-getEventName mdl =
-    BreezeApi.eventInfo EventNameResult mdl
-
-
-pageUpdate : Msg -> Model -> Model
-pageUpdate msg mdl =
-    case mdl.page of
-        Search ->
-            searchPageUpdate msg mdl
-
-        Select ->
-            selectPageUpdate msg mdl
-
-        Finished ->
-            finishedPageUpdate msg mdl
-
-        Photo ->
-            photoPageUpdate msg mdl
-
-        _ ->
-            mdl
-
-
-setPageUpdate : Msg -> Model -> Model
-setPageUpdate msg mdl =
-    case msg of
-        SetPage p ->
-            { mdl | page = p }
-
-        _ ->
-            mdl
-
-
-
--- UPDATE functions to occur only when on specific pages
-
-
-searchPageUpdate : Msg -> Model -> Model
-searchPageUpdate msg mdl =
-    case msg of
-        Find Find.SearchClick ->
-            { mdl | page = Select }
-
-        _ ->
-            mdl
-
-
-selectPageUpdate : Msg -> Model -> Model
-selectPageUpdate msg mdl =
-    case msg of
-        Find (Find.CheckInResponse (BreezeApi.Recieved (Ok (Ok _)))) ->
-            { mdl | page = Photo }
-
-        _ ->
-            mdl
-
-
-finishedPageUpdate : Msg -> Model -> Model
-finishedPageUpdate msg mdl =
-    case msg of
-        Find Find.CancelCheckInClick ->
-            { mdl | page = Select }
-
-        _ ->
-            mdl
-
-
-photoPageUpdate : Msg -> Model -> Model
-photoPageUpdate msg mdl =
-    case msg of
-        Find Find.CheckInClick ->
-            { mdl | page = Finished }
-
-        _ ->
-            mdl
-
-
-
--- VIEW
-
-
 view : Model -> Html Msg
 view mdl =
-    let
-        titleRow =
-            [ Grid.row [ Row.centerLg ]
-                [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
-                    [ h1 [] [ text mdl.eventName ]
-                    , p [] [ text "Mountain View Church" ]
-                    ]
-                ]
-            ]
+    Pages.pageWrapper mdl ErrMsg <|
+        case mdl.currentRoute of
+            Router.Search ->
+                Html.map SearchPageMsg <| SearchPage.view mdl
 
-        errors =
-            [ Html.map Err <| Err.view mdl
-            ]
+            Router.Selected ->
+                Html.map SelectPageMsg <| SelectPage.view mdl
 
-        page =
-            case mdl.page of
-                Search ->
-                    searchPageView mdl
+            Router.Photo ->
+                Html.map PhotoPageMsg <| PhotoPage.view mdl
 
-                Select ->
-                    selectPageView mdl
-
-                Finished ->
-                    finishedPageView mdl
-
-                NewPersons ->
-                    newPersonsView mdl
-
-                Photo ->
-                    photoView mdl
-
-        body =
-            page
-                |> List.append errors
-                |> List.append titleRow
-    in
-    Grid.containerFluid [ class "clearfix" ]
-        [ Grid.containerFluid [ class "mb-5" ] body
-
-        --, tabs
-        ]
+            Router.WaitingApproval ->
+                Html.map WaitingApprovalPageMsg <| WaitingApprovalPage.view mdl

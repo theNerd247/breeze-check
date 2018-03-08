@@ -29,15 +29,18 @@ import Html.Attributes exposing (class)
 import Platform.Cmd as Cmd
 
 
+type alias HasCheckIn m =
+    { m
+        | searchLastName : String
+        , foundPeople : List Data.Person
+        , waitingCheckIn : List Data.Person
+        , personNotFound : Bool
+        , groupId : Maybe Data.GroupId
+    }
+
+
 type alias HasFind m =
-    BreezeApi.HasBreezeApi
-        { m
-            | searchLastName : String
-            , foundPeople : List Data.Person
-            , waitingCheckIn : List Data.Person
-            , personNotFound : Bool
-            , groupId : Maybe Data.GroupId
-        }
+    BreezeApi.HasBreezeApi (HasCheckIn m)
 
 
 type Msg

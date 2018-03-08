@@ -15,6 +15,11 @@ type alias HasPhotoPage m =
     Find.HasFind m
 
 
+update : Msg -> HasPhotoPage m -> ( HasPhotoPage m, Cmd Msg )
+update =
+    Find.update
+
+
 view : HasPhotoPage m -> Html Msg
 view mdl =
     div []
