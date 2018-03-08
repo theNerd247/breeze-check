@@ -1,6 +1,5 @@
 module UI exposing (..)
 
-import Navigation as Nav
 import NewPerson as NewPerson
 import Pages as Page
 import Pages.NewPersonsPage exposing (..)
@@ -8,7 +7,6 @@ import Pages.PhotoPage exposing (..)
 import Pages.SearchPage exposing (..)
 import Pages.SelectPage exposing (..)
 import Pages.WaitingApprovalPage exposing (..)
-import RouteUrl as Url
 
 
 type Pages

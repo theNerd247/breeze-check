@@ -2,6 +2,11 @@ module Router exposing (..)
 
 import Html exposing (Html)
 import Navigation as Nav
+import Pages as Pages exposing (HasPageWrapper, pageWrapper)
+import Pages.PhotoPage as PhotoPage exposing (HasPhotoPage)
+import Pages.SearchPage as SearchPage exposing (HasSearchPage)
+import Pages.SelectPage as SelectPage exposing (HasSelectPage)
+import Pages.WaitingApprovalPage as WaitingApprovalPage exposing (HasWaitingApprovalPage)
 import RouteUrl as Url
 import UrlParser exposing (map, oneOf, parsePath, s)
 
@@ -15,6 +20,11 @@ type Route
 
 type Msg
     = SetRoute Route
+    | PageWrapperMsg Pages.Msg
+    | SearchPageMsg SearchPage.Msg
+    | SelectPageMsg SelectPage.Msg
+    | PhotoPageMsg PhotoPage.Msg
+    | WaitingApprovalPageMsg WaitingApprovalPage.Msg
 
 
 type alias HasRoutes m =
@@ -39,6 +49,27 @@ mainWithRouter prog f =
         , subscriptions = prog.subscriptions
         , view = prog.view
         }
+
+
+type alias HasPageRouter m =
+    HasRoutes (HasPageWrapper (HasSearchPage (HasSelectPage (HasPhotoPage (HasWaitingApprovalPage m)))))
+
+
+viewPage : HasPageRouter m -> Html Msg
+viewPage mdl =
+    pageWrapper mdl PageWrapperMsg <|
+        case mdl.currentRoute of
+            Search ->
+                Html.map SearchPageMsg <| SearchPage.view mdl
+
+            Selected ->
+                Html.map SelectPageMsg <| SelectPage.view mdl
+
+            Photo ->
+                Html.map PhotoPageMsg <| PhotoPage.view mdl
+
+            WaitingApproval ->
+                Html.map WaitingApprovalPageMsg <| WaitingApprovalPage.view mdl
 
 
 routeName : Route -> String

@@ -11,7 +11,11 @@ type alias Msg =
     NewPerson.Msg
 
 
-view : NewPerson.HasNewFamilies m -> Html Msg
+type alias HasNewPersonsPage m =
+    NewPerson.HasNewFamilies m
+
+
+view : HasNewPersonsPage m -> Html Msg
 view mdl =
     div []
         [ Grid.row [ Row.centerXs ]

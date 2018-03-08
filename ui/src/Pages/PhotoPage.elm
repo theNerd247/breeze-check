@@ -11,7 +11,11 @@ type alias Msg =
     Find.Msg
 
 
-view : Find.HasFind m -> Html Msg
+type alias HasPhotoPage m =
+    Find.HasFind m
+
+
+view : HasPhotoPage m -> Html Msg
 view mdl =
     div []
         [ Grid.row [ Row.centerXs ]

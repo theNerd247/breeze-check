@@ -21,11 +21,15 @@ import Html as Html
 import Html.Attributes exposing (class, for, style)
 
 
-type alias HasMainPage m =
+type alias Msg =
+    Err.Msg
+
+
+type alias HasPageWrapper m =
     BreezeApi.HasBreezeApi (Event.HasEventName m)
 
 
-pageWrapper : HasMainPage m -> (Err.Msg -> msg) -> Html msg -> Html msg
+pageWrapper : HasPageWrapper m -> (Msg -> msg) -> Html msg -> Html msg
 pageWrapper mdl f main =
     let
         titleRow =
@@ -52,10 +56,19 @@ pageWrapper mdl f main =
             else
                 []
 
+        page =
+            [ Grid.row [ Row.centerLg ]
+                [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
+                    [ main
+                    ]
+                ]
+            ]
+
         body =
             errors
                 |> List.append loading
                 |> List.append titleRow
+                |> flip List.append page
     in
     Grid.containerFluid [ class "clearfix" ]
         [ Grid.containerFluid [ class "mb-5" ] body

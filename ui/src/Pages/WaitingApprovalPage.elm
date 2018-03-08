@@ -13,7 +13,11 @@ type alias Msg =
     Find.Msg
 
 
-view : Find.HasFind m -> Html Msg
+type alias HasWaitingApprovalPage m =
+    Find.HasFind m
+
+
+view : HasWaitingApprovalPage m -> Html Msg
 view mdl =
     let
         title =
