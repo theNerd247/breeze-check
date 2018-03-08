@@ -1,26 +1,23 @@
 module UI exposing (..)
 
-import ErrorMsg as Err
-import EventName as EventName
-import FindPeople as Find
+import EventName exposing (Msg(..))
 import Html as Html exposing (Html)
 import Nested exposing (modifyCmd)
-import NewPerson as NewPerson
-import Pages as Pages exposing (HasPageWrapper, pageWrapper)
+import Pages as PageWrapper exposing (HasPageWrapper)
 import Pages.PhotoPage as PhotoPage exposing (HasPhotoPage)
 import Pages.SearchPage as SearchPage exposing (HasSearchPage)
 import Pages.SelectPage as SelectPage exposing (HasSelectPage)
 import Pages.WaitingApprovalPage as WaitingApprovalPage exposing (HasWaitingApprovalPage)
-import Router as Router
+import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
 type alias Model =
-    Router.HasRoutes (Find.HasFind (NewPerson.HasNewFamilies (EventName.HasEventName {})))
+    HasRoutes (HasPageWrapper (HasSearchPage (HasSelectPage (HasPhotoPage (HasWaitingApprovalPage {})))))
 
 
 main =
-    Router.mainWithRouter
-        { init = ( model, EventName.GetEventName )
+    mainWithRouter
+        { init = ( model, PageWrapper GetEventName )
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
@@ -30,10 +27,11 @@ main =
 
 type Msg
     = RouterMsg Router.Msg
-    | EventNameMsg EventName.Msg
-    | FindMsg Find.Msg
-    | NewPersonMsg NewPerson.Msg
-    | ErrMsg Err.Msg
+    | PageWrapper PageWrapper.Msg
+    | SearchPage SearchPage.Msg
+    | SelectPage SelectPage.Msg
+    | PhotoPage PhotoPage.Msg
+    | WaitingApprovalPage WaitingApprovalPage.Msg
 
 
 model : Model
@@ -46,7 +44,7 @@ model =
     , searchLastName = ""
     , eventName = ""
     , personNotFound = False
-    , newFamilies = NewPerson.initModel
+    , newFamilies = []
     , currentRoute = Router.Search
     }
 
@@ -58,42 +56,37 @@ model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg mdl =
     case msg of
-        FindMsg msg ->
-            modifyCmd FindMsg <| Find.update msg mdl
+        RouterMsg msg ->
+            modifyCmd RouterMsg <| Router.update msg mdl
 
-        ErrMsg msg ->
-            ( Err.update msg mdl, Cmd.none )
+        PageWrapper msg ->
+            modifyCmd PageWrapper <| PageWrapper.update msg mdl
 
-        NewPersonMsg msg ->
-            let
-                f m ps =
-                    { m
-                        | waitingCheckIn =
-                            ps
-                                |> List.map (\p -> { p | checkedIn = True })
-                                |> List.append m.waitingCheckIn
-                        , searchLastName = ""
-                        , personNotFound = False
-                    }
-            in
-            modifyCmd NewPersonMsg <| NewPerson.update f msg mdl
+        SearchPage msg ->
+            modifyCmd SearchPage <| SearchPage.update msg mdl
 
-        _ ->
-            ( mdl, Cmd.none )
+        SelectPage msg ->
+            modifyCmd SelectPage <| SelectPage.update msg mdl
+
+        PhotoPage msg ->
+            modifyCmd PhotoPage <| PhotoPage.update msg mdl
+
+        WaitingApprovalPage msg ->
+            modifyCmd WaitingApprovalPage <| WaitingApprovalPage.update msg mdl
 
 
 view : Model -> Html Msg
 view mdl =
-    Pages.pageWrapper mdl ErrMsg <|
+    PageWrapper.view PageWrapper mdl <|
         case mdl.currentRoute of
             Router.Search ->
-                Html.map SearchPageMsg <| SearchPage.view mdl
+                Html.map SearchPage <| SearchPage.view mdl
 
             Router.Selected ->
-                Html.map SelectPageMsg <| SelectPage.view mdl
+                Html.map SelectPage <| SelectPage.view mdl
 
             Router.Photo ->
-                Html.map PhotoPageMsg <| PhotoPage.view mdl
+                Html.map PhotoPage <| PhotoPage.view mdl
 
             Router.WaitingApproval ->
-                Html.map WaitingApprovalPageMsg <| WaitingApprovalPage.view mdl
+                Html.map WaitingApprovalPage <| WaitingApprovalPage.view mdl

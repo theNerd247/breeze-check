@@ -41,6 +41,13 @@ mainWithRouter prog f =
         }
 
 
+update : Msg -> HasRoutes m -> ( HasRoutes m, Cmd Msg )
+update msg mdl =
+    case msg of
+        SetRoute r ->
+            ( { mdl | currentRoute = r }, Cmd.none )
+
+
 routeName : Route -> String
 routeName r =
     case r of

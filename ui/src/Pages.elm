@@ -29,8 +29,13 @@ type alias HasPageWrapper m =
     BreezeApi.HasBreezeApi (Event.HasEventName m)
 
 
-pageWrapper : HasPageWrapper m -> (Msg -> msg) -> Html msg -> Html msg
-pageWrapper mdl f main =
+update : Msg -> HasPageWrapper m -> ( HasPageWrapper m, Cmd Msg )
+update msg mdl =
+    ( Err.update msg mdl, Cmd.none )
+
+
+view : (Msg -> msg) -> HasPageWrapper m -> Html msg -> Html msg
+view f mdl main =
     let
         titleRow =
             [ Grid.row [ Row.centerLg ]
