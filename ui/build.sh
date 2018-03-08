@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -e -x
 
+version=$1
+
 if [[ -z $1 ]]; then
-  echo "You need a version string to build the elm app!"
-  exit 1
+  version=$(grep "version.\?=" ../ui/default.nix | sed -e 's/.*"\(.*\)";/\1/')
 fi
 
-version=$1
 
 function buildMain() {
   elm make --output "build/$2.$version.js" "src/$1.elm"
