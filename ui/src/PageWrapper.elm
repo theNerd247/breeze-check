@@ -1,4 +1,4 @@
-module Pages exposing (..)
+module PageWrapper exposing (..)
 
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -19,19 +19,31 @@ import Html as Html
         , text
         )
 import Html.Attributes exposing (class, for, style)
+import Nested exposing (modifyCmd)
 
 
-type alias Msg =
-    Err.Msg
+type Msg
+    = Error Err.Msg
+    | EventName Event.Msg
 
 
 type alias HasPageWrapper m =
     BreezeApi.HasBreezeApi (Event.HasEventName m)
 
 
+initPages : HasPageWrapper m -> ( HasPageWrapper m, Cmd Msg )
+initPages mdl =
+    ( mdl, Cmd.map (always (EventName Event.GetEventName)) Cmd.none )
+
+
 update : Msg -> HasPageWrapper m -> ( HasPageWrapper m, Cmd Msg )
 update msg mdl =
-    ( Err.update msg mdl, Cmd.none )
+    case msg of
+        Error msg ->
+            ( Err.update msg mdl, Cmd.none )
+
+        EventName msg ->
+            modifyCmd EventName <| Event.update msg mdl
 
 
 view : (Msg -> msg) -> HasPageWrapper m -> Html msg -> Html msg
@@ -47,7 +59,7 @@ view f mdl main =
             ]
 
         errors =
-            [ Html.map f <| Err.view mdl
+            [ Html.map (f << Error) <| Err.view mdl
             ]
 
         loading =

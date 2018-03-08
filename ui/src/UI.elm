@@ -1,9 +1,10 @@
 module UI exposing (..)
 
-import EventName exposing (Msg(..))
+import FindPeople as Find
 import Html as Html exposing (Html)
 import Nested exposing (modifyCmd)
-import Pages as PageWrapper exposing (HasPageWrapper)
+import NewPerson as NewPerson
+import PageWrapper as PageWrapper exposing (HasPageWrapper)
 import Pages.PhotoPage as PhotoPage exposing (HasPhotoPage)
 import Pages.SearchPage as SearchPage exposing (HasSearchPage)
 import Pages.SelectPage as SelectPage exposing (HasSelectPage)
@@ -12,17 +13,7 @@ import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
 type alias Model =
-    HasRoutes (HasPageWrapper (HasSearchPage (HasSelectPage (HasPhotoPage (HasWaitingApprovalPage {})))))
-
-
-main =
-    mainWithRouter
-        { init = ( model, PageWrapper GetEventName )
-        , update = update
-        , view = view
-        , subscriptions = \_ -> Sub.none
-        }
-        RouterMsg
+    HasRoutes (HasPageWrapper (Find.HasFind (NewPerson.HasNewFamilies {})))
 
 
 type Msg
@@ -32,6 +23,17 @@ type Msg
     | SelectPage SelectPage.Msg
     | PhotoPage PhotoPage.Msg
     | WaitingApprovalPage WaitingApprovalPage.Msg
+
+
+main =
+    --Html.program
+    mainWithRouter
+        { init = modifyCmd PageWrapper <| PageWrapper.initPages model
+        , update = update
+        , view = view
+        , subscriptions = \_ -> Sub.none
+        }
+        RouterMsg
 
 
 model : Model
@@ -44,7 +46,7 @@ model =
     , searchLastName = ""
     , eventName = ""
     , personNotFound = False
-    , newFamilies = []
+    , newFamilies = NewPerson.initModel
     , currentRoute = Router.Search
     }
 
