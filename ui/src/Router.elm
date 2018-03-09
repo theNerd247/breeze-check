@@ -69,6 +69,11 @@ routeName r =
             "review"
 
 
+setRoute : HasRoutes m -> Route -> HasRoutes m
+setRoute mdl r =
+    { mdl | currentRoute = r }
+
+
 delta2url : HasRoutes m -> HasRoutes m -> Maybe Url.UrlChange
 delta2url old new =
     Builder.builder

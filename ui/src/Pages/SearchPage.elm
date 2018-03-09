@@ -2,7 +2,6 @@ module Pages.SearchPage exposing (..)
 
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
-import BreezeApi exposing (Msg(..))
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, text)
 import Router as Router
@@ -18,16 +17,9 @@ type alias HasSearchPage m =
 
 update : Msg -> HasSearchPage m -> ( HasSearchPage m, Cmd Msg )
 update msg mdl =
-    let
-        m =
-            case msg of
-                Find.SearchResult (Recieved (Ok (Ok _))) ->
-                    { mdl | currentRoute = Router.Selected }
-
-                _ ->
-                    mdl
-    in
-    Find.update msg m
+    Find.update msg <|
+        Find.afterSearch msg mdl <|
+            Router.setRoute mdl Router.Selected
 
 
 view : HasSearchPage m -> Html Msg

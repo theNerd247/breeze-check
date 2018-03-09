@@ -73,7 +73,7 @@ model =
 
 initPages : Model -> ( Model, Cmd Msg )
 initPages mdl =
-    ( mdl, Cmd.map (always (EventName Event.GetEventName)) Cmd.none )
+    modifyCmd EventName <| Event.update Event.GetEventName mdl
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

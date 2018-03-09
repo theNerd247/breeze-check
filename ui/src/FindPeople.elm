@@ -45,7 +45,7 @@ type alias HasFind m =
 type Msg
     = UpdateSearchLastName String
     | SearchClick
-    | SearchResult (BreezeApi.Msg (List Data.Person))
+    | SearchResponse (BreezeApi.Msg (List Data.Person))
     | ToggleAttending Data.PersonId
     | CheckInClick
     | CheckInResponse (BreezeApi.Msg Data.GroupId)
@@ -57,6 +57,36 @@ type Msg
 -- UPDATE:
 
 
+afterSearch : Msg -> HasFind m -> HasFind m -> HasFind m
+afterSearch msg a b =
+    case msg of
+        SearchResponse (BreezeApi.Recieved (Ok (Ok _))) ->
+            b
+
+        _ ->
+            a
+
+
+afterCheckIn : Msg -> HasFind m -> HasFind m -> HasFind m
+afterCheckIn msg a b =
+    case msg of
+        CheckInResponse (BreezeApi.Recieved (Ok (Ok _))) ->
+            b
+
+        _ ->
+            a
+
+
+afterCancel : Msg -> HasFind m -> HasFind m -> HasFind m
+afterCancel msg a b =
+    case msg of
+        CancelCheckInResponse (BreezeApi.Recieved (Ok (Ok _))) ->
+            b
+
+        _ ->
+            a
+
+
 update : Msg -> HasFind m -> ( HasFind m, Cmd Msg )
 update msg mdl =
     case msg of
@@ -66,7 +96,7 @@ update msg mdl =
         SearchClick ->
             searchClick mdl
 
-        SearchResult r ->
+        SearchResponse r ->
             BreezeApi.update searchResult r mdl
 
         ToggleAttending pid ->
@@ -92,7 +122,7 @@ updateSearchLastName mdl s =
 
 searchClick : HasFind m -> ( HasFind m, Cmd Msg )
 searchClick mdl =
-    BreezeApi.findPeople SearchResult mdl.searchLastName mdl
+    BreezeApi.findPeople SearchResponse mdl.searchLastName mdl
 
 
 searchResult : List Data.Person -> HasFind m -> ( HasFind m, Cmd Msg )
@@ -122,33 +152,24 @@ toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
 toggleAttending mdl pid =
     let
         ( chin, fnd ) =
-            toggleCheckIn pid ( mdl.waitingCheckIn, mdl.foundPeople )
+            toggleCheckIn pid mdl.foundPeople
     in
     ( { mdl | waitingCheckIn = chin, foundPeople = fnd }, Cmd.none )
 
 
-toggleCheckIn : Data.PersonId -> ( List Data.Person, List Data.Person ) -> ( List Data.Person, List Data.Person )
-toggleCheckIn pid ( chkin, found ) =
+toggleCheckIn : Data.PersonId -> List Data.Person -> ( List Data.Person, List Data.Person )
+toggleCheckIn pid found =
     let
-        personFilter p =
-            p.pid == pid
-
         toggleAttend p =
-            { p | checkedIn = not p.checkedIn }
+            if p.pid == pid then
+                { p | checkedIn = not p.checkedIn }
+            else
+                p
 
-        ( ci, co ) =
-            List.partition personFilter chkin
-
-        ( fi, fo ) =
-            List.partition personFilter found
-
-        newChkin =
-            List.append (List.map toggleAttend fi) co
-
-        newFound =
-            List.append (List.map toggleAttend ci) fo
+        f =
+            List.map toggleAttend found
     in
-    ( newChkin, newFound )
+    ( List.filter .checkedIn f, f )
 
 
 checkInResponse : Data.GroupId -> HasFind m -> ( HasFind m, Cmd Msg )

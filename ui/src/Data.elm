@@ -314,10 +314,12 @@ personView selected p =
     let
         icon =
             if p.checkedIn then
-                [ class "far fa-check-square text-success" ]
+                []
+                --[ class "far fa-check-square text-success" ]
             else
-                [ class "far fa-square" ]
+                []
 
+        --[ class "far fa-square" ]
         checkBox =
             case selected of
                 Nothing ->
