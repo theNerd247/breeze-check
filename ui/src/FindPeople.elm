@@ -232,8 +232,6 @@ searchResultsView mdl =
         Data.listPersonView (Just ToggleAttending) mdl.foundPeople
 
 
-
-
 checkInButton : Html Msg
 checkInButton =
     Button.button
