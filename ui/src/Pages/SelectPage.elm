@@ -31,14 +31,14 @@ view mdl =
                     ]
                 ]
 
-        found =
+        results =
             Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
                 [ Grid.col [ Col.xs12 ] <|
-                    [ Find.foundPeopleView mdl
+                    [ Find.searchResultsView mdl
                     ]
                 ]
     in
     div []
         [ title
-        , found
+        , results
         ]

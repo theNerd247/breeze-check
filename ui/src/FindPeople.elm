@@ -221,8 +221,8 @@ waitingCheckInView mdl =
     Data.listPersonView (Just ToggleAttending) mdl.waitingCheckIn
 
 
-foundPeopleView : HasFind m -> Html Msg
-foundPeopleView mdl =
+searchResultsView : HasFind m -> Html Msg
+searchResultsView mdl =
     if mdl.personNotFound then
         div []
             [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
@@ -230,6 +230,8 @@ foundPeopleView mdl =
             ]
     else
         Data.listPersonView (Just ToggleAttending) mdl.foundPeople
+
+
 
 
 checkInButton : Html Msg
