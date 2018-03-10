@@ -1,4 +1,4 @@
-module Pages.ReviewPage exposing (..)
+module Pages.CartPage exposing (..)
 
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col

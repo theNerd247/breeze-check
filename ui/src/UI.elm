@@ -3,6 +3,7 @@ module UI exposing (..)
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Navbar as Navbar
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import ErrorMsg as Err
@@ -11,19 +12,22 @@ import FindPeople as Find
 import Html as Html
     exposing
         ( Html
+        , body
         , div
         , h1
         , h2
         , h3
         , h4
+        , header
         , p
         , text
         )
 import Html.Attributes exposing (class, for, style)
-import Nested exposing (modifyCmd)
+import Html.Events exposing (onClick)
+import Nested exposing (modifyCmd, modifyMdl)
 import NewPerson as NewPerson
+import Pages.CartPage as CartPage
 import Pages.PhotoPage as PhotoPage
-import Pages.ReviewPage as ReviewPage
 import Pages.SearchPage as SearchPage
 import Pages.SelectPage as SelectPage
 import Pages.WaitingApprovalPage as WaitingApprovalPage
@@ -32,7 +36,17 @@ import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
 type alias Model =
-    HasRoutes (BreezeApi.HasBreezeApi (Event.HasEventName (Find.HasFind (NewPerson.HasNewFamilies {}))))
+    HasRoutes
+        (BreezeApi.HasBreezeApi
+            (Event.HasEventName
+                (Find.HasFind
+                    (NewPerson.HasNewFamilies
+                        { navbarState : Navbar.State
+                        }
+                    )
+                )
+            )
+        )
 
 
 type Msg
@@ -43,13 +57,14 @@ type Msg
     | SelectPage SelectPage.Msg
     | PhotoPage PhotoPage.Msg
     | WaitingApprovalPage WaitingApprovalPage.Msg
-    | ReviewPage ReviewPage.Msg
+    | CartPage CartPage.Msg
+    | NavbarMsg Navbar.State
 
 
 main =
     --Html.program
     mainWithRouter
-        { init = initPages model
+        { init = init
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
@@ -57,24 +72,35 @@ main =
         RouterMsg
 
 
-model : Model
-model =
-    { errors = []
-    , loadingStatus = BreezeApi.initLoadingStatus
-    , groupId = Nothing
-    , foundPeople = []
-    , waitingCheckIn = []
-    , searchLastName = ""
-    , eventName = ""
-    , personNotFound = False
-    , newFamilies = NewPerson.initModel
-    , currentRoute = Router.Home
-    }
+init : ( Model, Cmd Msg )
+init =
+    let
+        ( navstate, navmsg ) =
+            Navbar.initialState NavbarMsg
 
+        ( mdl, eventMsg ) =
+            modifyCmd EventName <| Event.update Event.GetEventName m
 
-initPages : Model -> ( Model, Cmd Msg )
-initPages mdl =
-    modifyCmd EventName <| Event.update Event.GetEventName mdl
+        m =
+            { errors = []
+            , loadingStatus = BreezeApi.initLoadingStatus
+            , groupId = Nothing
+            , foundPeople = []
+            , waitingCheckIn = []
+            , searchLastName = ""
+            , eventName = ""
+            , personNotFound = False
+            , newFamilies = NewPerson.initModel
+            , currentRoute = Router.Home
+            , navbarState = navstate
+            }
+    in
+    ( mdl
+    , Cmd.batch
+        [ eventMsg
+        , navmsg
+        ]
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,53 +127,85 @@ update msg mdl =
         WaitingApprovalPage msg ->
             modifyCmd WaitingApprovalPage <| WaitingApprovalPage.update msg mdl
 
-        ReviewPage msg ->
-            modifyCmd ReviewPage <| ReviewPage.update msg mdl
+        CartPage msg ->
+            modifyCmd CartPage <| CartPage.update msg mdl
+
+        NavbarMsg state ->
+            ( { mdl | navbarState = state }, Cmd.none )
 
 view : Model -> Html Msg
 view mdl =
     let
-        titleRow =
-            [ Grid.row [ Row.centerLg ]
-                [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
-                    [ h1 [] [ text mdl.eventName ]
-                    , p [] [ text "Mountain View Church" ]
-                    ]
-                ]
-            ]
-
         errors =
-            [ Html.map Error <| Err.view mdl
-            ]
+            Html.map Error <| Err.view mdl
 
         loading =
             if mdl.loadingStatus == BreezeApi.Waiting then
-                [ Grid.row [ Row.centerXs ]
+                Grid.row [ Row.centerXs ]
                     [ Grid.col [ Col.xs12 ]
                         [ loadingBar
                         ]
                     ]
-                ]
             else
-                []
+                div [] []
 
         page =
-            [ Grid.row [ Row.centerLg ]
+            Grid.row [ Row.centerLg ]
                 [ Grid.col [ Col.lg8, Col.attrs [ class "text-center" ] ]
                     [ viewPage mdl
                     ]
                 ]
-            ]
 
-        body =
-            errors
-                |> List.append loading
-                |> List.append titleRow
-                |> flip List.append page
+        navbar =
+            Navbar.config NavbarMsg
+                |> Navbar.brand []
+                    [ h3 [] [ text <| pageTitle mdl ] ]
+                |> Navbar.items
+                    --TODO: replace with home link
+                    [ Navbar.itemLink [ onClick <| routeMsg Router.Home ] [ text "Home" ]
+                    , Navbar.itemLink [ onClick <| routeMsg Router.Search ] [ text "Search" ]
+                    , Navbar.itemLink [ onClick <| routeMsg Router.Cart ] [ text "Cart" ]
+                    ]
+                |> Navbar.view mdl.navbarState
     in
-    Grid.containerFluid [ class "clearfix" ]
-        [ Grid.containerFluid [ class "mb-5" ] body
+    body []
+        [ header [] [ navbar ]
+        , Grid.containerFluid []
+            [ errors
+            , loading
+            , viewPage mdl
+            ]
         ]
+
+
+routeMsg : Router.Route -> Msg
+routeMsg =
+    RouterMsg << Router.SetRoute
+
+
+pageTitle : Model -> String
+pageTitle mdl =
+    case mdl.currentRoute of
+        Router.Search ->
+            "Search"
+
+        Router.Selected ->
+            "Results"
+
+        Router.Photo ->
+            "Photo Waiver"
+
+        Router.Safety ->
+            "Safety Agreement"
+
+        Router.WaitingApproval ->
+            "Done"
+
+        Router.Cart ->
+            "Check-in Cart"
+
+        Router.Home ->
+            "Home"
 
 
 viewPage : Model -> Html Msg
@@ -165,11 +223,15 @@ viewPage mdl =
         Router.WaitingApproval ->
             Html.map WaitingApprovalPage <| WaitingApprovalPage.view mdl
 
-        Router.Review ->
-            Html.map ReviewPage <| ReviewPage.view mdl
+        Router.Cart ->
+            Html.map CartPage <| CartPage.view mdl
 
         Router.Home ->
             Html.map RouterMsg <| HomePage.view mdl.eventName
+
+        -- TODO: remove once we have handlers for all routes
+        _ ->
+            div [] []
 
 
 

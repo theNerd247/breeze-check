@@ -39,16 +39,17 @@ view eventName = div [] [
               , brf
               , brf
               , p [] [text "Let's get you checked in!"]
+              , Button.button
+                 [ Button.onClick <| Router.SetRoute Router.Search
+                 , Button.large
+                 , Button.outlineSuccess
+                 ]
+                 [
+                   text "Check-in  "
+                   , Html.i [ class "fas fa-sign-in-alt" ] []
+                 ]
           ]
 
-           , Button.button
-              [ Button.onClick <| Router.SetRoute Router.Search
-              , Button.large
-              , Button.outlineSuccess
-              ]
-              [
-                text "Check-in  "
-                , Html.i [ class "fas fa-sign-in-alt" ] []
-              ]
+
 
           ]
