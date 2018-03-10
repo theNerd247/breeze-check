@@ -15,4 +15,4 @@ function buildMain() {
 mkdir -p build
 
 buildMain "UI" "elm"
-buildMain "Admin" "elm-admin"
+#buildMain "Admin" "elm-admin"

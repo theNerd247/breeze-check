@@ -11,8 +11,9 @@ type Route
     = Search
     | Selected
     | Photo
+    | Safety
     | WaitingApproval
-    | Review
+    | Cart
 
 
 type Msg
@@ -65,8 +66,11 @@ routeName r =
         WaitingApproval ->
             "waiting"
 
-        Review ->
-            "review"
+        Cart ->
+            "cart"
+
+        Safety ->
+            "safety"
 
 
 setRoute : HasRoutes m -> Route -> HasRoutes m
@@ -105,8 +109,11 @@ location2messages l =
                         "waiting" ->
                             WaitingApproval
 
-                        "review" ->
-                            Review
+                        "cart" ->
+                            Cart
+
+                        "safety" ->
+                            Safety
 
                         _ ->
                             Search
