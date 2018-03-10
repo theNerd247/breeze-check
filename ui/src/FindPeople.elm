@@ -25,6 +25,7 @@ import Html as Html
         , text
         )
 import Html.Attributes exposing (class)
+import ListPerson as LP
 import Platform.Cmd as Cmd
 
 
@@ -51,6 +52,7 @@ type Msg
     | CheckInResponse (BreezeApi.Msg Data.GroupId)
     | CancelCheckInClick
     | CancelCheckInResponse (BreezeApi.Msg Bool)
+    | SetWantsPhoto Data.PersonId Bool
 
 
 
@@ -114,6 +116,9 @@ update msg mdl =
         CancelCheckInResponse r ->
             BreezeApi.update cancelCheckinResponse r mdl
 
+        SetWantsPhoto pid b ->
+            updateWantsPhotos mdl pid b
+
 
 updateSearchLastName : HasFind m -> String -> ( HasFind m, Cmd Msg )
 updateSearchLastName mdl s =
@@ -146,6 +151,24 @@ searchResult ppl mdl =
             not <| List.member p.pid pids
     in
     ( mp ppl, Cmd.none )
+
+
+updateWantsPhotos : HasFind m -> Data.PersonId -> Bool -> ( HasFind m, Cmd Msg )
+updateWantsPhotos mdl pid b =
+    let
+        setWantsPhotos p =
+            if p.pid == pid then
+                { p
+                    | wantsPhotos = b
+                }
+            else
+                p
+    in
+    ( { mdl
+        | waitingCheckIn = List.map setWantsPhotos mdl.waitingCheckIn
+      }
+    , Cmd.none
+    )
 
 
 toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
@@ -218,7 +241,10 @@ searchPersonsForm mdl =
 
 waitingCheckInView : HasFind m -> Html Msg
 waitingCheckInView mdl =
-    Data.listPersonView (Just ToggleAttending) mdl.waitingCheckIn
+    LP.config
+        |> LP.withClick ToggleAttending
+        |> LP.extras LP.checkedInIcon
+        |> LP.view mdl.waitingCheckIn
 
 
 searchResultsView : HasFind m -> Html Msg
@@ -229,7 +255,10 @@ searchResultsView mdl =
             , h5 [ class "text-center" ] [ text mdl.searchLastName ]
             ]
     else
-        Data.listPersonView (Just ToggleAttending) mdl.foundPeople
+        LP.config
+            |> LP.withClick ToggleAttending
+            |> LP.extras LP.checkedInIcon
+            |> LP.view mdl.foundPeople
 
 
 checkInButton : Html Msg

@@ -120,7 +120,7 @@ data Person = Person
   , _personName :: Name
   , _checkedIn :: CheckInStatus
   , _newPersonInfo :: Maybe NewPersonInfo
-  , _noPhoto :: Bool
+  , _wantsPhotos :: Bool
   } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
@@ -134,7 +134,7 @@ instance FromJSON Person where
     <*> o .: "name"
     <*> (o .: "checkedIn" >>= return . toCheckin)
     <*> o .: "newPersonInfo"
-    <*> o .: "noPhoto"
+    <*> o .: "wantsPhotos"
     where
       toCheckin True = CheckedIn
       toCheckin False = CheckedOut
@@ -146,7 +146,7 @@ instance ToJSON Person where
     , "name" .= (p^.personName)
     , "checkedIn" .= (p^.checkedIn.to checkInStatusBool)
     , "newPersonInfo" .= (Nothing :: Maybe String)
-    , "noPhoto" .= (p^.noPhoto)
+    , "wantsPhotos" .= (p^.wantsPhotos)
     ]
     where
       checkInStatusBool CheckedOut = False

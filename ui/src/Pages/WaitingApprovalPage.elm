@@ -3,10 +3,10 @@ module Pages.WaitingApprovalPage exposing (..)
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Data exposing (listPersonView)
 import FindPeople as Find
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
+import ListPerson as LP
 
 
 type alias Msg =
@@ -73,5 +73,5 @@ view mdl =
                 , groupId gid
                 , cancelCheckin
                 , checkInTitle
-                , listPersonView Nothing mdl.waitingCheckIn
+                , LP.onlyListPersons mdl.waitingCheckIn
                 ]
