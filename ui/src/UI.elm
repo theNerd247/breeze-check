@@ -27,6 +27,7 @@ import Pages.ReviewPage as ReviewPage
 import Pages.SearchPage as SearchPage
 import Pages.SelectPage as SelectPage
 import Pages.WaitingApprovalPage as WaitingApprovalPage
+import Pages.HomePage as HomePage
 import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
@@ -67,7 +68,7 @@ model =
     , eventName = ""
     , personNotFound = False
     , newFamilies = NewPerson.initModel
-    , currentRoute = Router.Search
+    , currentRoute = Router.Home
     }
 
 
@@ -102,7 +103,6 @@ update msg mdl =
 
         ReviewPage msg ->
             modifyCmd ReviewPage <| ReviewPage.update msg mdl
-
 
 view : Model -> Html Msg
 view mdl =
@@ -167,6 +167,11 @@ viewPage mdl =
 
         Router.Review ->
             Html.map ReviewPage <| ReviewPage.view mdl
+
+        Router.Home ->
+            Html.map RouterMsg <| HomePage.view mdl.eventName
+
+
 
 
 loadingBar : Html msg

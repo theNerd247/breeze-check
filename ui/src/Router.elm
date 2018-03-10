@@ -13,6 +13,7 @@ type Route
     | Photo
     | WaitingApproval
     | Review
+    | Home
 
 
 type Msg
@@ -68,6 +69,9 @@ routeName r =
         Review ->
             "review"
 
+        Home ->
+            "home"
+
 
 setRoute : HasRoutes m -> Route -> HasRoutes m
 setRoute mdl r =
@@ -107,6 +111,9 @@ location2messages l =
 
                         "review" ->
                             Review
+
+                        "home" ->
+                            Home
 
                         _ ->
                             Search
