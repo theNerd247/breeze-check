@@ -1,11 +1,5 @@
 module Data exposing (..)
 
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.ListGroup as ListGroup
-import Html as Html
-import Html.Attributes exposing (class, for)
-import Html.Events exposing (onClick)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode as Encode
@@ -221,7 +215,7 @@ type alias NoPicture =
 
 
 type alias HasNoPicture m =
-    { m | noPhoto : Bool }
+    { m | wantsPhotos : Bool }
 
 
 decodeNoPicture : Decoder NoPicture
@@ -250,7 +244,7 @@ initNewPerson =
     , checkedIn = False
     , newPersonInfo = Nothing
     , name = initName
-    , noPhoto = False
+    , wantsPhotos = False
     }
 
 
@@ -267,12 +261,12 @@ decodePerson =
             , pid = p
             , checkedIn = False
             , newPersonInfo = Nothing
-            , noPhoto = nopic
+            , wantsPhotos = nopic
             }
         )
         |> required "pid" string
         |> required "name" decodeName
-        |> required "noPhoto" decodeNoPicture
+        |> required "wantsPhotos" decodeNoPicture
 
 
 decodePersons : Decoder (List Person)
@@ -291,57 +285,10 @@ encodePerson p =
                 |> Maybe.map encodeNewPersonInfo
                 |> Maybe.withDefault Encode.null
           )
-        , ( "noPhoto", Encode.bool p.noPhoto )
+        , ( "wantsPhotos", Encode.bool p.wantsPhotos )
         ]
 
 
 encodePersons : List Person -> Encode.Value
 encodePersons =
     Encode.list << List.map encodePerson
-
-
-
--- VIEW
-
-
-listPersonView : Maybe (PersonId -> msg) -> List Person -> Html.Html msg
-listPersonView selected =
-    List.map (personView selected >> List.singleton >> ListGroup.li []) >> ListGroup.ul
-
-
-personView : Maybe (PersonId -> msg) -> Person -> Html.Html msg
-personView selected p =
-    let
-        icon =
-            if p.checkedIn then
-                []
-                --[ class "far fa-check-square text-success" ]
-            else
-                []
-
-        --[ class "far fa-square" ]
-        checkBox =
-            case selected of
-                Nothing ->
-                    []
-
-                _ ->
-                    [ Grid.col [ Col.xs2, Col.pushXs5 ] [ Html.i icon [] ] ]
-
-        withClick x =
-            case selected of
-                Nothing ->
-                    x
-
-                Just f ->
-                    Html.a [ onClick (f p.pid) ] [ x ]
-    in
-    withClick <|
-        Grid.containerFluid
-            []
-            [ [ Grid.col [ Col.xs5 ] [ Html.text p.name.firstName ]
-              , Grid.col [ Col.xs5 ] [ Html.text p.name.lastName ]
-              ]
-                |> flip List.append checkBox
-                |> Grid.row []
-            ]

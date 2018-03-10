@@ -5,6 +5,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import FindPeople as Find
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
+import ListPerson as LP
 
 
 type alias Msg =
@@ -38,6 +39,11 @@ view mdl =
                 , p []
                     [ Html.b [] [ text "We won't publish any names or contant information!" ]
                     ]
+                ]
+            ]
+        , Grid.row [ Row.centerXs ]
+            [ Grid.col [ Col.xsAuto ]
+                [ LP.onlyListPersons mdl.waitingCheckIn
                 ]
             ]
         , Grid.row [ Row.centerXs ]
