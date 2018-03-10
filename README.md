@@ -29,6 +29,6 @@ To build the elm UI run
 
     nix-build -A breeze-check
 
-Run the web app locally do
+Run the web app locally run the following from the root of the project:
 
-    ./result/bin/breeze-login
+    ./run.sh
