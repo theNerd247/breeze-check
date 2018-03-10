@@ -13,6 +13,6 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/js
-    cp elm*.*.js $out/js/
+    cp build/elm*.*.js $out/js/
   '';
 }
