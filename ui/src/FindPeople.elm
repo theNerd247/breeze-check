@@ -199,23 +199,19 @@ searchPersonsForm mdl =
                         ]
                     )
                     |> InputGroup.large
+                    |> InputGroup.successors
+                        [ InputGroup.button
+                            [ Button.onClick SearchClick
+                            , Button.large
+                            , Button.outlinePrimary
+                            ]
+                            [ Html.i [ class "fas fa-search" ] []
+
+                            --, text " Search"
+                            ]
+                        ]
                     |> InputGroup.view
                 ]
-            ]
-        , Form.row [ Row.centerXs ]
-            [ Form.col [ Col.xsAuto ] <|
-                if not <| String.isEmpty mdl.searchLastName then
-                    [ Button.button
-                        [ Button.onClick SearchClick
-                        , Button.large
-                        , Button.outlinePrimary
-                        ]
-                        [ Html.i [ class "fas fa-search" ] []
-                        , text " Search"
-                        ]
-                    ]
-                else
-                    []
             ]
         ]
 
