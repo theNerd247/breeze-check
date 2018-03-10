@@ -13,6 +13,7 @@ type Route
     | Photo
     | Safety
     | WaitingApproval
+    | Home
     | Cart
 
 
@@ -72,6 +73,9 @@ routeName r =
         Safety ->
             "safety"
 
+        Home ->
+            "home"
+
 
 setRoute : HasRoutes m -> Route -> HasRoutes m
 setRoute mdl r =
@@ -114,6 +118,9 @@ location2messages l =
 
                         "safety" ->
                             Safety
+
+                        "home" ->
+                            Home
 
                         _ ->
                             Search

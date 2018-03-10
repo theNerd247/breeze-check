@@ -31,6 +31,7 @@ import Pages.PhotoPage as PhotoPage
 import Pages.SearchPage as SearchPage
 import Pages.SelectPage as SelectPage
 import Pages.WaitingApprovalPage as WaitingApprovalPage
+import Pages.HomePage as HomePage
 import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
@@ -90,7 +91,7 @@ init =
             , eventName = ""
             , personNotFound = False
             , newFamilies = NewPerson.initModel
-            , currentRoute = Router.Search
+            , currentRoute = Router.Home
             , navbarState = navstate
             }
     in
@@ -132,7 +133,6 @@ update msg mdl =
         NavbarMsg state ->
             ( { mdl | navbarState = state }, Cmd.none )
 
-
 view : Model -> Html Msg
 view mdl =
     let
@@ -162,7 +162,7 @@ view mdl =
                     [ h3 [] [ text <| pageTitle mdl ] ]
                 |> Navbar.items
                     --TODO: replace with home link
-                    [ Navbar.itemLink [ onClick <| routeMsg Router.Search ] [ text "Home" ]
+                    [ Navbar.itemLink [ onClick <| routeMsg Router.Home ] [ text "Home" ]
                     , Navbar.itemLink [ onClick <| routeMsg Router.Search ] [ text "Search" ]
                     , Navbar.itemLink [ onClick <| routeMsg Router.Cart ] [ text "Cart" ]
                     ]
@@ -204,6 +204,9 @@ pageTitle mdl =
         Router.Cart ->
             "Check-in Cart"
 
+        Router.Home ->
+            "Home"
+
 
 viewPage : Model -> Html Msg
 viewPage mdl =
@@ -223,9 +226,14 @@ viewPage mdl =
         Router.Cart ->
             Html.map CartPage <| CartPage.view mdl
 
+        Router.Home ->
+            Html.map RouterMsg <| HomePage.view mdl.eventName
+
         -- TODO: remove once we have handlers for all routes
         _ ->
             div [] []
+
+
 
 
 loadingBar : Html msg
