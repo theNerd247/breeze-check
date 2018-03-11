@@ -63,7 +63,8 @@ view =
 
 errorView : Error -> Html Msg
 errorView msg =
-    Alert.info
+    Alert.simpleInfo
+        []
         [ text msg.errorMsg
         , button [ class "close", onClick (CloseError msg.errorId) ] [ text "x" ]
         ]
