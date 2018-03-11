@@ -247,8 +247,8 @@ waitingCheckInView mdl =
         |> LP.view mdl.waitingCheckIn
 
 
-foundPeopleView : HasFind m -> Html Msg
-foundPeopleView mdl =
+searchResultsView : HasFind m -> Html Msg
+searchResultsView mdl =
     if mdl.personNotFound then
         div []
             [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
