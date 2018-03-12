@@ -1,5 +1,6 @@
 module Pages.PhotoPage exposing (..)
 
+import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -50,7 +51,18 @@ view mdl =
             ]
         , Grid.row [ Row.centerXs ]
             [ Grid.col [ Col.xsAuto ]
-                [ Find.checkInButton
+                [ checkInButton
                 ]
             ]
+        ]
+
+
+checkInButton : Html Msg
+checkInButton =
+    Button.button
+        [ Button.success
+        , Button.block
+        , Button.onClick Find.CheckInClick
+        ]
+        [ text "Check In "
         ]

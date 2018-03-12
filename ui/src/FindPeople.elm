@@ -221,19 +221,6 @@ searchResultsView mdl =
             |> Html.map SelectPersonsMsg
 
 
-checkInButton : Html Msg
-checkInButton =
-    Button.button
-        [ Button.success
-        , Button.block
-        , Button.onClick CheckInClick
-        ]
-        [ text "Check In "
-
-        --, Html.i [ class "fas fa-sign-in-alt" ] []
-        ]
-
-
 cancelCheckInButton : Html Msg
 cancelCheckInButton =
     Button.button

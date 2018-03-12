@@ -14,7 +14,7 @@ import Router as Router
 
 type Msg
     = FindMsg Find.Msg
-    | GoToPhoto
+    | Continue
 
 
 type alias HasSelectPage m =
@@ -27,8 +27,8 @@ update msg mdl =
         FindMsg msg ->
             modifyCmd FindMsg <| Find.update msg mdl
 
-        GoToPhoto ->
-            ( Router.setRoute mdl Router.Photo, Cmd.none )
+        Continue ->
+            ( Router.setRoute mdl Router.Cart, Cmd.none )
 
 
 view : HasSelectPage m -> Html Msg
@@ -75,7 +75,7 @@ continue numSelected =
                 [ Grid.col [ Col.xs12 ]
                     [ div [ class "text-center", class "align-text-bottom" ]
                         [ Button.button
-                            [ Button.onClick <| GoToPhoto
+                            [ Button.onClick <| Continue
                             , Button.outlineSuccess
                             , Button.disabled <| numSelected <= 0
                             ]
