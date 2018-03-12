@@ -17,6 +17,8 @@ let
 
           heist = pkgs.haskell.lib.dontCheck old.heist;
 
+          elm-export = old.callPackage ./nix/elm-export.nix {};
+
           inherit (pkgs.callPackage ./nix/simple.nix {})
             simple-core
             simple-aeson

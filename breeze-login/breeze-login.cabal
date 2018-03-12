@@ -25,6 +25,33 @@ executable breeze-login
                      , aeson-lens
                      , bytestring
                      , data-default
+                     , exceptions
+                     , fast-logger
+                     , http-conduit
+                     , ixset
+                     , lens
+                     , mtl
+                     , simple-aeson
+                     , simple-core
+                     , simple-snap
+                     , simple-string
+                     , snap
+                     , snap-core
+                     , stm
+                     , text
+                     , time
+                     , transformers
+
+executable makeelm
+  hs-source-dirs:      src
+  main-is:             MakeElmTypes.hs
+  other-modules:       Data.Breeze
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , aeson
+                     , aeson-lens
+                     , bytestring
+                     , data-default
                      , elm-export
                      , exceptions
                      , fast-logger

@@ -19,7 +19,6 @@ import Data.Default
 import Data.Maybe (listToMaybe)
 import Data.Proxy
 import Data.Text (pack, unpack)
-import Elm
 import FastLogger
 import Network.HTTP.Simple hiding (Proxy)
 import Simple.Aeson
@@ -57,21 +56,6 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     }
 
 {-logAllErrors f = f `catch` (writeLogger Snap.Snaplet.FastLogger.Error . show)-}
-
-spec = Spec ["Data"] $
-  [ "import Json.Decode exposing (..)"
-  , "import Json.Decode.Pipeline exposing (..)"
-  ] 
-  ++ makeElm (Proxy :: Proxy Person)
-  ++ makeElm (Proxy :: Proxy BreezeException)
-  where
-    makeElm p = 
-      [ toElmTypeSourceWith ops p
-      , toElmDecoderSourceWith ops p
-      ]
-    ops = Elm.defaultOptions 
-      { Elm.fieldLabelModifier = pack . removeUnderscorePrefix . unpack
-      }
 
 
 handleServerErrors :: Logger -> SomeException -> Snap ()
