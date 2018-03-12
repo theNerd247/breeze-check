@@ -43,7 +43,9 @@ view mdl =
             ]
         , Grid.row [ Row.centerXs ]
             [ Grid.col [ Col.xsAuto ]
-                [ Person.listOnlyPersons mdl.waitingCheckIn
+                [ Html.map Find.EditWaitingMsg <|
+                    Person.view mdl.waitingCheckIn
+                        Person.selectPersonsForWantsPhotos
                 ]
             ]
         , Grid.row [ Row.centerXs ]

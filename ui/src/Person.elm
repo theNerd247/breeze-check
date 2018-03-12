@@ -26,6 +26,7 @@ type PersonMsg
     | SetName Data.Name
     | SetCheckedIn Data.CheckInStatus
     | SetNewPersonInfo Data.NewPersonInfo
+    | SetWantsPhotos Bool
 
 
 type NewPersonInfoMsg
@@ -89,8 +90,8 @@ editPersons =
         |> lastCol delCol
 
 
-selectPersons : Config PersonsMsg
-selectPersons =
+selectPersons : (Bool -> PersonMsg) -> Config PersonsMsg
+selectPersons f =
     let
         selPerson p =
             let
@@ -101,22 +102,33 @@ selectPersons =
 
                         _ ->
                             False
-
-                setChecked b =
-                    if b then
-                        Data.SelectedForCheckIn
-                    else
-                        Data.CheckedOut
             in
             Checkbox.checkbox
                 [ Checkbox.id <| toString p.pid
                 , Checkbox.checked personChecked
-                , Checkbox.onCheck <| Update p.pid << SetCheckedIn << setChecked
+                , Checkbox.onCheck <| Update p.pid << f
                 ]
                 ""
     in
     config
         |> lastCol selPerson
+
+
+selectPersonsForCheckIn : Config PersonsMsg
+selectPersonsForCheckIn =
+    let
+        setChecked b =
+            if b then
+                Data.SelectedForCheckIn
+            else
+                Data.CheckedOut
+    in
+    selectPersons <| SetCheckedIn << setChecked
+
+
+selectPersonsForWantsPhotos : Config PersonsMsg
+selectPersonsForWantsPhotos =
+    selectPersons SetWantsPhotos
 
 
 onlyListPersons : Persons -> Html msg
@@ -189,6 +201,9 @@ updatePerson msg mdl =
 
         SetNewPersonInfo np ->
             { mdl | newPersonInfo = Just np }
+
+        SetWantsPhotos b ->
+            { mdl | wantsPhotos = b }
 
 
 updateNewPersonInfo : NewPersonInfoMsg -> Data.NewPersonInfo -> Data.NewPersonInfo

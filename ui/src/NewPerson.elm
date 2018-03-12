@@ -9,11 +9,7 @@ import Person as Person
 
 
 type alias HasNewPersons m =
-    { m | newPersons : Person.Persons }
-
-
-type alias Model =
-    HasNewPersons { newPerson : Data.Person }
+    { m | newPersons : Person.Persons, newPerson : Data.Person }
 
 
 type Msg
@@ -22,7 +18,7 @@ type Msg
     | PersonMsg Person.PersonMsg
 
 
-update : Msg -> Model -> Model
+update : Msg -> HasNewPersons m -> HasNewPersons m
 update msg mdl =
     case msg of
         CreateNewPerson ->
@@ -49,7 +45,7 @@ update msg mdl =
             { mdl | newPersons = Person.updatePersons msg mdl.newPersons }
 
 
-newPersonsForm : Model -> Html Msg
+newPersonsForm : HasNewPersons m -> Html Msg
 newPersonsForm mdl =
     Form.form []
         [ addButton

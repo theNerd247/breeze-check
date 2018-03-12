@@ -53,6 +53,7 @@ type Msg
     | CancelCheckInClick
     | CancelCheckInResponse (BreezeApi.Msg Bool)
     | SelectPersonsMsg Person.PersonsMsg
+    | EditWaitingMsg Person.PersonsMsg
 
 
 
@@ -115,6 +116,9 @@ update msg mdl =
 
         SelectPersonsMsg msg ->
             ( { mdl | foundPeople = Person.updatePersons msg mdl.foundPeople }, Cmd.none )
+
+        EditWaitingMsg msg ->
+            ( { mdl | waitingCheckIn = Person.updatePersons msg mdl.waitingCheckIn }, Cmd.none )
 
 
 updateSearchLastName : HasFind m -> String -> ( HasFind m, Cmd Msg )
@@ -198,7 +202,7 @@ searchResultsView mdl =
             , h5 [ class "text-center" ] [ text mdl.searchLastName ]
             ]
     else
-        Person.config
+        Person.selectPersonsForCheckIn
             |> Person.view mdl.foundPeople
             |> Html.map SelectPersonsMsg
 

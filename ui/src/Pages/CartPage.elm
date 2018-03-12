@@ -3,9 +3,11 @@ module Pages.CartPage exposing (..)
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
+import Person as Person
 
 
 type alias Msg =
@@ -34,14 +36,14 @@ view mdl =
         waiting =
             let
                 a =
-                    if not <| List.isEmpty mdl.waitingCheckIn then
+                    if not <| Dict.isEmpty mdl.waitingCheckIn then
                         [ class "pb-3" ]
                     else
                         []
             in
             Grid.row [ Row.attrs a, Row.centerXs ]
                 [ Grid.col [ Col.xs12 ]
-                    [ Find.waitingCheckInView mdl
+                    [ Html.map Find.EditWaitingMsg <| Person.view mdl.waitingCheckIn Person.editPersons
                     ]
                 ]
     in

@@ -6,6 +6,7 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
+import Dict as Dict
 import ErrorMsg as Err
 import EventInfo as Event
 import FindPeople as Find
@@ -32,15 +33,16 @@ import Pages.PhotoPage as PhotoPage
 import Pages.SearchPage as SearchPage
 import Pages.SelectPage as SelectPage
 import Pages.WaitingApprovalPage as WaitingApprovalPage
+import Person as Person
 import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
 type alias Model =
     HasRoutes
         (BreezeApi.HasBreezeApi
-            (Event.HasEventName
+            (Event.HasEventInfo
                 (Find.HasFind
-                    (NewPerson.HasNewFamilies
+                    (NewPerson.HasNewPersons
                         { navbarState : Navbar.State
                         }
                     )
@@ -79,18 +81,19 @@ init =
             Navbar.initialState NavbarMsg
 
         ( mdl, eventMsg ) =
-            modifyCmd EventName <| Event.update Event.GetEventName m
+            modifyCmd EventName <| Event.update Event.GetEventInfo m
 
         m =
             { errors = []
             , loadingStatus = BreezeApi.initLoadingStatus
             , groupId = Nothing
-            , foundPeople = []
-            , waitingCheckIn = []
+            , foundPeople = Dict.empty
+            , waitingCheckIn = Dict.empty
             , searchLastName = ""
-            , eventName = ""
+            , eventInfo = { eid = "", ename = "" }
             , personNotFound = False
-            , newFamilies = NewPerson.initModel
+            , newPerson = Person.initPerson
+            , newPersons = Dict.empty
             , currentRoute = Router.Home
             , navbarState = navstate
             }
@@ -228,7 +231,7 @@ viewPage mdl =
             Html.map CartPage <| CartPage.view mdl
 
         Router.Home ->
-            Html.map RouterMsg <| HomePage.view mdl.eventName
+            Html.map RouterMsg <| HomePage.view mdl.eventInfo.ename
 
         -- TODO: remove once we have handlers for all routes
         _ ->

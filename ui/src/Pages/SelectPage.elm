@@ -4,6 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
@@ -34,7 +35,7 @@ view : HasSelectPage m -> Html Msg
 view mdl =
     let
         hasSelectablePeople =
-            List.length mdl.foundPeople
+            Dict.size mdl.foundPeople
 
         title =
             case hasSelectablePeople of
@@ -59,7 +60,7 @@ view mdl =
         [ Html.map FindMsg <| Find.searchPersonsForm mdl
         , title
         , results
-        , continue <| List.length mdl.waitingCheckIn
+        , continue <| Dict.size mdl.waitingCheckIn
         ]
 
 
