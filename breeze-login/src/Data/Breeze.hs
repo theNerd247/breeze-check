@@ -57,6 +57,7 @@ data CheckInStatus = CheckedOut
                    | WaitingApproval CheckInGroupId 
                    | CheckedIn
                    | WaitingCreation CheckInGroupId TempPersonId
+                   | SelectedForCheckIn
                    deriving (Show, Eq, Ord, Data, Generic, ElmType)
 
 makePrisms ''CheckInStatus
@@ -78,10 +79,7 @@ makeClassy ''Name
 instance Default Name
 
 instance FromJSON Name where
-  parseJSON (Object o) = Name
-    <$> (o .: "first_name")
-    <*> (o .: "last_name")
-  parseJSON _ = mempty
+  parseJSON = genericParseJSON customAesonOptions
 
 instance ToJSON Name where
   toJSON = genericToJSON customAesonOptions
@@ -112,6 +110,9 @@ makeLenses ''NewPersonInfo
 instance FromJSON NewPersonInfo where
   parseJSON = genericParseJSON customAesonOptions
 
+instance ToJSON NewPersonInfo where
+  toJSON = genericToJSON customAesonOptions
+
 instance HasAddress NewPersonInfo where
   address = newAddress
 
@@ -129,28 +130,30 @@ instance HasName Person where
   name = personName
 
 instance FromJSON Person where
-  parseJSON v@(Object o) = Person
-    <$> o .: "pid"
-    <*> o .: "name"
-    <*> (o .: "checkedIn" >>= return . toCheckin)
-    <*> o .: "newPersonInfo"
-    <*> o .: "wantsPhotos"
-    where
-      toCheckin True = CheckedIn
-      toCheckin False = CheckedOut
-  parseJSON _ = mempty
+  parseJSON = genericParseJSON customAesonOptions
+  {-parseJSON v@(Object o) = Person-}
+    {-<$> o .: "pid"-}
+    {-<*> o .: "name"-}
+    {-<*> (o .: "checkedIn" >>= return . toCheckin)-}
+    {-<*> o .: "newPersonInfo"-}
+    {-<*> o .: "wantsPhotos"-}
+    {-where-}
+      {-toCheckin True = CheckedIn-}
+      {-toCheckin False = CheckedOut-}
+  {-parseJSON _ = mempty-}
 
 instance ToJSON Person where
-  toJSON p = object 
-    [ "pid" .= (p^.pid)
-    , "name" .= (p^.personName)
-    , "checkedIn" .= (p^.checkedIn.to checkInStatusBool)
-    , "newPersonInfo" .= (Nothing :: Maybe String)
-    , "wantsPhotos" .= (p^.wantsPhotos)
-    ]
-    where
-      checkInStatusBool CheckedOut = False
-      checkInStatusBool _ = True
+  toJSON = genericToJSON customAesonOptions
+  {-toJSON p = object -}
+    {-[ "pid" .= (p^.pid)-}
+    {-, "name" .= (p^.personName)-}
+    {-, "checkedIn" .= (p^.checkedIn.to checkInStatusBool)-}
+    {-, "newPersonInfo" .= (Nothing :: Maybe String)-}
+    {-, "wantsPhotos" .= (p^.wantsPhotos)-}
+    {-]-}
+    {-where-}
+      {-checkInStatusBool CheckedOut = False-}
+      {-checkInStatusBool _ = True-}
 
 instance Default Bool where
   def = False
@@ -184,11 +187,17 @@ makeLenses ''BreezePerson
 instance FromJSON BreezePerson where
   parseJSON v@(Object o) = fmap BreezePerson $ Person
     <$> o .: "id" 
-    <*> parseJSON v
+    <*> parseName v
     <*> pure CheckedOut
     <*> pure Nothing
     <*> pure False
   parseJSON _ = mempty
+
+parseName :: Value -> Parser Name
+parseName (Object o) = Name
+    <$> (o .: "first_name")
+    <*> (o .: "last_name")
+parseName _ = mempty
 
 
 newtype ParseAttendance = ParseAttendance { _attendingPerson :: Person }
@@ -199,7 +208,7 @@ makeLenses ''ParseAttendance
 instance FromJSON ParseAttendance where
   parseJSON v@(Object o) = fmap ParseAttendance $ Person
     <$> (o .: "person_id")
-    <*> (o .: "details" >>= parseJSON)
+    <*> (o .: "details" >>= parseName)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
     <*> pure Nothing
     <*> pure False
