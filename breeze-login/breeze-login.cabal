@@ -27,6 +27,7 @@ executable breeze-login
                      , data-default
                      , exceptions
                      , fast-logger
+                     , elm-export
                      , http-conduit
                      , ixset
                      , lens

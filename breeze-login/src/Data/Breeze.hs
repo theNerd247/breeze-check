@@ -222,7 +222,7 @@ instance FromJSON ParseAttendance where
 data EventInfo = EventInfo
   { _eid :: EventId
   , _ename :: String
-  } deriving (Show, Eq, Ord, Data, Generic)
+  } deriving (Show, Eq, Ord, Data, Generic, ElmType)
 
 makeLenses ''EventInfo
 
