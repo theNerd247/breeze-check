@@ -1,5 +1,6 @@
 module Person exposing (..)
 
+import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
 import Bootstrap.Table as Table
 import BootstrapUtils as Utils
@@ -86,6 +87,36 @@ editPersons =
         |> firstNameView (setNameView SetFirstName (.personName >> .firstName))
         |> lastNameView (setNameView SetLastName (.personName >> .lastName))
         |> lastCol delCol
+
+
+selectPersons : Config PersonsMsg
+selectPersons =
+    let
+        selPerson p =
+            let
+                personChecked =
+                    case p.checkedIn of
+                        Data.SelectedForCheckIn ->
+                            True
+
+                        _ ->
+                            False
+
+                setChecked b =
+                    if b then
+                        Data.SelectedForCheckIn
+                    else
+                        Data.CheckedOut
+            in
+            Checkbox.checkbox
+                [ Checkbox.id <| toString p.pid
+                , Checkbox.checked personChecked
+                , Checkbox.onCheck <| Update p.pid << SetCheckedIn << setChecked
+                ]
+                ""
+    in
+    config
+        |> lastCol selPerson
 
 
 onlyListPersons : Persons -> Html msg

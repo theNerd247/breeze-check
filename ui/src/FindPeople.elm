@@ -146,30 +146,6 @@ searchResult ppl mdl =
     ( m, Cmd.none )
 
 
-toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
-toggleAttending mdl pid =
-    let
-        ( chin, fnd ) =
-            toggleCheckIn pid mdl.foundPeople
-    in
-    ( { mdl | waitingCheckIn = chin, foundPeople = fnd }, Cmd.none )
-
-
-toggleCheckIn : Data.PersonId -> List Data.Person -> ( List Data.Person, List Data.Person )
-toggleCheckIn pid found =
-    let
-        toggleAttend p =
-            if p.pid == pid then
-                { p | checkedIn = not p.checkedIn }
-            else
-                p
-
-        f =
-            List.map toggleAttend found
-    in
-    ( List.filter .checkedIn f, f )
-
-
 checkInResponse : Data.CheckInGroupId -> HasFind m -> ( HasFind m, Cmd Msg )
 checkInResponse gid mdl =
     ( { mdl | groupId = Just gid }, Cmd.none )
