@@ -21,6 +21,11 @@ type Msg
     = SetRoute Route
 
 
+
+--NOTE: use the setRoute function to force proper routing. Don't set this
+--directly!!!!!
+
+
 type alias HasRoutes m =
     { m | currentRoute : Route }
 
@@ -49,7 +54,7 @@ update : Msg -> HasRoutes m -> ( HasRoutes m, Cmd Msg )
 update msg mdl =
     case msg of
         SetRoute r ->
-            ( { mdl | currentRoute = r }, Cmd.none )
+            ( setRoute mdl r, Cmd.none )
 
 
 routeName : Route -> String
@@ -77,9 +82,24 @@ routeName r =
             "home"
 
 
+guardRoute : Route -> Route -> Route
+guardRoute old new =
+    case new of
+        Photo ->
+            case old of
+                Safety ->
+                    Photo
+
+                _ ->
+                    Home
+
+        _ ->
+            new
+
+
 setRoute : HasRoutes m -> Route -> HasRoutes m
 setRoute mdl r =
-    { mdl | currentRoute = r }
+    { mdl | currentRoute = guardRoute mdl.currentRoute r }
 
 
 delta2url : HasRoutes m -> HasRoutes m -> Maybe Url.UrlChange
