@@ -97,7 +97,7 @@ location2messages l =
         pg r =
             case r of
                 Nothing ->
-                    Search
+                    Home
 
                 Just s ->
                     case s of
@@ -123,9 +123,9 @@ location2messages l =
                             Home
 
                         _ ->
-                            Search
+                            Home
     in
     (top <?> customParam "page" pg)
         |> flip parsePath l
         |> Maybe.map (List.singleton << SetRoute)
-        |> Maybe.withDefault [ SetRoute Search ]
+        |> Maybe.withDefault [ SetRoute Home ]

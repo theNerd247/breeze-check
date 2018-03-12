@@ -253,7 +253,7 @@ personRow : Config msg -> Data.Person -> Table.Row msg
 personRow cfg p =
     Table.tr []
         [ Table.td [] [ cfg.firstNameView p ]
-        , Table.td [] [ cfg.firstNameView p ]
+        , Table.td [] [ cfg.lastNameView p ]
         , Table.td [] <|
             case cfg.lastCol of
                 Nothing ->

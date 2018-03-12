@@ -115,7 +115,21 @@ update msg mdl =
             BreezeApi.update cancelCheckinResponse r mdl
 
         SelectPersonsMsg msg ->
-            ( { mdl | foundPeople = Person.updatePersons msg mdl.foundPeople }, Cmd.none )
+            let
+                updated =
+                    Person.updatePersons msg mdl.foundPeople
+
+                newWaiting =
+                    Dict.filter
+                        (\_ p -> p.checkedIn == Data.SelectedForCheckIn)
+                        updated
+            in
+            ( { mdl
+                | foundPeople = updated
+                , waitingCheckIn = newWaiting
+              }
+            , Cmd.none
+            )
 
         EditWaitingMsg msg ->
             ( { mdl | waitingCheckIn = Person.updatePersons msg mdl.waitingCheckIn }, Cmd.none )
