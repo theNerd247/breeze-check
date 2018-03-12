@@ -6,7 +6,7 @@ import Bootstrap.Grid.Row as Row
 import FindPeople as Find
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
-import ListPerson as LP
+import Person as Person
 
 
 type alias Msg =
@@ -73,5 +73,5 @@ view mdl =
                 , groupId gid
                 , cancelCheckin
                 , checkInTitle
-                , LP.onlyListPersons mdl.waitingCheckIn
+                , Person.onlyListPersons mdl.waitingCheckIn
                 ]

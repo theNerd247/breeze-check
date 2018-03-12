@@ -8,6 +8,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
+import Dict as Dict
 import Html as Html
     exposing
         ( Html
@@ -25,17 +26,17 @@ import Html as Html
         , text
         )
 import Html.Attributes exposing (class)
-import ListPerson as LP
+import Person as Person
 import Platform.Cmd as Cmd
 
 
 type alias HasCheckIn m =
     { m
         | searchLastName : String
-        , foundPeople : List Data.Person
-        , waitingCheckIn : List Data.Person
+        , foundPeople : Person.Persons
+        , waitingCheckIn : Person.Persons
         , personNotFound : Bool
-        , groupId : Maybe Data.GroupId
+        , groupId : Maybe Data.CheckInGroupId
     }
 
 
@@ -47,12 +48,11 @@ type Msg
     = UpdateSearchLastName String
     | SearchClick
     | SearchResponse (BreezeApi.Msg (List Data.Person))
-    | ToggleAttending Data.PersonId
     | CheckInClick
-    | CheckInResponse (BreezeApi.Msg Data.GroupId)
+    | CheckInResponse (BreezeApi.Msg Data.CheckInGroupId)
     | CancelCheckInClick
     | CancelCheckInResponse (BreezeApi.Msg Bool)
-    | SetWantsPhoto Data.PersonId Bool
+    | SelectPersonsMsg Person.PersonsMsg
 
 
 
@@ -101,11 +101,8 @@ update msg mdl =
         SearchResponse r ->
             BreezeApi.update searchResult r mdl
 
-        ToggleAttending pid ->
-            toggleAttending mdl pid
-
         CheckInClick ->
-            BreezeApi.checkIn CheckInResponse mdl.waitingCheckIn mdl
+            BreezeApi.checkIn CheckInResponse (Dict.values mdl.waitingCheckIn) mdl
 
         CheckInResponse r ->
             BreezeApi.update checkInResponse r mdl
@@ -116,8 +113,8 @@ update msg mdl =
         CancelCheckInResponse r ->
             BreezeApi.update cancelCheckinResponse r mdl
 
-        SetWantsPhoto pid b ->
-            updateWantsPhotos mdl pid b
+        SelectPersonsMsg msg ->
+            ( { mdl | foundPeople = Person.updatePersons msg mdl.foundPeople }, Cmd.none )
 
 
 updateSearchLastName : HasFind m -> String -> ( HasFind m, Cmd Msg )
@@ -133,42 +130,20 @@ searchClick mdl =
 searchResult : List Data.Person -> HasFind m -> ( HasFind m, Cmd Msg )
 searchResult ppl mdl =
     let
-        mp ps =
-            case ps of
+        insertFound waiting ps =
+            List.map (\p -> ( p.pid, p )) ps
+                |> Dict.fromList
+                |> Dict.union waiting
+
+        m =
+            case ppl of
                 [] ->
-                    { mdl | foundPeople = [], personNotFound = True }
+                    { mdl | foundPeople = Dict.empty, personNotFound = True }
 
                 _ ->
-                    { mdl | foundPeople = filtered ps, personNotFound = False }
-
-        filtered =
-            List.filter personFilter
-
-        pids =
-            List.map .pid mdl.waitingCheckIn
-
-        personFilter p =
-            not <| List.member p.pid pids
+                    { mdl | foundPeople = insertFound mdl.waitingCheckIn ppl, personNotFound = False }
     in
-    ( mp ppl, Cmd.none )
-
-
-updateWantsPhotos : HasFind m -> Data.PersonId -> Bool -> ( HasFind m, Cmd Msg )
-updateWantsPhotos mdl pid b =
-    let
-        setWantsPhotos p =
-            if p.pid == pid then
-                { p
-                    | wantsPhotos = b
-                }
-            else
-                p
-    in
-    ( { mdl
-        | waitingCheckIn = List.map setWantsPhotos mdl.waitingCheckIn
-      }
-    , Cmd.none
-    )
+    ( m, Cmd.none )
 
 
 toggleAttending : HasFind m -> Data.PersonId -> ( HasFind m, Cmd Msg )
@@ -195,7 +170,7 @@ toggleCheckIn pid found =
     ( List.filter .checkedIn f, f )
 
 
-checkInResponse : Data.GroupId -> HasFind m -> ( HasFind m, Cmd Msg )
+checkInResponse : Data.CheckInGroupId -> HasFind m -> ( HasFind m, Cmd Msg )
 checkInResponse gid mdl =
     ( { mdl | groupId = Just gid }, Cmd.none )
 
@@ -239,14 +214,6 @@ searchPersonsForm mdl =
         ]
 
 
-waitingCheckInView : HasFind m -> Html Msg
-waitingCheckInView mdl =
-    LP.config
-        |> LP.withClick ToggleAttending
-        |> LP.extras LP.checkedInIcon
-        |> LP.view mdl.waitingCheckIn
-
-
 searchResultsView : HasFind m -> Html Msg
 searchResultsView mdl =
     if mdl.personNotFound then
@@ -255,10 +222,9 @@ searchResultsView mdl =
             , h5 [ class "text-center" ] [ text mdl.searchLastName ]
             ]
     else
-        LP.config
-            |> LP.withClick ToggleAttending
-            |> LP.extras LP.checkedInIcon
-            |> LP.view mdl.foundPeople
+        Person.config
+            |> Person.view mdl.foundPeople
+            |> Html.map SelectPersonsMsg
 
 
 checkInButton : Html Msg

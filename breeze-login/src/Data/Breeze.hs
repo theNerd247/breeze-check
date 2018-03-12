@@ -36,7 +36,7 @@ type Email = String
 type EventId = String
 type FirstName = String
 type LastName = String
-type PersonId = String
+type PersonId = Int
 type Phone = String
 type TempPersonId = PersonId
 
@@ -186,7 +186,7 @@ makeLenses ''BreezePerson
 
 instance FromJSON BreezePerson where
   parseJSON v@(Object o) = fmap BreezePerson $ Person
-    <$> o .: "id" 
+    <$> (o .: "id" >>= parseJSON)
     <*> parseName v
     <*> pure CheckedOut
     <*> pure Nothing
@@ -207,7 +207,7 @@ makeLenses ''ParseAttendance
 
 instance FromJSON ParseAttendance where
   parseJSON v@(Object o) = fmap ParseAttendance $ Person
-    <$> (o .: "person_id")
+    <$> (o .: "person_id" >>= parseJSON)
     <*> (o .: "details" >>= parseName)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
     <*> pure Nothing

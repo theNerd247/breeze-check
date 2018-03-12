@@ -7,7 +7,7 @@ import Bootstrap.Navbar as Navbar
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import ErrorMsg as Err
-import EventName as Event
+import EventInfo as Event
 import FindPeople as Find
 import Html as Html
     exposing
@@ -27,11 +27,11 @@ import Html.Events exposing (onClick)
 import Nested exposing (modifyCmd, modifyMdl)
 import NewPerson as NewPerson
 import Pages.CartPage as CartPage
+import Pages.HomePage as HomePage
 import Pages.PhotoPage as PhotoPage
 import Pages.SearchPage as SearchPage
 import Pages.SelectPage as SelectPage
 import Pages.WaitingApprovalPage as WaitingApprovalPage
-import Pages.HomePage as HomePage
 import Router as Router exposing (HasRoutes, mainWithRouter)
 
 
@@ -133,6 +133,7 @@ update msg mdl =
         NavbarMsg state ->
             ( { mdl | navbarState = state }, Cmd.none )
 
+
 view : Model -> Html Msg
 view mdl =
     let
@@ -232,8 +233,6 @@ viewPage mdl =
         -- TODO: remove once we have handlers for all routes
         _ ->
             div [] []
-
-
 
 
 loadingBar : Html msg

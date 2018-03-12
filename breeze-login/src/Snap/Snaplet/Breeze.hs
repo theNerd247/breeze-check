@@ -90,7 +90,7 @@ instance BreezeApi Checkin where
     where
       chkIn p = do 
         r <- runApiReq b "/events/attendance/add"
-          [ ("person_id"   , Just . Char8.pack $ p^.pid)
+          [ ("person_id"   , Just . Char8.pack . show $ p^.pid)
           , ("instance_id" , Just . Char8.pack $ eid)
           , ("direction"   , Just "in")
           ]
@@ -238,7 +238,7 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
   chainTVarWrite personDB insert $ 
   {-liftIO $ il $ show $-}
     newPersons
-      ^@..folded ^..folded.to (\(i,p) -> p & checkedIn .~ (WaitingCreation gid (show i)))
+      ^@..folded ^..folded.to (\(i,p) -> p & checkedIn .~ (WaitingCreation gid i))
   return gid
 
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()

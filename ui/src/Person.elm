@@ -8,19 +8,15 @@ import Dict as Dict exposing (Dict)
 import Html as Html exposing (Html, div, text)
 
 
-type alias PersonId =
-    String
-
-
 type alias Persons =
-    Dict PersonId Data.Person
+    Dict Data.PersonId Data.Person
 
 
-type Msg
+type PersonsMsg
     = Create Data.Person
     | Replace Data.Person
-    | Update PersonId PersonMsg
-    | Delete PersonId
+    | Update Data.PersonId PersonMsg
+    | Delete Data.PersonId
 
 
 type PersonMsg
@@ -29,6 +25,19 @@ type PersonMsg
     | SetName Data.Name
     | SetCheckedIn Data.CheckInStatus
     | SetNewPersonInfo Data.NewPersonInfo
+
+
+type NewPersonInfoMsg
+    = UpdateAddress AddressMsg
+    | UpdateEmail String
+    | UpdateCurrentChurch String
+
+
+type AddressMsg
+    = UpdateStreet String
+    | UpdateCity String
+    | UpdateState String
+    | UpdateZip String
 
 
 type alias Config msg =
@@ -61,25 +70,67 @@ firstNameView f mdl =
     { mdl | firstNameView = f }
 
 
-onlyListPersons : Persons -> Html Msg
+editPersons : Config PersonsMsg
+editPersons =
+    let
+        setNameView f g p =
+            Input.text
+                [ Input.onInput <| Update p.pid << f
+                , Input.value <| g p
+                ]
+
+        delCol p =
+            Utils.deleteButton <| Delete p.pid
+    in
+    config
+        |> firstNameView (setNameView SetFirstName (.personName >> .firstName))
+        |> lastNameView (setNameView SetLastName (.personName >> .lastName))
+        |> lastCol delCol
+
+
+onlyListPersons : Persons -> Html msg
 onlyListPersons =
     flip view config
 
 
-update : Msg -> Persons -> ( Persons, Cmd Msg )
-update msg mdl =
+initPerson : Data.Person
+initPerson =
+    let
+        address =
+            { street = ""
+            , city = ""
+            , state = ""
+            , zipcode = ""
+            }
+
+        newPersonInfo =
+            { newAddress = address
+            , newCurrentChurch = ""
+            , newEmail = ""
+            }
+    in
+    { pid = 0
+    , personName = { lastName = "", firstName = "" }
+    , checkedIn = Data.CheckedOut
+    , newPersonInfo = Just newPersonInfo
+    , wantsPhotos = True
+    }
+
+
+updatePersons : PersonsMsg -> Persons -> Persons
+updatePersons msg mdl =
     case msg of
         Create p ->
-            ( Dict.insert p.pid p mdl, Cmd.none )
+            Dict.insert p.pid p mdl
 
         Replace p ->
-            ( Dict.update p.pid (Maybe.map <| always p) mdl, Cmd.none )
+            Dict.update p.pid (Maybe.map <| always p) mdl
 
         Update pid msg ->
-            ( Dict.update pid (Maybe.map <| updatePerson msg) mdl, Cmd.none )
+            Dict.update pid (Maybe.map <| updatePerson msg) mdl
 
         Delete pid ->
-            ( Dict.remove pid mdl, Cmd.none )
+            Dict.remove pid mdl
 
 
 updatePerson : PersonMsg -> Data.Person -> Data.Person
@@ -109,6 +160,35 @@ updatePerson msg mdl =
             { mdl | newPersonInfo = Just np }
 
 
+updateNewPersonInfo : NewPersonInfoMsg -> Data.NewPersonInfo -> Data.NewPersonInfo
+updateNewPersonInfo msg mdl =
+    case msg of
+        UpdateAddress m ->
+            { mdl | newAddress = updateAddress m mdl.newAddress }
+
+        UpdateEmail e ->
+            { mdl | newEmail = e }
+
+        UpdateCurrentChurch c ->
+            { mdl | newCurrentChurch = c }
+
+
+updateAddress : AddressMsg -> Data.Address -> Data.Address
+updateAddress msg mdl =
+    case msg of
+        UpdateStreet s ->
+            { mdl | street = s }
+
+        UpdateCity c ->
+            { mdl | city = c }
+
+        UpdateState s ->
+            { mdl | state = s }
+
+        UpdateZip z ->
+            { mdl | zipcode = z }
+
+
 view : Persons -> Config msg -> Html msg
 view ps config =
     let
@@ -136,21 +216,3 @@ personRow cfg p =
                 Just f ->
                     [ f p ]
         ]
-
-
-viewForm : Config Msg
-viewForm =
-    let
-        setNameView f g p =
-            Input.text
-                [ Input.onInput <| Update p.pid << f
-                , Input.value <| g p
-                ]
-
-        delCol p =
-            Utils.deleteButton <| Delete p.pid
-    in
-    config
-        |> firstNameView (setNameView SetFirstName (.personName >> .firstName))
-        |> lastNameView (setNameView SetLastName (.personName >> .lastName))
-        |> lastCol delCol

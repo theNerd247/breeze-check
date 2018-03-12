@@ -4,6 +4,7 @@ import Data as Data
 import ErrorMsg as Err
 import Http as Http exposing (Error(..))
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Nested exposing (modifyCmd)
 import Result
 import Time exposing (second)
@@ -44,6 +45,15 @@ update f (Recieved r) mdl =
             (flip f { mdl | loadingStatus = DoneOk })
 
 
+withBreezeErrDecoder : Decode.Decoder a -> Decode.Decoder (Result Data.BreezeException a)
+withBreezeErrDecoder d =
+    Decode.oneOf
+        [ Decode.map Err Data.decodeBreezeException
+        , Decode.map Ok d
+        , Decode.fail "Something went wrong when fetching data"
+        ]
+
+
 sendApiGetRequest :
     String --  method
     -> Http.Body -- bodywithBreezeErrDecoder
@@ -59,7 +69,7 @@ sendApiGetRequest meth bdy path decoder mdl =
                 , headers = []
                 , url = path
                 , body = bdy
-                , expect = Http.expectJson (Data.withBreezeErrDecoder decoder)
+                , expect = Http.expectJson (withBreezeErrDecoder decoder)
                 , timeout = Just <| 8 * second
                 , withCredentials = False
                 }
@@ -81,7 +91,7 @@ findPeople f lastName mdl =
     else
         sendGet
             ("findperson?lastname=" ++ lastName)
-            Data.decodePersons
+            (Decode.list Data.decodePerson)
             f
             mdl
 
@@ -89,8 +99,8 @@ findPeople f lastName mdl =
 checkIn f ppl mdl =
     sendPost
         "checkin"
-        (Http.jsonBody <| Data.encodePersons ppl)
-        Data.decodeGroupId
+        (Http.jsonBody <| Encode.list <| List.map Data.encodePerson ppl)
+        Decode.int
         f
         mdl
 
@@ -111,7 +121,7 @@ cancelCheckin f mgid mdl =
 eventInfo f mdl =
     sendGet
         "eventinfo"
-        Data.decodeEventName
+        Data.decodeEventInfo
         f
         mdl
 
@@ -119,7 +129,7 @@ eventInfo f mdl =
 getCheckInGroup f gid mdl =
     sendGet
         ("getgroup?groupid=" ++ toString gid)
-        Data.decodePersons
+        (Decode.list Data.decodePerson)
         f
         mdl
 
