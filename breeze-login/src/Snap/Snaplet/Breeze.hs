@@ -283,7 +283,7 @@ initEvent config = runExceptT $ do
     True -> return $ config & eventId .~ "40532683" & eventName .~ "Staff Meeting"
     _ -> do 
       es <- runBreeze config GetEvents
-      return $ config & eventId .~ (es^?! traverse.eid) & eventName .~ (es^?! traverse.ename)
+      return $ config & eventId .~ (es^?! traverse.eventId) & eventName .~ (es^?! traverse.eventName)
   getAttendance' conf
   return conf
   `catch` handleBreeze `catch` handleHTTP
@@ -300,10 +300,7 @@ listAttendanceHandle = withTop breezeLens $
     >>= writeLBS . fromStrict . Char8.pack
 
 eventInfoHandle :: (HasBreezeApp b) => Handler b v ()
-eventInfoHandle = withTop breezeLens $ runAesonApi $ do
-  eid <- use eventId
-  ename <- use eventName
-  return $ object [("event-id", fromString eid), ("event-name", fromString ename)]
+eventInfoHandle = withTop breezeLens $ runAesonApi $ use eventInfo
 
 mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
@@ -314,8 +311,7 @@ mkBreeze = do
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
-    , _eventId = ""
-    , _eventName = ""
+    , _breezeEventInfo = def
     , _personDB = pdb
     , _infoLogger = ilgr
     , _errLogger = elgr

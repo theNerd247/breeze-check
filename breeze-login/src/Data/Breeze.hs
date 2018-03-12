@@ -13,9 +13,11 @@ import Control.Monad.Catch
 import Data.Aeson 
 import Data.Aeson.Types
 import Data.Data
+import qualified Data.Text as Text
 import Data.Default
 import Data.IxSet
 import Elm hiding (Options, fieldLabelModifier, defaultOptions)
+import Text.Read (readEither)
 import FastLogger (Logger)
 import GHC.Generics hiding (to)
 
@@ -155,6 +157,19 @@ instance ToJSON Person where
       {-checkInStatusBool CheckedOut = False-}
       {-checkInStatusBool _ = True-}
 
+parseIdFromText :: String -> Object -> Parser Int
+parseIdFromText k o =
+  (o .: (Text.pack k))
+    >>= withText k tparser
+  where
+    tparser :: Text.Text -> Parser Int
+    tparser t = 
+      either 
+        (flip typeMismatch (String t)) 
+        return 
+        (readEither . Text.unpack $ t)
+
+
 instance Default Bool where
   def = False
 
@@ -178,26 +193,24 @@ instance Indexable Person where
     ]
 
 newtype BreezePerson = BreezePerson 
-    { _bPerson :: Person 
+    { _bPerson :: Person
     } 
     deriving (Show, Eq, Ord, Data, Generic)
 
 makeLenses ''BreezePerson
 
 instance FromJSON BreezePerson where
-  parseJSON v@(Object o) = fmap BreezePerson $ Person
-    <$> (o .: "id" >>= parseJSON)
-    <*> parseName v
+  parseJSON = withObject "BreezePerson" $ \o -> fmap BreezePerson $ Person
+    <$> (parseIdFromText "id" o)
+    <*> parseName o
     <*> pure CheckedOut
     <*> pure Nothing
     <*> pure False
-  parseJSON _ = mempty
 
-parseName :: Value -> Parser Name
-parseName (Object o) = Name
+parseName :: Object -> Parser Name
+parseName o = Name
     <$> (o .: "first_name")
     <*> (o .: "last_name")
-parseName _ = mempty
 
 
 newtype ParseAttendance = ParseAttendance { _attendingPerson :: Person }
@@ -206,8 +219,8 @@ newtype ParseAttendance = ParseAttendance { _attendingPerson :: Person }
 makeLenses ''ParseAttendance
 
 instance FromJSON ParseAttendance where
-  parseJSON v@(Object o) = fmap ParseAttendance $ Person
-    <$> (o .: "person_id" >>= parseJSON)
+  parseJSON = withObject "ParseAttendance" $ \o -> fmap ParseAttendance $ Person
+    <$> (parseIdFromText "person_id" o)
     <*> (o .: "details" >>= parseName)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
     <*> pure Nothing
@@ -217,24 +230,26 @@ instance FromJSON ParseAttendance where
       parseCheckedOut s 
         | s == "0000-00-00 00:00:00" = CheckedIn
         | otherwise = CheckedOut
-  parseJSON x = typeMismatch "ParseAttendance" x
 
 data EventInfo = EventInfo
-  { _eid :: EventId
-  , _ename :: String
+  { _eventId :: EventId
+  , _eventName :: String
   } deriving (Show, Eq, Ord, Data, Generic, ElmType)
 
-makeLenses ''EventInfo
+makeClassy ''EventInfo
 
 instance FromJSON EventInfo where
   parseJSON (Object o) = EventInfo
     <$> (o .: "id")
     <*> (o .: "name")
 
+instance ToJSON EventInfo where
+  toJSON = genericToJSON customAesonOptions
+
+instance Default EventInfo
+
 data Breeze = Breeze
   { _apiKey  :: String
-  , _eventId :: EventId
-  , _eventName :: String
   , _apiUrl :: String
   , _personDB :: TVar (IxSet Person)
   , _infoLogger :: Logger
@@ -243,6 +258,10 @@ data Breeze = Breeze
   , _errLoggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
   , _debug :: Bool
+  , _breezeEventInfo :: EventInfo
   } deriving (Data, Generic)
 
 makeClassy ''Breeze
+
+instance HasEventInfo Breeze where
+  eventInfo = breezeEventInfo

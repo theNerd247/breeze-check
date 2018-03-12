@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cabal run makeelm
 
 # fetch the app version from the ui default.nix
 v=$(grep "version.\?=" ../ui/default.nix | sed -e 's/.*"\(.*\)";/\1/')

@@ -90,7 +90,7 @@ init =
             , foundPeople = Dict.empty
             , waitingCheckIn = Dict.empty
             , searchLastName = ""
-            , eventInfo = { eid = "", ename = "" }
+            , eventInfo = { eventName = "", eventId = "" }
             , personNotFound = False
             , newPerson = Person.initPerson
             , newPersons = Dict.empty
@@ -231,7 +231,7 @@ viewPage mdl =
             Html.map CartPage <| CartPage.view mdl
 
         Router.Home ->
-            Html.map RouterMsg <| HomePage.view mdl.eventInfo.ename
+            Html.map RouterMsg <| HomePage.view mdl.eventInfo.eventName
 
         -- TODO: remove once we have handlers for all routes
         _ ->
