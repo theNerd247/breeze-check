@@ -233,6 +233,9 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
           <> (show gid) 
           <> "\n"
           <> (fold $ notCheckedIn^..folded.to show.to (<>"\n"))
+          <> "\n"
+          <> "New persons: "
+          <> "\n"
           <> (fold $ newPersons^..folded.to show.to (<>"\n"))
   chainTVarWrite personDB (updatePerson $ set checkedIn $ WaitingApproval gid) notCheckedIn
   chainTVarWrite personDB insert $ 
@@ -244,7 +247,7 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
 getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  g <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
+  g <- withTVarRead personDB $ toList . getEQ (GID gid)
   case g of
     [] -> throwM $ BreezeException $ "There isn't anybody for the group: " <> (show gid)
     _ -> return g
@@ -252,7 +255,7 @@ getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
 cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  ps <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
+  ps <- withTVarRead personDB $ toList . getEQ (GID gid)
   il <- use infoLogger
   liftIO . il $ "Cancelling Check In For: " ++ (show gid) ++ (mconcat $ (("\n"++) . show) <$> ps)
   chainTVarWrite personDB (updatePerson $ set checkedIn CheckedOut) (ps^..folded.filtered (view $ newPersonInfo . to (isn't _Just)))
@@ -264,7 +267,7 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
   eid <- use eventId
   il <- use infoLogger
-  toCheckIn <- withTVarRead personDB $ toList . getEQ (gid :: CheckInGroupId)
+  toCheckIn <- withTVarRead personDB $ toList . getEQ (GID gid)
   vs <- forM toCheckIn $ \p -> do
       checkedInPerson <- runBreeze' $ Checkin eid p
       withTVarWrite personDB $ 

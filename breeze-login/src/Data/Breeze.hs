@@ -179,11 +179,14 @@ newtype FName = FName String deriving (Eq, Ord, Data)
 
 newtype LName = LName String deriving (Eq, Ord, Data)
 
+newtype GID = GID CheckInGroupId deriving (Eq, Ord, Data)
+
+
 instance Indexable Person where
   empty = ixSet 
     [ ixFun $ (:[]) . (view checkedIn)
     , ixFun $ (:[]) . (view pid)
-    , ixFun $ \x -> case x^.checkedIn of
+    , ixFun $ \x -> GID <$> case x^.checkedIn of
                       WaitingApproval gid -> [gid]
                       WaitingCreation gid _ -> [gid]
                       _ -> []
