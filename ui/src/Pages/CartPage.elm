@@ -42,7 +42,7 @@ view mdl =
                         ]
                     else
                         [ h4 [] [ text "You're checking in" ]
-                        , Html.map FindMsg <| Find.waitingPersonsWithEdit mdl
+                        , Find.waitingPersons mdl
                         ]
                 ]
     in

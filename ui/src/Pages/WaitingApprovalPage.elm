@@ -72,5 +72,5 @@ view mdl =
                 , groupId gid
                 , cancelCheckin
                 , checkInTitle
-                , Person.onlyListPersons mdl.waitingCheckIn
+                , Find.waitingPersons mdl
                 ]

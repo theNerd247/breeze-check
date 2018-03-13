@@ -5,6 +5,7 @@ import Bootstrap.Form as Form
 import Data exposing (..)
 import Dict as Dict
 import Html as Html exposing (Html, text)
+import Html.Attributes exposing (class)
 import Person as Person
 
 
@@ -79,4 +80,4 @@ addButton =
         [ Button.onClick CreateNewPerson
         , Button.success
         ]
-        [ text "Add Person" ]
+        [ Html.i [ class "fas fa-user-plus" ] [] ]
