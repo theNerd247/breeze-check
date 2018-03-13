@@ -7,23 +7,21 @@ import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
+import Pages exposing (..)
 import Person as Person
+import Router as Router
 
 
-type alias Msg =
-    Find.Msg
+config : Config m
+config =
+    Pages.config
+        |> pageRoute Router.Cart
+        |> nextPage Router.Photo
+        |> title "Cart"
+        |> pageView view
 
 
-type alias HasReviewPage m =
-    Find.HasFind m
-
-
-update : Msg -> HasReviewPage m -> ( HasReviewPage m, Cmd Msg )
-update msg mdl =
-    Find.update msg mdl
-
-
-view : HasReviewPage m -> Html Msg
+view : Model m -> Html Msg
 view mdl =
     let
         title =
@@ -43,7 +41,7 @@ view mdl =
             in
             Grid.row [ Row.attrs a, Row.centerXs ]
                 [ Grid.col [ Col.xs12 ]
-                    [ Html.map Find.EditWaitingMsg <| Person.view mdl.waitingCheckIn Person.editPersons
+                    [ Html.map (FindMsg << Find.EditWaitingMsg) <| Person.view mdl.waitingCheckIn Person.editPersons
                     ]
                 ]
     in

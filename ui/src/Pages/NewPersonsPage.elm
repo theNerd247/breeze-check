@@ -9,28 +9,11 @@ import NewPerson as NewPerson
 
 
 type alias Msg =
-    NewPerson.Msg
 
-
-type alias HasNewPersonsPage m =
-    NewPerson.HasNewFamilies (HasCheckIn m)
 
 
 update : Msg -> HasNewPersonsPage m -> ( HasNewPersonsPage m, Cmd Msg )
 update msg mdl =
-    let
-        f m ps =
-            { m
-                | waitingCheckIn =
-                    ps
-                        |> List.map (\p -> { p | checkedIn = True })
-                        |> List.append m.waitingCheckIn
-                , searchLastName = ""
-                , personNotFound = False
-            }
-    in
-    NewPerson.update f msg mdl
-
 
 view : HasNewPersonsPage m -> Html Msg
 view mdl =

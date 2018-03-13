@@ -8,30 +8,14 @@ import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
-import Nested exposing (modifyCmd)
-import Router as Router
+import Pages as Pages
 
 
-type Msg
-    = FindMsg Find.Msg
-    | Continue
+update =
+    Pages.update
 
 
-type alias HasSelectPage m =
-    Find.HasFind (Router.HasRoutes m)
-
-
-update : Msg -> HasSelectPage m -> ( HasSelectPage m, Cmd Msg )
-update msg mdl =
-    case msg of
-        FindMsg msg ->
-            modifyCmd FindMsg <| Find.update msg mdl
-
-        Continue ->
-            ( Router.setRoute mdl Router.Cart, Cmd.none )
-
-
-view : HasSelectPage m -> Html Msg
+view : HasSelectPage m -> Html Pages.Msg
 view mdl =
     let
         hasSelectablePeople =
@@ -60,27 +44,5 @@ view mdl =
         [ Html.map FindMsg <| Find.searchPersonsForm mdl
         , title
         , results
-        , continue <| Dict.size mdl.waitingCheckIn
+        , continue <| Dict.size mdl.waitingCheckIn <= 0
         ]
-
-
-continue : Int -> Html Msg
-continue numSelected =
-    case numSelected of
-        0 ->
-            Html.div [] []
-
-        _ ->
-            Grid.row [ Row.centerXs, Row.attrs [ class "align-items-end" ] ]
-                [ Grid.col [ Col.xs12 ]
-                    [ div [ class "text-center", class "align-text-bottom" ]
-                        [ Button.button
-                            [ Button.onClick <| Continue
-                            , Button.outlineSuccess
-                            , Button.disabled <| numSelected <= 0
-                            ]
-                            [ text <| "Continue (" ++ toString numSelected ++ ")"
-                            ]
-                        ]
-                    ]
-                ]
