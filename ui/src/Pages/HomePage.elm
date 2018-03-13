@@ -27,7 +27,7 @@ config =
     , nextPageRoute = Router.Search
     , pageTitle = "Home"
     , pageView = view
-    , showInNavbar = True
+    , showInNavbar = False
     }
 
 

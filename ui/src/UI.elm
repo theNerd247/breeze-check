@@ -4,6 +4,7 @@ import Bootstrap.Navbar as Navbar
 import BreezeApi as BreezeApi
 import EventInfo as EventInfo
 import Html exposing (body)
+import Html.Attributes exposing (class)
 import Nested exposing (modifyCmd)
 import Pages exposing (..)
 import Pages.CartPage as CartPage
@@ -82,7 +83,7 @@ mainView mdl =
     withCurrentPage mdl pages <|
         \c ->
             body
-                []
+                [ class "mb-3" ]
                 [ navbar c pages mdl
                 , view mdl c
                 ]

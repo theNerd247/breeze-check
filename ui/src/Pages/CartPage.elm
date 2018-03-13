@@ -24,29 +24,29 @@ config =
 view : Model -> Html Msg
 view mdl =
     let
+        disableCheckin =
+            Dict.size mdl.waitingCheckIn <= 0
+
         title =
             Grid.row [ Row.centerXs ]
                 [ Grid.col [ Col.xsAuto ]
-                    [ h3 [] [ text "You're checking in" ]
-                    ]
+                    []
                 ]
 
         waiting =
-            let
-                a =
-                    if not <| Dict.isEmpty mdl.waitingCheckIn then
-                        [ class "pb-3" ]
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.attrs [ class "text-center" ] ] <|
+                    if disableCheckin then
+                        [ h4 [] [ text "You Haven't Selected Anyone Yet" ]
+                        , goToPageButton Router.Search [ text "Go back" ]
+                        ]
                     else
-                        []
-            in
-            Grid.row [ Row.attrs a, Row.centerXs ]
-                [ Grid.col [ Col.xs12 ]
-                    [ Html.map FindMsg <| Find.waitingPersonsWithEdit mdl
-                    ]
+                        [ h4 [] [ text "You're checking in" ]
+                        , Html.map FindMsg <| Find.waitingPersonsWithEdit mdl
+                        ]
                 ]
     in
     div []
-        [ title
-        , waiting
-        , continueButton False [ text "Continue" ]
+        [ waiting
+        , continueButton disableCheckin [ text "Continue" ]
         ]

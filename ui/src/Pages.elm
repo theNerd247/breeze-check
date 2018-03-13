@@ -208,6 +208,15 @@ continueButton disabled buttonText =
             ]
 
 
+goToPageButton : Router.Route -> List (Html Msg) -> Html Msg
+goToPageButton r buttonText =
+    Button.button
+        [ Button.onClick <| RouterMsg <| Router.SetRoute r
+        , Button.outlinePrimary
+        ]
+        buttonText
+
+
 checkInButton : Bool -> Html Msg
 checkInButton disabled =
     if disabled then
