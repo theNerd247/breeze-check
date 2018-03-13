@@ -35,7 +35,7 @@ type alias HasCheckIn m =
         | searchLastName : String
         , foundPeople : Person.Persons
         , waitingCheckIn : Person.Persons
-        , personNotFound : Bool
+        , personNotFound : Maybe String
         , groupId : Maybe Data.CheckInGroupId
     }
 
@@ -156,10 +156,18 @@ searchResult ppl mdl =
         m =
             case ppl of
                 [] ->
-                    { mdl | foundPeople = Dict.empty, personNotFound = True }
+                    { mdl
+                        | foundPeople = Dict.empty
+                        , personNotFound =
+                            Just
+                                mdl.searchLastName
+                    }
 
                 _ ->
-                    { mdl | foundPeople = insertFound mdl.waitingCheckIn ppl, personNotFound = False }
+                    { mdl
+                        | foundPeople = insertFound mdl.waitingCheckIn ppl
+                        , personNotFound = Nothing
+                    }
     in
     ( m, Cmd.none )
 
@@ -210,15 +218,17 @@ searchPersonsForm mdl =
 
 searchResultsView : HasFind m -> Html Msg
 searchResultsView mdl =
-    if mdl.personNotFound then
-        div []
-            [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
-            , h5 [ class "text-center" ] [ text mdl.searchLastName ]
-            ]
-    else
-        Person.selectPersonsForCheckIn
-            |> Person.view mdl.foundPeople
-            |> Html.map SelectPersonsMsg
+    case mdl.personNotFound of
+        Just name ->
+            div []
+                [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
+                , h5 [ class "text-center" ] [ text name ]
+                ]
+
+        _ ->
+            Person.selectPersonsForCheckIn
+                |> Person.view mdl.foundPeople
+                |> Html.map SelectPersonsMsg
 
 
 waitingPersonsWithEdit : HasFind m -> Html Msg

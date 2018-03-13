@@ -88,14 +88,22 @@ routeName r =
 
 guardRoute : Route -> Route -> Route
 guardRoute old new =
+    let
+        hasPrior x y =
+            if old == x then
+                y
+            else
+                old
+    in
     case new of
         Photo ->
-            case old of
-                Cart ->
-                    Photo
+            hasPrior Cart Photo
 
-                _ ->
-                    old
+        Safety ->
+            hasPrior Photo Safety
+
+        WaitingApproval ->
+            hasPrior Safety WaitingApproval
 
         _ ->
             new
@@ -110,7 +118,14 @@ delta2url : HasRoutes m -> HasRoutes m -> Maybe Url.UrlChange
 delta2url old new =
     Builder.builder
         |> Builder.newEntry
-        |> Builder.replaceQuery [ ( "page", routeName new.currentRoute ) ]
+        |> Builder.replaceQuery
+            [ ( "page"
+              , routeName <|
+                    guardRoute
+                        old.currentRoute
+                        new.currentRoute
+              )
+            ]
         |> Builder.toUrlChange
         |> Just
 

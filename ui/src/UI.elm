@@ -58,7 +58,7 @@ init =
             , waitingCheckIn = initPersons
             , searchLastName = ""
             , eventInfo = { eventName = "", eventId = "" }
-            , personNotFound = False
+            , personNotFound = Nothing
             , newPerson = initPerson
             , newPersons = initPersons
             , aggreedToSafetyWaiver = False

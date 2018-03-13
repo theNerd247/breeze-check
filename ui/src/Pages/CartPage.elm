@@ -17,7 +17,7 @@ config =
     , nextPageRoute = Router.Photo
     , pageTitle = "Cart"
     , pageView = view
-    , showInNavbar = False
+    , showInNavbar = True
     }
 
 
