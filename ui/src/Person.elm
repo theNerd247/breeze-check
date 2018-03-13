@@ -75,18 +75,19 @@ firstNameView f mdl =
 editPersons : Config PersonsMsg
 editPersons =
     let
-        setNameView f g p =
+        setNameView ph f g p =
             Input.text
                 [ Input.onInput <| Update p.pid << f
                 , Input.value <| g p
+                , Input.placeholder ph
                 ]
 
         delCol p =
             Utils.deleteButton <| Delete p.pid
     in
     config
-        |> firstNameView (setNameView SetFirstName (.personName >> .firstName))
-        |> lastNameView (setNameView SetLastName (.personName >> .lastName))
+        |> firstNameView (setNameView "First Name" SetFirstName (.personName >> .firstName))
+        |> lastNameView (setNameView "Last Name" SetLastName (.personName >> .lastName))
         |> lastCol delCol
 
 
