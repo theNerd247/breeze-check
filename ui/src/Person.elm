@@ -49,7 +49,7 @@ type alias Config msg =
     , lastNameView : Data.Person -> Html msg
     , firstNameView : Data.Person -> Html msg
     , rowOptions : Data.Person -> List (Table.RowOption msg)
-    , selectAll : Maybe (Bool -> msg)
+    , header : List (Table.Cell msg)
     }
 
 
@@ -59,7 +59,7 @@ config =
     , lastNameView = \p -> text p.personName.lastName
     , firstNameView = \p -> text p.personName.firstName
     , rowOptions = always []
-    , selectAll = Nothing
+    , header = []
     }
 
 
@@ -78,14 +78,40 @@ firstNameView f mdl =
     { mdl | firstNameView = f }
 
 
+
+-- | If you are using map make sure to set this AFTER the map is performed so
+-- the resulting typ is mapped correctly. This is due to Table.RowOptions not
+-- being a functor
+
+
 rowOps : (Data.Person -> List (Table.RowOption msg)) -> Config msg -> Config msg
 rowOps f cfg =
     { cfg | rowOptions = f }
 
 
-allowSelectAll : (Bool -> msg) -> Config msg -> Config msg
-allowSelectAll f mdl =
-    { mdl | selectAll = Just f }
+setHeader : List (Table.Cell msg) -> Config msg -> Config msg
+setHeader f mdl =
+    { mdl | header = f }
+
+
+editName : String -> String -> (String -> msg) -> Html msg
+editName ph n f =
+    Input.text
+        [ Input.onInput f
+        , Input.value n
+        , Input.placeholder ph
+        ]
+
+
+mapConfig : (a -> b) -> Config a -> Config b
+mapConfig f mdl =
+    { mdl
+        | extraCol = Maybe.map (\g -> Html.map f << g) mdl.extraCol
+        , lastNameView = Html.map f << mdl.lastNameView
+        , firstNameView = Html.map f << mdl.firstNameView
+        , rowOptions = always []
+        , header = []
+    }
 
 
 editPersons : Config PersonsMsg
@@ -112,9 +138,20 @@ editPersons =
         |> extraCol deleteButton
 
 
-selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> Config PersonsMsg
-selectPersons f personChecked =
+selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> (Bool -> PersonsMsg) -> Config PersonsMsg
+selectPersons f personChecked selectAllMsg =
     let
+        selheader =
+            [ Table.td [ Table.cellAttr <| colspan 3 ]
+                [ Checkbox.custom
+                    [ Checkbox.onCheck selectAllMsg
+                    , Checkbox.id "selectAll"
+                    , Checkbox.inline
+                    ]
+                    "Select All"
+                ]
+            ]
+
         selPerson p =
             Checkbox.custom
                 [ Checkbox.id <| toString p.pid
@@ -122,9 +159,18 @@ selectPersons f personChecked =
                 , Checkbox.onCheck <| Update p.pid << f
                 ]
                 ""
+
+        setActive p =
+            if personChecked p then
+                [ Table.rowSuccess
+                ]
+            else
+                []
     in
     config
         |> extraCol selPerson
+        |> setHeader selheader
+        |> rowOps setActive
 
 
 selectPersonsForCheckIn : Config PersonsMsg
@@ -144,25 +190,15 @@ selectPersonsForCheckIn =
                 _ ->
                     False
 
-        setActive p =
-            if p.checkedIn == Data.SelectedForCheckIn then
-                [ Table.rowSuccess
-                ]
-            else
-                []
-
         m =
             SetCheckedIn << setChecked
     in
-    selectPersons m personChecked
-        |> rowOps setActive
-        |> allowSelectAll (UpdateAll << m)
+    selectPersons m personChecked (UpdateAll << m)
 
 
 selectPersonsForWantsPhotos : Config PersonsMsg
 selectPersonsForWantsPhotos =
-    selectPersons SetWantsPhotos .wantsPhotos
-        |> allowSelectAll (UpdateAll << SetWantsPhotos)
+    selectPersons SetWantsPhotos .wantsPhotos (UpdateAll << SetWantsPhotos)
 
 
 onlyListPersons : Persons -> Html msg
@@ -289,24 +325,7 @@ view : Persons -> Config msg -> Html msg
 view ps config =
     let
         head =
-            Table.simpleThead <|
-                if not <| Dict.isEmpty ps then
-                    case config.selectAll of
-                        Just f ->
-                            [ Table.td [ Table.cellAttr <| colspan 3 ]
-                                [ Checkbox.custom
-                                    [ Checkbox.onCheck f
-                                    , Checkbox.id "selectAll"
-                                    , Checkbox.inline
-                                    ]
-                                    "Select All"
-                                ]
-                            ]
-
-                        _ ->
-                            []
-                else
-                    []
+            Table.simpleThead config.header
 
         body =
             Dict.values ps

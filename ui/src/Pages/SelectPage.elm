@@ -47,7 +47,11 @@ view mdl =
                 [ Grid.col [ Col.xs12 ] <|
                     [ Html.map FindMsg <| Find.searchResultsView mdl
                     ]
+                , Grid.col [ Col.xsAuto ] [ notFoundButton ]
                 ]
+
+        notFoundButton =
+            goToPageButton Router.NewPersons [ text "I Can't Find Us" ]
     in
     div []
         [ Html.map FindMsg <| Find.searchPersonsForm mdl

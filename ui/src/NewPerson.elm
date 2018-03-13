@@ -50,9 +50,26 @@ update msg mdl =
 
 newPersonsForm : HasNewPersons m -> Html Msg
 newPersonsForm mdl =
+    let
+        header =
+            [ Person.tableCellShort [ addButton ]
+            , Person.tableCell
+                [ Person.editName "First Name"
+                    mdl.newPerson.personName.firstName
+                    (PersonMsg << Person.SetFirstName)
+                ]
+            , Person.tableCell
+                [ Person.editName "Last Name"
+                    mdl.newPerson.personName.lastName
+                    (PersonMsg << Person.SetLastName)
+                ]
+            ]
+    in
     Form.form []
-        [ addButton
-        , Html.map PersonsMsg <| Person.view mdl.newPersons Person.editPersons
+        [ Person.editPersons
+            |> Person.mapConfig PersonsMsg
+            |> Person.setHeader header
+            |> Person.view mdl.newPersons
         ]
 
 
