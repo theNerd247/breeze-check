@@ -26,27 +26,32 @@ view mdl =
     let
         disableCheckin =
             Dict.size mdl.waitingCheckIn <= 0
-
-        title =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
-                    []
-                ]
-
-        waiting =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.attrs [ class "text-center" ] ] <|
-                    if disableCheckin then
-                        [ h4 [] [ text "You Haven't Selected Anyone Yet" ]
-                        , goToPageButton Router.Search [ text "Go back" ]
-                        ]
-                    else
-                        [ h4 [] [ text "You're checking in" ]
-                        , Find.waitingPersons mdl
-                        ]
-                ]
     in
     div []
-        [ waiting
-        , continueButton disableCheckin [ text "Continue" ]
+        [ Grid.row [ Row.centerXs ]
+            [ Grid.col [ Col.attrs [ class "text-center" ] ] <|
+                if disableCheckin then
+                    [ h4 [] [ text "You Haven't Selected Anyone Yet" ]
+                    ]
+                else
+                    [ h4 [] [ text "You're checking in" ]
+                    , Find.waitingPersons mdl
+                    ]
+            ]
+        , Grid.row [ Row.centerXs, Row.attrs [ class "mb-3" ] ]
+            [ Grid.col [ Col.xsAuto ]
+                [ goToPageButton
+                    (if disableCheckin then
+                        Router.Search
+                     else
+                        Router.Selected
+                    )
+                    [ text "Go back" ]
+                ]
+            ]
+        , Grid.row [ Row.centerXs ]
+            [ Grid.col [ Col.xsAuto ]
+                [ continueButton disableCheckin [ text "Continue" ]
+                ]
+            ]
         ]
