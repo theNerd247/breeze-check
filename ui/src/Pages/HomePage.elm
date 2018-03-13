@@ -7,7 +7,9 @@ import Html as Html
         , button
         , div
         , h1
+        , h2
         , h3
+        , h4
         , p
         , text
         )
@@ -36,10 +38,9 @@ view mdl =
     in
     div []
         [ div [ class "text-center" ]
-            [ h1 [] [ text "Welcome to" ]
+            [ h2 [] [ text "Welcome to" ]
+            , h4 [] [ text "Mountain View Church's" ]
             , h3 [] [ text mdl.eventInfo.eventName ]
-            , h3 [] [ text "at" ]
-            , h3 [] [ text "Mountain View Church" ]
             , brf
             , brf
             , p [] [ text "Let's get you checked in!" ]
