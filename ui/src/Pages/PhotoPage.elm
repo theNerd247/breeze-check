@@ -40,7 +40,7 @@ view mdl =
                 ]
             ]
         , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
+            [ Grid.col []
                 [ Html.map FindMsg <| Find.waitingPersonsWithPhotoSelect mdl ]
             ]
         , Grid.row [ Row.centerXs ]

@@ -242,8 +242,7 @@ cancelCheckInButton =
     Button.button
         [ Button.outlineInfo
         , Button.large
-        , Button.onClick
-            CancelCheckInClick
+        , Button.onClick CancelCheckInClick
         ]
         [ Html.i [ class "fas fa-arrow-left" ] []
         , text " Cancel Check In"
