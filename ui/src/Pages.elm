@@ -7,6 +7,7 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
+import Dict as Dict
 import ErrorMsg as Err
 import EventInfo as EventInfo
 import FindPeople as Find
@@ -107,7 +108,23 @@ update msg mdl cfg =
             ( Router.setRoute mdl cfg.nextPageRoute, Cmd.none )
 
         NewPersonMsg m ->
-            ( NewPerson.update m mdl, Cmd.none )
+            ( mdl
+                |> NewPerson.afterCreateNewAttendees m
+                    (Router.setRoute
+                        { mdl
+                            | waitingCheckIn =
+                                Dict.union mdl.newPersons mdl.waitingCheckIn
+
+                            --the order of union matters. if the user goes
+                            --back to edit the persons then we want those
+                            --items to update in the rest of the model
+                            , foundPeople = Dict.union mdl.newPersons mdl.foundPeople
+                        }
+                        Router.Selected
+                    )
+                |> NewPerson.update m
+            , Cmd.none
+            )
 
         ErrorMsg m ->
             ( Err.update m mdl, Cmd.none )

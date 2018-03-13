@@ -51,7 +51,7 @@ view mdl =
                 ]
 
         notFoundButton =
-            goToPageButton Router.NewPersons [ text "I Can't Find Us" ]
+            goToPageButton Router.NewPersons [ text "Add A New Person" ]
     in
     div []
         [ Html.map FindMsg <| Find.searchPersonsForm mdl

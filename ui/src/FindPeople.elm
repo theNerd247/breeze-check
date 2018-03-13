@@ -148,16 +148,16 @@ searchClick mdl =
 searchResult : List Data.Person -> HasFind m -> ( HasFind m, Cmd Msg )
 searchResult ppl mdl =
     let
-        insertFound waiting ps =
-            List.map (\p -> ( p.pid, p )) ps
+        insertFound =
+            List.map (\p -> ( p.pid, p )) ppl
                 |> Dict.fromList
-                |> Dict.union waiting
+                |> Dict.union mdl.waitingCheckIn
 
         m =
             case ppl of
                 [] ->
                     { mdl
-                        | foundPeople = Dict.empty
+                        | foundPeople = insertFound
                         , personNotFound =
                             Just
                                 mdl.searchLastName
@@ -165,7 +165,7 @@ searchResult ppl mdl =
 
                 _ ->
                     { mdl
-                        | foundPeople = insertFound mdl.waitingCheckIn ppl
+                        | foundPeople = insertFound
                         , personNotFound = Nothing
                     }
     in
@@ -218,17 +218,30 @@ searchPersonsForm mdl =
 
 searchResultsView : HasFind m -> Html Msg
 searchResultsView mdl =
-    case mdl.personNotFound of
-        Just name ->
-            div []
-                [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
-                , h5 [ class "text-center" ] [ text name ]
-                ]
+    let
+        nfmsg =
+            case mdl.personNotFound of
+                Just name ->
+                    div []
+                        [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
+                        , h5 [ class "text-center" ] [ text name ]
+                        ]
 
-        _ ->
-            Person.selectPersonsForCheckIn
-                |> Person.view mdl.foundPeople
-                |> Html.map SelectPersonsMsg
+                _ ->
+                    text ""
+
+        table =
+            if Dict.size mdl.foundPeople > 0 then
+                Person.selectPersonsForCheckIn
+                    |> Person.view mdl.foundPeople
+                    |> Html.map SelectPersonsMsg
+            else
+                text ""
+    in
+    div []
+        [ nfmsg
+        , table
+        ]
 
 
 waitingPersons : HasFind m -> Html msg

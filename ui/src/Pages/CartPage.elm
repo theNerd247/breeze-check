@@ -34,7 +34,7 @@ view mdl =
                     [ h4 [] [ text "You Haven't Selected Anyone Yet" ]
                     ]
                 else
-                    [ h4 [] [ text "You're checking in" ]
+                    [ h4 [] [ text "Make Sure Everyone is Here" ]
                     , Find.waitingPersons mdl
                     ]
             ]
@@ -46,7 +46,7 @@ view mdl =
                      else
                         Router.Selected
                     )
-                    [ text "Go back" ]
+                    [ text "Go Back" ]
                 ]
             ]
         , Grid.row [ Row.centerXs ]

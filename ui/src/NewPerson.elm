@@ -17,6 +17,17 @@ type Msg
     = CreateNewPerson
     | PersonsMsg Person.PersonsMsg
     | PersonMsg Person.PersonMsg
+    | CreateNewAttendees
+
+
+afterCreateNewAttendees : Msg -> HasNewPersons m -> HasNewPersons m -> HasNewPersons m
+afterCreateNewAttendees msg b a =
+    case msg of
+        CreateNewAttendees ->
+            b
+
+        _ ->
+            a
 
 
 update : Msg -> HasNewPersons m -> HasNewPersons m
@@ -28,18 +39,17 @@ update msg mdl =
                     mdl.newPerson
 
                 pid =
-                    mdl.newPersons
-                        |> Dict.keys
-                        |> List.maximum
-                        |> Maybe.map (\x -> x + 1)
-                        |> Maybe.withDefault 0
+                    np.pid + 1
+
+                ip =
+                    Person.initPerson
             in
             { mdl
                 | newPersons =
-                    Dict.insert (Debug.log "pid: " pid)
-                        { np | pid = pid }
+                    Dict.insert pid
+                        { np | pid = pid, checkedIn = Data.SelectedForCheckIn }
                         mdl.newPersons
-                , newPerson = Person.initPerson
+                , newPerson = { ip | pid = pid }
             }
 
         PersonMsg msg ->
@@ -47,6 +57,9 @@ update msg mdl =
 
         PersonsMsg msg ->
             { mdl | newPersons = Person.updatePersons msg mdl.newPersons }
+
+        _ ->
+            mdl
 
 
 newPersonsForm : HasNewPersons m -> Html Msg
@@ -71,6 +84,7 @@ newPersonsForm mdl =
             |> Person.mapConfig PersonsMsg
             |> Person.setHeader header
             |> Person.view mdl.newPersons
+        , createAttendeesButton
         ]
 
 
@@ -81,3 +95,12 @@ addButton =
         , Button.success
         ]
         [ Html.i [ class "fas fa-user-plus" ] [] ]
+
+
+createAttendeesButton : Html Msg
+createAttendeesButton =
+    Button.button
+        [ Button.onClick CreateNewAttendees
+        , Button.success
+        ]
+        [ text "Done" ]
