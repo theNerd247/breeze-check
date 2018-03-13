@@ -221,6 +221,14 @@ searchResultsView mdl =
             |> Html.map SelectPersonsMsg
 
 
+waitingPersonsWithEdit : HasFind m -> Html Msg
+waitingPersonsWithEdit mdl =
+    Html.map EditWaitingMsg <|
+        Person.view
+            mdl.waitingCheckIn
+            Person.editPersons
+
+
 cancelCheckInButton : Html Msg
 cancelCheckInButton =
     Button.button

@@ -20,9 +20,9 @@ import Router as Router
 
 type Msg
     = FindMsg Find.Msg
-    | NewPerson NewPerson.Msg
+    | NewPersonMsg NewPerson.Msg
     | Continue
-    | Error Err.Msg
+    | ErrorMsg Err.Msg
     | RouterMsg Router.Msg
     | NavbarMsg Navbar.State
 
@@ -45,8 +45,7 @@ type alias Config =
     { pageRoute : Router.Route
     , nextPageRoute : Router.Route
     , pageTitle : String
-    , view : Model -> Html Msg
-    , showContinue : Bool
+    , pageView : Model -> Html Msg
     }
 
 
@@ -59,43 +58,22 @@ config =
     { pageRoute = Router.Home
     , nextPageRoute = Router.Home
     , pageTitle = ""
-    , view = always (Html.div [] [])
-    , showContinue = False
+    , pageView = always (Html.div [] [])
     }
-
-
-pageRoute : Router.Route -> Config -> Config
-pageRoute r mdl =
-    { mdl | pageRoute = r }
-
-
-nextPage : Router.Route -> Config -> Config
-nextPage r mdl =
-    { mdl | nextPageRoute = r }
-
-
-title : String -> Config -> Config
-title r mdl =
-    { mdl | pageTitle = r }
-
-
-pageView : (Model -> Html Msg) -> Config -> Config
-pageView r mdl =
-    { mdl | view = r }
-
-
-showContinue : Bool -> Config -> Config
-showContinue b mdl =
-    { mdl | showContinue = b }
 
 
 pageNotFound : Config
 pageNotFound =
-    config
-        |> title "404"
-        |> showContinue True
-        |> nextPage Router.Home
-        |> pageView (always <| h3 [] [ text "The page you're looking for doesn't exist" ])
+    { config
+        | pageTitle = "404"
+        , nextPageRoute = Router.Home
+        , pageView =
+            always <|
+                div []
+                    [ h3 [] [ text "The page you're looking for doesn't exist" ]
+                    , continueButton False [ text "Home" ]
+                    ]
+    }
 
 
 getCurrentConfig : Pages -> Model -> Config
@@ -110,8 +88,8 @@ withCurrentPage mdl f pages =
     f <| getCurrentConfig pages mdl
 
 
-update : Msg -> Model -> Config -> ( Model, Cmd Msg )
-update msg mdl cfg =
+update : Config -> Msg -> Model -> ( Model, Cmd Msg )
+update cfg msg mdl =
     case msg of
         FindMsg msg ->
             modifyCmd FindMsg <| Find.update msg mdl
@@ -119,10 +97,10 @@ update msg mdl cfg =
         Continue ->
             ( Router.setRoute mdl cfg.nextPageRoute, Cmd.none )
 
-        NewPerson msg ->
+        NewPersonMsg msg ->
             ( NewPerson.update msg mdl, Cmd.none )
 
-        Error msg ->
+        ErrorMsg msg ->
             ( Err.update msg mdl, Cmd.none )
 
         RouterMsg msg ->
@@ -132,11 +110,11 @@ update msg mdl cfg =
             ( { mdl | navbarState = state }, Cmd.none )
 
 
-view : Model -> Config -> Html Msg
-view mdl cfg =
+view : Config -> Model -> Html Msg
+view cfg mdl =
     let
         errors =
-            Html.map Error <| Err.view mdl
+            Html.map ErrorMsg <| Err.view mdl
 
         loading =
             if mdl.loadingStatus == BreezeApi.Waiting then
@@ -151,7 +129,7 @@ view mdl cfg =
         page =
             Grid.row [ Row.centerLg ]
                 [ Grid.col [ Col.lg8 ]
-                    [ cfg.view mdl
+                    [ cfg.pageView mdl
                     ]
                 ]
     in
@@ -162,8 +140,8 @@ view mdl cfg =
         ]
 
 
-navbar : Model -> Pages -> Config -> Html Msg
-navbar mdl pages cfg =
+navbar : Config -> Pages -> Model -> Html Msg
+navbar cfg pages mdl =
     let
         navBarItem c =
             Navbar.itemLink
@@ -190,7 +168,7 @@ loadingBar =
         ]
 
 
-continueButton : Bool -> String -> Html Msg
+continueButton : Bool -> List (Html Msg) -> Html Msg
 continueButton disabled buttonText =
     if disabled then
         Html.div [] []
@@ -203,8 +181,7 @@ continueButton disabled buttonText =
                         , Button.outlineSuccess
                         , Button.disabled disabled
                         ]
-                        [ text buttonText
-                        ]
+                        buttonText
                     ]
                 ]
             ]

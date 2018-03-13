@@ -8,20 +8,19 @@ import FindPeople as Find
 import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
 import Pages exposing (..)
-import Person as Person
 import Router as Router
 
 
-config : Config m
+config : Config
 config =
-    Pages.config
-        |> pageRoute Router.Cart
-        |> nextPage Router.Photo
-        |> title "Cart"
-        |> pageView view
+    { pageRoute = Router.Cart
+    , nextPageRoute = Router.Photo
+    , pageTitle = "Cart"
+    , pageView = view
+    }
 
 
-view : Model m -> Html Msg
+view : Model -> Html Msg
 view mdl =
     let
         title =
@@ -41,7 +40,7 @@ view mdl =
             in
             Grid.row [ Row.attrs a, Row.centerXs ]
                 [ Grid.col [ Col.xs12 ]
-                    [ Html.map (FindMsg << Find.EditWaitingMsg) <| Person.view mdl.waitingCheckIn Person.editPersons
+                    [ Html.map FindMsg <| Find.waitingPersonsWithEdit mdl
                     ]
                 ]
     in

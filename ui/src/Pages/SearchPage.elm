@@ -4,25 +4,20 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, text)
+import Pages exposing (..)
 import Router as Router
 
 
-type alias Msg =
-    Find.Msg
+config : Config
+config =
+    { pageRoute = Router.Search
+    , nextPageRoute = Router.Selected
+    , pageTitle = "Search"
+    , pageView = view
+    }
 
 
-type alias HasSearchPage m =
-    Find.HasFind (Router.HasRoutes m)
-
-
-update : Msg -> HasSearchPage m -> ( HasSearchPage m, Cmd Msg )
-update msg mdl =
-    Find.update msg <|
-        Find.afterSearch msg mdl <|
-            Router.setRoute mdl Router.Selected
-
-
-view : HasSearchPage m -> Html Msg
+view : Model -> Html Msg
 view mdl =
     let
         title =
@@ -35,7 +30,7 @@ view mdl =
         searchForm =
             Grid.row []
                 [ Grid.col [ Col.xs12 ]
-                    [ Find.searchPersonsForm mdl
+                    [ Html.map FindMsg <| Find.searchPersonsForm mdl
                     ]
                 ]
     in

@@ -8,13 +8,14 @@ import UrlParser exposing ((<?>), customParam, map, oneOf, parsePath, top)
 
 
 type Route
-    = Search
+    = Home
+    | Search
     | Selected
+    | NewPersons
+    | Cart
     | Photo
     | Safety
     | WaitingApproval
-    | Home
-    | Cart
 
 
 type Msg
@@ -80,6 +81,9 @@ routeName r =
 
         Home ->
             "home"
+
+        NewPersons ->
+            "newfamily"
 
 
 guardRoute : Route -> Route -> Route
