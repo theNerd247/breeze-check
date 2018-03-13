@@ -44,4 +44,8 @@ view mdl =
                     ]
                 ]
     in
-    div [] [ title, waiting ]
+    div []
+        [ title
+        , waiting
+        , continueButton False [ text "Continue" ]
+        ]

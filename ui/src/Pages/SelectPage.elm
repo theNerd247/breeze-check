@@ -13,10 +13,10 @@ import Router as Router
 
 config : Config
 config =
-    { pageRoute = Router.Home
-    , nextPageRoute = Router.Home
-    , pageTitle = ""
-    , pageView = always (Html.div [] [])
+    { pageRoute = Router.Selected
+    , nextPageRoute = Router.Cart
+    , pageTitle = "Results"
+    , pageView = view
     }
 
 
@@ -53,6 +53,6 @@ view mdl =
         , title
         , results
         , continueButton (nselected <= 0)
-            [ text <| "Continue (" ++ toString nselected ++ " )"
+            [ text <| "Continue (" ++ toString nselected ++ ")"
             ]
         ]

@@ -136,6 +136,11 @@ onlyListPersons =
     flip view config
 
 
+initPersons : Persons
+initPersons =
+    Dict.empty
+
+
 initPerson : Data.Person
 initPerson =
     let

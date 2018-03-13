@@ -61,9 +61,9 @@ type Msg
 
 
 afterSearch : Msg -> HasFind m -> HasFind m -> HasFind m
-afterSearch msg a b =
+afterSearch msg b a =
     case msg of
-        SearchResponse (BreezeApi.Recieved (Ok (Ok _))) ->
+        SearchClick ->
             b
 
         _ ->
@@ -71,7 +71,7 @@ afterSearch msg a b =
 
 
 afterCheckIn : Msg -> HasFind m -> HasFind m -> HasFind m
-afterCheckIn msg a b =
+afterCheckIn msg b a =
     case msg of
         CheckInResponse (BreezeApi.Recieved (Ok (Ok _))) ->
             b
@@ -81,7 +81,7 @@ afterCheckIn msg a b =
 
 
 afterCancel : Msg -> HasFind m -> HasFind m -> HasFind m
-afterCancel msg a b =
+afterCancel msg b a =
     case msg of
         CancelCheckInResponse (BreezeApi.Recieved (Ok (Ok _))) ->
             b
@@ -227,6 +227,14 @@ waitingPersonsWithEdit mdl =
         Person.view
             mdl.waitingCheckIn
             Person.editPersons
+
+
+waitingPersonsWithPhotoSelect : HasFind m -> Html Msg
+waitingPersonsWithPhotoSelect mdl =
+    Html.map EditWaitingMsg <|
+        Person.view
+            mdl.waitingCheckIn
+            Person.selectPersonsForWantsPhotos
 
 
 cancelCheckInButton : Html Msg

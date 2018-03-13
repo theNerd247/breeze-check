@@ -44,7 +44,7 @@ view mdl =
             ]
         , Grid.row [ Row.centerXs ]
             [ Grid.col [ Col.xsAuto ]
-                [ continueButton False [ text "Contine" ]
+                [ continueButton False [ text "Continue" ]
                 ]
             ]
         ]

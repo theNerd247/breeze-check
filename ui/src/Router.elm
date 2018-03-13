@@ -91,11 +91,11 @@ guardRoute old new =
     case new of
         Photo ->
             case old of
-                Safety ->
+                Cart ->
                     Photo
 
                 _ ->
-                    Home
+                    old
 
         _ ->
             new

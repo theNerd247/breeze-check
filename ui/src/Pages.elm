@@ -23,8 +23,10 @@ type Msg
     | NewPersonMsg NewPerson.Msg
     | Continue
     | ErrorMsg Err.Msg
+    | EventInfoMsg EventInfo.Msg
     | RouterMsg Router.Msg
     | NavbarMsg Navbar.State
+    | AgreedToSafetyWaiver Bool
 
 
 type alias Model =
@@ -34,6 +36,7 @@ type alias Model =
                 (Find.HasFind
                     (NewPerson.HasNewPersons
                         { navbarState : Navbar.State
+                        , aggreedToSafetyWaiver : Bool
                         }
                     )
                 )
@@ -83,35 +86,45 @@ getCurrentConfig pages mdl =
         |> Maybe.withDefault pageNotFound
 
 
-withCurrentPage : Model -> (Config -> a) -> Pages -> a
-withCurrentPage mdl f pages =
+withCurrentPage : Model -> Pages -> (Config -> a) -> a
+withCurrentPage mdl pages f =
     f <| getCurrentConfig pages mdl
 
 
-update : Config -> Msg -> Model -> ( Model, Cmd Msg )
-update cfg msg mdl =
+update : Msg -> Model -> Config -> ( Model, Cmd Msg )
+update msg mdl cfg =
     case msg of
-        FindMsg msg ->
-            modifyCmd FindMsg <| Find.update msg mdl
+        FindMsg m ->
+            Find.afterSearch m (Router.setRoute mdl Router.Selected) mdl
+                |> Find.afterCheckIn m (Router.setRoute mdl Router.WaitingApproval)
+                |> Find.afterCancel m (Router.setRoute mdl Router.Selected)
+                |> Find.update m
+                |> modifyCmd FindMsg
 
         Continue ->
             ( Router.setRoute mdl cfg.nextPageRoute, Cmd.none )
 
-        NewPersonMsg msg ->
-            ( NewPerson.update msg mdl, Cmd.none )
+        NewPersonMsg m ->
+            ( NewPerson.update m mdl, Cmd.none )
 
-        ErrorMsg msg ->
-            ( Err.update msg mdl, Cmd.none )
+        ErrorMsg m ->
+            ( Err.update m mdl, Cmd.none )
 
-        RouterMsg msg ->
-            ( Router.update msg mdl, Cmd.none )
+        RouterMsg m ->
+            ( Router.update m mdl, Cmd.none )
 
         NavbarMsg state ->
             ( { mdl | navbarState = state }, Cmd.none )
 
+        EventInfoMsg m ->
+            modifyCmd EventInfoMsg <| EventInfo.update m mdl
 
-view : Config -> Model -> Html Msg
-view cfg mdl =
+        AgreedToSafetyWaiver b ->
+            ( { mdl | aggreedToSafetyWaiver = b }, Cmd.none )
+
+
+view : Model -> Config -> Html Msg
+view mdl cfg =
     let
         errors =
             Html.map ErrorMsg <| Err.view mdl
@@ -150,7 +163,7 @@ navbar cfg pages mdl =
                         Router.SetRoute
                             c.pageRoute
                 ]
-                [ text "Home" ]
+                [ text <| c.pageTitle ]
     in
     Navbar.config NavbarMsg
         |> Navbar.brand []
@@ -182,6 +195,25 @@ continueButton disabled buttonText =
                         , Button.disabled disabled
                         ]
                         buttonText
+                    ]
+                ]
+            ]
+
+
+checkInButton : Bool -> Html Msg
+checkInButton disabled =
+    if disabled then
+        Html.div [] []
+    else
+        Grid.row [ Row.centerXs, Row.attrs [ class "align-items-end" ] ]
+            [ Grid.col [ Col.xs12 ]
+                [ div [ class "text-center", class "align-text-bottom" ]
+                    [ Button.button
+                        [ Button.onClick <| FindMsg Find.CheckInClick
+                        , Button.outlineSuccess
+                        , Button.disabled disabled
+                        ]
+                        [ text "Check-in" ]
                     ]
                 ]
             ]
