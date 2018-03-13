@@ -15,6 +15,7 @@ config =
     , nextPageRoute = Router.Selected
     , pageTitle = "New Family"
     , pageView = view
+    , showInNavbar = False
     }
 
 

@@ -14,6 +14,7 @@ config =
     , nextPageRoute = Router.Selected
     , pageTitle = "Search"
     , pageView = view
+    , showInNavbar = True
     }
 
 

@@ -15,6 +15,7 @@ config =
     , nextPageRoute = Router.Safety
     , pageTitle = "Photo Waiver"
     , pageView = view
+    , showInNavbar = False
     }
 
 

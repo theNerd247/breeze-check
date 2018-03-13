@@ -36,7 +36,7 @@ main =
         { init = init
         , update = mainUpdate
         , view = mainView
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = navbarSubscriptions
         }
         RouterMsg
 

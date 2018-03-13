@@ -17,6 +17,7 @@ config =
     , nextPageRoute = Router.Cart
     , pageTitle = "Results"
     , pageView = view
+    , showInNavbar = True
     }
 
 

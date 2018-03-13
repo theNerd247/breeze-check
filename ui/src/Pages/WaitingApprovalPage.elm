@@ -17,6 +17,7 @@ config =
     , nextPageRoute = Router.WaitingApproval
     , pageTitle = "Checking In"
     , pageView = view
+    , showInNavbar = False
     }
 
 

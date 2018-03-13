@@ -49,6 +49,7 @@ type alias Config =
     , nextPageRoute : Router.Route
     , pageTitle : String
     , pageView : Model -> Html Msg
+    , showInNavbar : Bool
     }
 
 
@@ -62,6 +63,7 @@ config =
     , nextPageRoute = Router.Home
     , pageTitle = ""
     , pageView = always (Html.div [] [])
+    , showInNavbar = False
     }
 
 
@@ -166,11 +168,17 @@ navbar cfg pages mdl =
                 [ text <| c.pageTitle ]
     in
     Navbar.config NavbarMsg
+        |> Navbar.withAnimation
         |> Navbar.brand []
             [ h3 [] [ text <| cfg.pageTitle ] ]
         |> Navbar.items
-            (pages |> List.map navBarItem)
+            (pages |> List.filter .showInNavbar |> List.map navBarItem)
         |> Navbar.view mdl.navbarState
+
+
+navbarSubscriptions : Model -> Sub Msg
+navbarSubscriptions mdl =
+    Navbar.subscriptions mdl.navbarState NavbarMsg
 
 
 loadingBar : Html msg

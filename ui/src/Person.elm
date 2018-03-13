@@ -46,6 +46,7 @@ type alias Config msg =
     { lastCol : Maybe (Data.Person -> Html msg)
     , lastNameView : Data.Person -> Html msg
     , firstNameView : Data.Person -> Html msg
+    , rowOptions : Data.Person -> List (Table.RowOption msg)
     }
 
 
@@ -54,6 +55,7 @@ config =
     { lastCol = Nothing
     , lastNameView = \p -> text p.personName.lastName
     , firstNameView = \p -> text p.personName.firstName
+    , rowOptions = always []
     }
 
 
@@ -70,6 +72,11 @@ lastNameView f mdl =
 firstNameView : (Data.Person -> Html msg) -> Config msg -> Config msg
 firstNameView f mdl =
     { mdl | firstNameView = f }
+
+
+rowOps : (Data.Person -> List (Table.RowOption msg)) -> Config msg -> Config msg
+rowOps f cfg =
+    { cfg | rowOptions = f }
 
 
 editPersons : Config PersonsMsg
@@ -123,8 +130,18 @@ selectPersonsForCheckIn =
                 Data.SelectedForCheckIn
             else
                 Data.CheckedOut
+
+        setActive p =
+            if p.checkedIn == Data.SelectedForCheckIn then
+                [ Table.rowSuccess
+                ]
+            else
+                []
     in
-    selectPersons <| SetCheckedIn << setChecked
+    SetCheckedIn
+        << setChecked
+        |> selectPersons
+        |> rowOps setActive
 
 
 selectPersonsForWantsPhotos : Config PersonsMsg
@@ -252,12 +269,17 @@ view ps config =
                 |> List.map (personRow config)
                 |> Table.tbody []
     in
-    Table.simpleTable ( head, body )
+    Table.table
+        { thead = head
+        , tbody = body
+        , options = [ Table.hover, Table.striped ]
+        }
 
 
 personRow : Config msg -> Data.Person -> Table.Row msg
 personRow cfg p =
-    Table.tr []
+    Table.tr
+        (cfg.rowOptions p)
         [ Table.td [] [ cfg.firstNameView p ]
         , Table.td [] [ cfg.lastNameView p ]
         , Table.td [] <|
