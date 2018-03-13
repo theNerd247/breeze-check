@@ -1,7 +1,7 @@
 {stdenv, elm}: 
 
 stdenv.mkDerivation rec {
-  version="1.1.6";
+  version="1.2.0";
   name = "breeze-check-ui-${version}";
   src = ./.;
   buildInputs = [elm];
