@@ -1,12 +1,13 @@
 module Person exposing (..)
 
+import Bootstrap.Button as Button
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
 import Bootstrap.Table as Table
-import BootstrapUtils as Utils
 import Data as Data
 import Dict as Dict exposing (Dict)
 import Html as Html exposing (Html, div, text)
+import Html.Attributes exposing (class, colspan)
 
 
 type alias Persons =
@@ -18,6 +19,7 @@ type PersonsMsg
     | Replace Data.Person
     | Update Data.PersonId PersonMsg
     | Delete Data.PersonId
+    | UpdateAll PersonMsg
 
 
 type PersonMsg
@@ -43,25 +45,27 @@ type AddressMsg
 
 
 type alias Config msg =
-    { lastCol : Maybe (Data.Person -> Html msg)
+    { extraCol : Maybe (Data.Person -> Html msg)
     , lastNameView : Data.Person -> Html msg
     , firstNameView : Data.Person -> Html msg
     , rowOptions : Data.Person -> List (Table.RowOption msg)
+    , selectAll : Maybe (Bool -> msg)
     }
 
 
 config : Config msg
 config =
-    { lastCol = Nothing
+    { extraCol = Nothing
     , lastNameView = \p -> text p.personName.lastName
     , firstNameView = \p -> text p.personName.firstName
     , rowOptions = always []
+    , selectAll = Nothing
     }
 
 
-lastCol : (Data.Person -> Html msg) -> Config msg -> Config msg
-lastCol f mdl =
-    { mdl | lastCol = Just f }
+extraCol : (Data.Person -> Html msg) -> Config msg -> Config msg
+extraCol f mdl =
+    { mdl | extraCol = Just f }
 
 
 lastNameView : (Data.Person -> Html msg) -> Config msg -> Config msg
@@ -79,6 +83,11 @@ rowOps f cfg =
     { cfg | rowOptions = f }
 
 
+allowSelectAll : (Bool -> msg) -> Config msg -> Config msg
+allowSelectAll f mdl =
+    { mdl | selectAll = Just f }
+
+
 editPersons : Config PersonsMsg
 editPersons =
     let
@@ -89,37 +98,33 @@ editPersons =
                 , Input.placeholder ph
                 ]
 
-        delCol p =
-            Utils.deleteButton <| Delete p.pid
+        deleteButton p =
+            Button.button
+                [ Button.onClick <| Delete p.pid
+                , Button.danger
+                , Button.roleLink
+                ]
+                [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
     in
     config
         |> firstNameView (setNameView "First Name" SetFirstName (.personName >> .firstName))
         |> lastNameView (setNameView "Last Name" SetLastName (.personName >> .lastName))
-        |> lastCol delCol
+        |> extraCol deleteButton
 
 
-selectPersons : (Bool -> PersonMsg) -> Config PersonsMsg
-selectPersons f =
+selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> Config PersonsMsg
+selectPersons f personChecked =
     let
         selPerson p =
-            let
-                personChecked =
-                    case p.checkedIn of
-                        Data.SelectedForCheckIn ->
-                            True
-
-                        _ ->
-                            False
-            in
-            Checkbox.checkbox
+            Checkbox.custom
                 [ Checkbox.id <| toString p.pid
-                , Checkbox.checked personChecked
+                , Checkbox.checked <| personChecked p
                 , Checkbox.onCheck <| Update p.pid << f
                 ]
                 ""
     in
     config
-        |> lastCol selPerson
+        |> extraCol selPerson
 
 
 selectPersonsForCheckIn : Config PersonsMsg
@@ -131,22 +136,33 @@ selectPersonsForCheckIn =
             else
                 Data.CheckedOut
 
+        personChecked p =
+            case p.checkedIn of
+                Data.SelectedForCheckIn ->
+                    True
+
+                _ ->
+                    False
+
         setActive p =
             if p.checkedIn == Data.SelectedForCheckIn then
                 [ Table.rowSuccess
                 ]
             else
                 []
+
+        m =
+            SetCheckedIn << setChecked
     in
-    SetCheckedIn
-        << setChecked
-        |> selectPersons
+    selectPersons m personChecked
         |> rowOps setActive
+        |> allowSelectAll (UpdateAll << m)
 
 
 selectPersonsForWantsPhotos : Config PersonsMsg
 selectPersonsForWantsPhotos =
-    selectPersons SetWantsPhotos
+    selectPersons SetWantsPhotos .wantsPhotos
+        |> allowSelectAll (UpdateAll << SetWantsPhotos)
 
 
 onlyListPersons : Persons -> Html msg
@@ -197,6 +213,9 @@ updatePersons msg mdl =
 
         Delete pid ->
             Dict.remove pid mdl
+
+        UpdateAll f ->
+            Dict.map (\_ p -> updatePerson f p) mdl
 
 
 updatePerson : PersonMsg -> Data.Person -> Data.Person
@@ -258,11 +277,36 @@ updateAddress msg mdl =
             { mdl | zipcode = z }
 
 
+tableCell =
+    Table.td [ Table.cellAttr <| class "d-inline-block col-5" ]
+
+
+tableCellShort =
+    Table.td [ Table.cellAttr <| class "d-inline-block col-2" ]
+
+
 view : Persons -> Config msg -> Html msg
 view ps config =
     let
         head =
-            Table.simpleThead []
+            Table.simpleThead <|
+                if not <| Dict.isEmpty ps then
+                    case config.selectAll of
+                        Just f ->
+                            [ Table.td [ Table.cellAttr <| colspan 3 ]
+                                [ Checkbox.custom
+                                    [ Checkbox.onCheck f
+                                    , Checkbox.id "selectAll"
+                                    , Checkbox.inline
+                                    ]
+                                    "Select All"
+                                ]
+                            ]
+
+                        _ ->
+                            []
+                else
+                    []
 
         body =
             Dict.values ps
@@ -280,13 +324,13 @@ personRow : Config msg -> Data.Person -> Table.Row msg
 personRow cfg p =
     Table.tr
         (cfg.rowOptions p)
-        [ Table.td [] [ cfg.firstNameView p ]
-        , Table.td [] [ cfg.lastNameView p ]
-        , Table.td [] <|
-            case cfg.lastCol of
+        [ tableCellShort <|
+            case cfg.extraCol of
                 Nothing ->
                     []
 
                 Just f ->
                     [ f p ]
+        , tableCell [ cfg.firstNameView p ]
+        , tableCell [ cfg.lastNameView p ]
         ]

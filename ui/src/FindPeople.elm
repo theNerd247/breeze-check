@@ -73,7 +73,7 @@ afterSearch msg b a =
 afterCheckIn : Msg -> HasFind m -> HasFind m -> HasFind m
 afterCheckIn msg b a =
     case msg of
-        CheckInResponse (BreezeApi.Recieved (Ok (Ok _))) ->
+        CheckInClick ->
             b
 
         _ ->
@@ -83,7 +83,7 @@ afterCheckIn msg b a =
 afterCancel : Msg -> HasFind m -> HasFind m -> HasFind m
 afterCancel msg b a =
     case msg of
-        CancelCheckInResponse (BreezeApi.Recieved (Ok (Ok _))) ->
+        CancelCheckInClick ->
             b
 
         _ ->
