@@ -24,17 +24,20 @@ update msg mdl =
         CreateNewPerson ->
             let
                 np =
-                    mdl.newPersons
+                    mdl.newPerson
 
                 pid =
                     mdl.newPersons
                         |> Dict.keys
                         |> List.maximum
+                        |> Maybe.map (\x -> x + 1)
                         |> Maybe.withDefault 0
-                        |> (\x -> x + 1)
             in
             { mdl
-                | newPersons = Dict.insert pid mdl.newPerson mdl.newPersons
+                | newPersons =
+                    Dict.insert (Debug.log "pid: " pid)
+                        { np | pid = pid }
+                        mdl.newPersons
                 , newPerson = Person.initPerson
             }
 
