@@ -1,6 +1,7 @@
 module UI exposing (..)
 
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Popover as Popover
 import BreezeApi as BreezeApi
 import EventInfo as EventInfo
 import Html exposing (body)
@@ -65,6 +66,7 @@ init =
             , aggreedToSafetyWaiver = False
             , currentRoute = Router.Home
             , navbarState = navstate
+            , popoverState = Popover.initialState
             }
     in
     ( mdl

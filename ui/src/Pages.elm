@@ -5,6 +5,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Popover as Popover
 import Bootstrap.Progress as Progress
 import BreezeApi as BreezeApi
 import Dict as Dict
@@ -28,6 +29,7 @@ type Msg
     | RouterMsg Router.Msg
     | NavbarMsg Navbar.State
     | AgreedToSafetyWaiver Bool
+    | PopoverMsg Popover.State
 
 
 type alias Model =
@@ -38,6 +40,7 @@ type alias Model =
                     (NewPerson.HasNewPersons
                         { navbarState : Navbar.State
                         , aggreedToSafetyWaiver : Bool
+                        , popoverState : Popover.State
                         }
                     )
                 )
@@ -108,17 +111,21 @@ update msg mdl cfg =
             ( Router.setRoute mdl cfg.nextPageRoute, Cmd.none )
 
         NewPersonMsg m ->
+            let
+                --the order of union matters. if the user goes
+                --back to edit the persons then we want those
+                --items to update in the rest of the model
+                merged =
+                    Dict.union mdl.newPersons mdl.waitingCheckIn
+            in
             ( mdl
                 |> NewPerson.afterCreateNewAttendees m
                     (Router.setRoute
                         { mdl
-                            | waitingCheckIn =
-                                Dict.union mdl.newPersons mdl.waitingCheckIn
-
-                            --the order of union matters. if the user goes
-                            --back to edit the persons then we want those
-                            --items to update in the rest of the model
-                            , foundPeople = Dict.union mdl.newPersons mdl.foundPeople
+                            | waitingCheckIn = merged
+                            , foundPeople = merged
+                            , searchLastName = ""
+                            , personNotFound = Nothing
                         }
                         Router.Selected
                     )
@@ -134,6 +141,9 @@ update msg mdl cfg =
 
         NavbarMsg state ->
             ( { mdl | navbarState = state }, Cmd.none )
+
+        PopoverMsg state ->
+            ( { mdl | popoverState = state }, Cmd.none )
 
         EventInfoMsg m ->
             modifyCmd EventInfoMsg <| EventInfo.update m mdl
