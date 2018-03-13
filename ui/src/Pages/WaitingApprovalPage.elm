@@ -6,23 +6,21 @@ import Bootstrap.Grid.Row as Row
 import FindPeople as Find
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
+import Pages exposing (..)
 import Person as Person
+import Router as Router
 
 
-type alias Msg =
-    Find.Msg
+config : Config
+config =
+    { pageRoute = Router.WaitingApproval
+    , nextPageRoute = Router.WaitingApproval
+    , pageTitle = "Checking In"
+    , pageView = view
+    }
 
 
-type alias HasWaitingApprovalPage m =
-    Find.HasFind m
-
-
-update : Msg -> HasWaitingApprovalPage m -> ( HasWaitingApprovalPage m, Cmd Msg )
-update =
-    Find.update
-
-
-view : HasWaitingApprovalPage m -> Html Msg
+view : Model -> Html Msg
 view mdl =
     let
         title =
@@ -44,7 +42,7 @@ view mdl =
         cancelCheckin =
             Grid.row [ Row.centerXs, Row.attrs [ class "pb-3" ] ]
                 [ Grid.col [ Col.xsAuto ]
-                    [ Find.cancelCheckInButton
+                    [ Html.map FindMsg <| Find.cancelCheckInButton
                     ]
                 ]
 

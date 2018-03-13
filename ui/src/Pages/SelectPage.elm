@@ -1,6 +1,5 @@
 module Pages.SelectPage exposing (..)
 
-import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -8,18 +7,27 @@ import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, div, h2, h3, h4, text)
 import Html.Attributes exposing (class, for, style)
-import Pages as Pages
+import Pages exposing (..)
+import Router as Router
 
 
-update =
-    Pages.update
+config : Config
+config =
+    { pageRoute = Router.Home
+    , nextPageRoute = Router.Home
+    , pageTitle = ""
+    , pageView = always (Html.div [] [])
+    }
 
 
-view : HasSelectPage m -> Html Pages.Msg
+view : Model -> Html Msg
 view mdl =
     let
         hasSelectablePeople =
             Dict.size mdl.foundPeople
+
+        nselected =
+            Dict.size mdl.waitingCheckIn
 
         title =
             case hasSelectablePeople of
@@ -44,5 +52,7 @@ view mdl =
         [ Html.map FindMsg <| Find.searchPersonsForm mdl
         , title
         , results
-        , continue <| Dict.size mdl.waitingCheckIn <= 0
+        , continueButton (nselected <= 0)
+            [ text <| "Continue (" ++ toString nselected ++ " )"
+            ]
         ]
