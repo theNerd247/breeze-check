@@ -4,8 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Data exposing (..)
 import Dict as Dict
-import Html as Html exposing (Html, text)
-import Html.Attributes exposing (class)
+import Html as Html exposing (Html, br, text)
 import Person as Person
 
 
@@ -66,41 +65,44 @@ newPersonsForm : HasNewPersons m -> Html Msg
 newPersonsForm mdl =
     let
         header =
-            [ Person.tableCellShort [ addButton ]
+            [ Person.tableCellShort [ addButton mdl.newPerson ]
             , Person.tableCell
-                [ Person.editName "First Name"
-                    mdl.newPerson.personName.firstName
-                    (PersonMsg << Person.SetFirstName)
+                [ Html.map PersonMsg <| Person.firstNameForm mdl.newPerson.personName.firstName
                 ]
             , Person.tableCell
-                [ Person.editName "Last Name"
-                    mdl.newPerson.personName.lastName
-                    (PersonMsg << Person.SetLastName)
+                [ Html.map PersonMsg <| Person.lastNameForm mdl.newPerson.personName.lastName
                 ]
             ]
     in
-    Form.form []
+    Form.form [] <|
         [ Person.editPersons
             |> Person.mapConfig PersonsMsg
             |> Person.setHeader header
             |> Person.view mdl.newPersons
-        , createAttendeesButton
         ]
 
 
-addButton : Html Msg
-addButton =
+newPersonInfoForm : HasNewPersons m -> Html Msg
+newPersonInfoForm mdl =
+    Html.map PersonMsg <| Person.newPersonInfoForm mdl.newPerson.newPersonInfo
+
+
+addButton : Data.Person -> Html Msg
+addButton mdl =
     Button.button
         [ Button.onClick CreateNewPerson
         , Button.success
+        , Button.disabled <|
+            String.isEmpty mdl.personName.firstName
+                || String.isEmpty mdl.personName.lastName
         ]
-        [ Html.i [ class "fas fa-user-plus" ] [] ]
+        [ text "Add" ]
 
 
 createAttendeesButton : Html Msg
 createAttendeesButton =
     Button.button
         [ Button.onClick CreateNewAttendees
-        , Button.success
+        , Button.outlineSuccess
         ]
-        [ text "Done" ]
+        [ text "Edit Address" ]

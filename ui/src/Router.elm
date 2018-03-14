@@ -12,6 +12,7 @@ type Route
     | Search
     | Selected
     | NewPersons
+    | EditFamilyInfo
     | Cart
     | Photo
     | Safety
@@ -84,6 +85,9 @@ routeName r =
 
         NewPersons ->
             "newfamily"
+
+        EditFamilyInfo ->
+            "editfamily"
 
 
 guardRoute : Route -> Route -> Route
@@ -160,6 +164,12 @@ location2messages l =
 
                         "home" ->
                             Home
+
+                        "editfamily" ->
+                            EditFamilyInfo
+
+                        "newfamily" ->
+                            NewPersons
 
                         _ ->
                             Home

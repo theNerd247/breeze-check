@@ -1,4 +1,4 @@
-module Pages.NewPersonsPage exposing (..)
+module Pages.EditFamilyInfo exposing (..)
 
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -13,8 +13,8 @@ import Router as Router
 
 config : Config
 config =
-    { pageRoute = Router.NewPersons
-    , nextPageRoute = Router.EditFamilyInfo
+    { pageRoute = Router.EditFamilyInfo
+    , nextPageRoute = Router.Selected
     , pageTitle = "New Attendees"
     , pageView = view
     , showInNavbar = True
@@ -27,14 +27,15 @@ view mdl =
         [ Grid.row [ Row.centerXs ]
             [ Grid.col [ Col.xs12, Col.attrs [ class "text-center" ] ]
                 [ h4 [] [ text "Enter Your Family Members Below" ]
-                , Html.map NewPersonMsg <| NewPerson.newPersonsForm mdl
+                , Html.map NewPersonMsg <| NewPerson.newPersonInfoForm mdl
                 ]
             ]
         , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xs12, Col.attrs [ class "text-center" ] ]
-                [ continueButton (Dict.size mdl.newPersons <= 0)
-                    [ text "Next"
-                    ]
+            [ Grid.col [ Col.xsAuto ]
+                [ if Dict.size mdl.newPersons > 0 then
+                    Html.map NewPersonMsg <| NewPerson.createAttendeesButton
+                  else
+                    text ""
                 ]
             ]
         ]

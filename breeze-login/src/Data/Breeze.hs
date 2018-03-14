@@ -103,7 +103,7 @@ instance ToJSON Address where
 
 data NewPersonInfo = NewPersonInfo
   { _newAddress :: Address
-  , _newCurrentChurch :: String
+  , _newCurrentChurch :: Maybe String
   , _newEmail :: String
   } deriving (Show, Eq , Ord, Data, Generic, ElmType)
 

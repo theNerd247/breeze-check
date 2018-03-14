@@ -1,8 +1,10 @@
 module Person exposing (..)
 
 import Bootstrap.Button as Button
+import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
+import Bootstrap.Grid.Col as Col
 import Bootstrap.Table as Table
 import Data as Data
 import Dict as Dict exposing (Dict)
@@ -23,18 +25,18 @@ type PersonsMsg
 
 
 type PersonMsg
-    = SetLastName String
-    | SetFirstName String
-    | SetName Data.Name
-    | SetCheckedIn Data.CheckInStatus
-    | SetNewPersonInfo Data.NewPersonInfo
-    | SetWantsPhotos Bool
+    = UpdateLastName String
+    | UpdateFirstName String
+    | UpdateName Data.Name
+    | UpdateCheckedIn Data.CheckInStatus
+    | UpdateNewPersonInfo NewPersonInfoMsg
+    | UpdateWantsPhotos Bool
 
 
 type NewPersonInfoMsg
     = UpdateAddress AddressMsg
     | UpdateEmail String
-    | UpdateCurrentChurch String
+    | UpdateCurrentChurch (Maybe String)
 
 
 type AddressMsg
@@ -94,15 +96,6 @@ setHeader f mdl =
     { mdl | header = f }
 
 
-editName : String -> String -> (String -> msg) -> Html msg
-editName ph n f =
-    Input.text
-        [ Input.onInput f
-        , Input.value n
-        , Input.placeholder ph
-        ]
-
-
 mapConfig : (a -> b) -> Config a -> Config b
 mapConfig f mdl =
     { mdl
@@ -133,8 +126,8 @@ editPersons =
                 [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
     in
     config
-        |> firstNameView (setNameView "First Name" SetFirstName (.personName >> .firstName))
-        |> lastNameView (setNameView "Last Name" SetLastName (.personName >> .lastName))
+        |> firstNameView (setNameView "First Name" UpdateFirstName (.personName >> .firstName))
+        |> lastNameView (setNameView "Last Name" UpdateLastName (.personName >> .lastName))
         |> extraCol deleteButton
 
 
@@ -191,14 +184,14 @@ selectPersonsForCheckIn =
                     False
 
         m =
-            SetCheckedIn << setChecked
+            UpdateCheckedIn << setChecked
     in
     selectPersons m personChecked (UpdateAll << m)
 
 
 selectPersonsForWantsPhotos : Config PersonsMsg
 selectPersonsForWantsPhotos =
-    selectPersons SetWantsPhotos .wantsPhotos (UpdateAll << SetWantsPhotos)
+    selectPersons UpdateWantsPhotos .wantsPhotos (UpdateAll << UpdateWantsPhotos)
 
 
 onlyListPersons : Persons -> Html msg
@@ -211,8 +204,8 @@ initPersons =
     Dict.empty
 
 
-initPerson : Data.Person
-initPerson =
+initNewPersonInfo : Data.NewPersonInfo
+initNewPersonInfo =
     let
         address =
             { street = ""
@@ -220,17 +213,19 @@ initPerson =
             , state = ""
             , zipcode = ""
             }
-
-        newPersonInfo =
-            { newAddress = address
-            , newCurrentChurch = ""
-            , newEmail = ""
-            }
     in
+    { newAddress = address
+    , newCurrentChurch = Nothing
+    , newEmail = ""
+    }
+
+
+initPerson : Data.Person
+initPerson =
     { pid = 0
     , personName = { lastName = "", firstName = "" }
     , checkedIn = Data.CheckedOut
-    , newPersonInfo = Just newPersonInfo
+    , newPersonInfo = Just initNewPersonInfo
     , wantsPhotos = True
     }
 
@@ -257,30 +252,34 @@ updatePersons msg mdl =
 updatePerson : PersonMsg -> Data.Person -> Data.Person
 updatePerson msg mdl =
     case msg of
-        SetLastName l ->
+        UpdateLastName l ->
             let
                 n =
                     mdl.personName
             in
             { mdl | personName = { n | lastName = l } }
 
-        SetFirstName fn ->
+        UpdateFirstName fn ->
             let
                 n =
                     mdl.personName
             in
             { mdl | personName = { n | firstName = fn } }
 
-        SetName n ->
+        UpdateName n ->
             { mdl | personName = n }
 
-        SetCheckedIn c ->
+        UpdateCheckedIn c ->
             { mdl | checkedIn = c }
 
-        SetNewPersonInfo np ->
-            { mdl | newPersonInfo = Just np }
+        UpdateNewPersonInfo np ->
+            { mdl
+                | newPersonInfo =
+                    Maybe.map (updateNewPersonInfo np)
+                        mdl.newPersonInfo
+            }
 
-        SetWantsPhotos b ->
+        UpdateWantsPhotos b ->
             { mdl | wantsPhotos = b }
 
 
@@ -313,12 +312,155 @@ updateAddress msg mdl =
             { mdl | zipcode = z }
 
 
+streetForm : String -> Html AddressMsg
+streetForm mdl =
+    Input.text
+        [ Input.onInput UpdateStreet
+        , Input.placeholder "Street"
+        , Input.value mdl
+        , Input.small
+        ]
+
+
+cityForm : String -> Html AddressMsg
+cityForm mdl =
+    Input.text
+        [ Input.onInput UpdateCity
+        , Input.placeholder "City"
+        , Input.value mdl
+        , Input.small
+        ]
+
+
+stateForm : String -> Html AddressMsg
+stateForm mdl =
+    Input.text
+        [ Input.onInput UpdateState
+        , Input.placeholder "State"
+        , Input.value mdl
+        , Input.small
+        ]
+
+
+zipcodeForm : String -> Html AddressMsg
+zipcodeForm mdl =
+    Input.text
+        [ Input.onInput UpdateZip
+        , Input.placeholder "Zip"
+        , Input.value mdl
+        , Input.small
+        ]
+
+
+addressForm : Data.Address -> Html NewPersonInfoMsg
+addressForm mdl =
+    Html.map UpdateAddress <|
+        Form.row []
+            [ Form.col []
+                [ Form.row [] [ Form.col [] [ streetForm mdl.street ] ]
+                , Form.row []
+                    [ Form.col [ Col.xs5 ]
+                        [ cityForm mdl.city ]
+                    , Form.col [ Col.xs3 ]
+                        [ stateForm mdl.state ]
+                    , Form.col [ Col.xs4 ]
+                        [ zipcodeForm mdl.zipcode
+                        ]
+                    ]
+                ]
+            ]
+
+
+currentChurchForm : Maybe String -> Html NewPersonInfoMsg
+currentChurchForm mdl =
+    let
+        setCurrChurch b =
+            if b then
+                Just ""
+            else
+                Nothing
+
+        fromMaybe =
+            case mdl of
+                Just _ ->
+                    True
+
+                Nothing ->
+                    False
+    in
+    Form.row []
+        [ Form.col []
+            [ Checkbox.custom
+                [ Checkbox.onCheck (UpdateCurrentChurch << setCurrChurch)
+                , Checkbox.checked fromMaybe
+                , Checkbox.id "currentChurchId"
+                ]
+                "Are you regularly attending a church?"
+            ]
+        , Form.col []
+            [ Input.text
+                [ Input.onInput (UpdateCurrentChurch << Just)
+                , Input.placeholder "Currently Attending Church"
+                , Input.value <| Maybe.withDefault "" mdl
+                , Input.disabled (not fromMaybe)
+                , Input.small
+                ]
+            ]
+        ]
+
+
+emailForm : String -> Html NewPersonInfoMsg
+emailForm mdl =
+    Input.text
+        [ Input.onInput UpdateEmail
+        , Input.placeholder "Email"
+        , Input.value mdl
+        , Input.small
+        ]
+
+
+firstNameForm : String -> Html PersonMsg
+firstNameForm n =
+    Input.text
+        [ Input.onInput UpdateFirstName
+        , Input.value n
+        , Input.placeholder "First Name"
+        ]
+
+
+lastNameForm : String -> Html PersonMsg
+lastNameForm n =
+    Input.text
+        [ Input.onInput UpdateFirstName
+        , Input.value n
+        , Input.placeholder "First Name"
+        ]
+
+
+newPersonInfoForm : Maybe Data.NewPersonInfo -> Html PersonMsg
+newPersonInfoForm m =
+    m
+        |> Maybe.withDefault initNewPersonInfo
+        |> (\mdl ->
+                Form.row []
+                    [ Form.col []
+                        [ addressForm mdl.newAddress
+                        , currentChurchForm mdl.newCurrentChurch
+                        , emailForm mdl.newEmail
+                        ]
+                    ]
+           )
+        |> Html.map UpdateNewPersonInfo
+
+
+tableCell : List (Html msg) -> Table.Cell msg
 tableCell =
-    Table.td [ Table.cellAttr <| class "d-inline-block col-5" ]
+    Table.td [ Table.cellAttr <| class "d-inline-block col-5 px-1" ]
 
 
+tableCellShort : List (Html msg) -> Table.Cell msg
 tableCellShort =
-    Table.td [ Table.cellAttr <| class "d-inline-block col-2" ]
+    Table.td [ Table.cellAttr <| class "d-inline-block col-2 px-1" ]
 
 
 view : Persons -> Config msg -> Html msg
