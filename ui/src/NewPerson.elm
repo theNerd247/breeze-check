@@ -2,8 +2,10 @@ module NewPerson exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
+import Bootstrap.Grid as Grid
 import Data exposing (..)
 import Dict as Dict
+import Dict.Extra as DExtra
 import Html as Html exposing (Html, br, text)
 import Person as Person
 
@@ -84,7 +86,20 @@ newPersonsForm mdl =
 
 newPersonInfoForm : HasNewPersons m -> Html Msg
 newPersonInfoForm mdl =
-    Html.map PersonMsg <| Person.newPersonInfoForm mdl.newPerson.newPersonInfo
+    let
+        personForm _ p =
+            Grid.row []
+                [ Grid.col []
+                    [ Html.map PersonMsg <| Person.newPersonInfoForm p.newPersonInfo
+                    ]
+                ]
+    in
+    mdl.newPersons
+        --|> Dict.values
+        --|> DExtra.groupBy (.lastName << .personName)
+        |> Dict.map personForm
+        |> Dict.values
+        |> Form.form []
 
 
 addButton : Data.Person -> Html Msg

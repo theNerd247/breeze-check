@@ -226,7 +226,7 @@ initPerson =
     , personName = { lastName = "", firstName = "" }
     , checkedIn = Data.CheckedOut
     , newPersonInfo = Just initNewPersonInfo
-    , wantsPhotos = True
+    , wantsPhotos = False
     }
 
 

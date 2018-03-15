@@ -9,7 +9,7 @@ import Html.Attributes exposing (class)
 import Nested exposing (modifyCmd)
 import Pages exposing (..)
 import Pages.CartPage as CartPage
-import Pages.EditFamilyInfo as EditFamilyInfo
+import Pages.EditFamilyInfoPage as EditFamilyInfoPage
 import Pages.HomePage as HomePage
 import Pages.NewPersonsPage as NewPersonsPage
 import Pages.PhotoPage as PhotoPage
@@ -31,18 +31,20 @@ pages =
     , PhotoPage.config
     , SafetyPage.config
     , WaitingApprovalPage.config
-    , EditFamilyInfo.config
+    , EditFamilyInfoPage.config
     ]
 
 
 main =
-    mainWithRouter
-        { init = init
-        , update = mainUpdate
-        , view = mainView
-        , subscriptions = navbarSubscriptions
-        }
-        RouterMsg
+    mainWithRouter uiProg RouterMsg
+
+
+uiProg =
+    { init = init
+    , update = mainUpdate
+    , view = mainView
+    , subscriptions = navbarSubscriptions
+    }
 
 
 init : ( Model, Cmd Msg )

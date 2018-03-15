@@ -3,62 +3,70 @@ module Admin exposing (..)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
+import Dict as Dict
 import ErrorMsg as Err
 import Html as Html exposing (Html, h1, program, text)
 import Html.Attributes exposing (attribute, class)
 import Nested exposing (modifyBoth)
+import Pages as Pages
+import Person as Person
+import Tuple as Tuple
 import UI as UI
 
 
 type alias Model =
     BreezeApi.HasBreezeApi
-        { searchGroupId : String
+        { searchCheckInGroupId : String
         , checkInGroup : List Data.Person
         , groupCheckedIn : Bool
-        , ui : UI.Model
+        , ui : Pages.Model
         , groupId : String
         }
 
 
 type Msg
-    = UpdateGroupId String
+    = UpdateCheckInGroupId String
     | SearchGroupResponse (BreezeApi.Msg (List Data.Person))
     | SearchGroupClick
     | CheckInApprovedClick
     | CheckInApprovedResponse (BreezeApi.Msg Bool)
     | Err Err.Msg
-    | UI UI.Msg
+    | UI Pages.Msg
+
+
+uiProg =
+    UI.uiProg
 
 
 main : Program Never Model Msg
 main =
+    let
+        model =
+            { searchCheckInGroupId = ""
+            , checkInGroup = []
+            , errors = []
+            , loadingStatus = BreezeApi.initLoadingStatus
+            , groupCheckedIn = False
+            , ui = Tuple.first uiProg.init
+            , groupId = ""
+            }
+    in
     program
-        { init = ( model, Cmd.none )
+        { init = ( model, Cmd.map UI <| Tuple.second uiProg.init )
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
         }
 
 
-model : Model
-model =
-    { searchGroupId = ""
-    , checkInGroup = []
-    , errors = []
-    , loadingStatus = BreezeApi.initLoadingStatus
-    , groupCheckedIn = False
-    , ui = UI.model
-    , groupId = ""
-    }
-
-
-toGroupId : String -> Data.GroupId
-toGroupId =
+toCheckInGroupId : String -> Data.CheckInGroupId
+toCheckInGroupId =
     String.toInt
         >> BreezeApi.fromResult (always 0) identity
 
@@ -66,8 +74,8 @@ toGroupId =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg mdl =
     case msg of
-        UpdateGroupId s ->
-            ( { mdl | searchGroupId = s }, Cmd.none )
+        UpdateCheckInGroupId s ->
+            ( { mdl | searchCheckInGroupId = s }, Cmd.none )
 
         SearchGroupClick ->
             updateSearchGroupClick mdl
@@ -85,23 +93,23 @@ update msg mdl =
             ( Err.update msg mdl, Cmd.none )
 
         UI msg ->
-            UI.update msg mdl.ui
+            UI.mainUpdate msg mdl.ui
                 |> modifyBoth (\m -> { mdl | ui = m }) UI
 
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
 updateSearchGroupClick mdl =
-    BreezeApi.getCheckInGroup SearchGroupResponse (toGroupId mdl.searchGroupId) { mdl | groupCheckedIn = False, checkInGroup = [] }
+    BreezeApi.getCheckInGroup SearchGroupResponse (toCheckInGroupId mdl.searchCheckInGroupId) { mdl | groupCheckedIn = False, checkInGroup = [] }
 
 
 updateCheckInGroup : List Data.Person -> Model -> ( Model, Cmd Msg )
 updateCheckInGroup ps mdl =
-    ( { mdl | checkInGroup = ps, groupId = mdl.searchGroupId }, Cmd.none )
+    ( { mdl | checkInGroup = ps, groupId = mdl.searchCheckInGroupId }, Cmd.none )
 
 
 updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
 updateCheckInApprovedClicked mdl =
-    BreezeApi.approveCheckIn CheckInApprovedResponse (toGroupId mdl.groupId) mdl
+    BreezeApi.approveCheckIn CheckInApprovedResponse (toCheckInGroupId mdl.groupId) mdl
 
 
 updateCheckInApprovedResponse : Bool -> Model -> ( Model, Cmd Msg )
@@ -113,29 +121,31 @@ view : Model -> Html Msg
 view mdl =
     let
         checkInGroupRow =
-            [ checkInGroupView mdl ]
+            checkInGroupView mdl
 
         groupInputRow =
             Grid.row
                 [ Row.centerXs ]
-                [ Grid.col [ Col.xs12 ] [ groupInputView mdl ] ]
+                [ Grid.col [ Col.xs6 ] [ groupInputView mdl ] ]
 
         errors =
-            [ Html.map Err <| Err.view mdl
-            ]
+            Html.map Err <| Err.view mdl
 
         uiView =
-            Html.map UI <| UI.view mdl.ui
+            Html.map UI <| UI.mainView mdl.ui
 
         body =
-            []
-                |> List.append checkInGroupRow
-                |> List.append [ groupInputRow ]
-                |> List.append errors
+            Grid.row []
+                [ Grid.col []
+                    [ checkInGroupRow
+                    , groupInputRow
+                    , errors
+                    ]
+                ]
     in
     Grid.containerFluid [ class "clearfix" ]
         [ Grid.row []
-            [ Grid.col [ Col.xs12, Col.md6 ] body
+            [ Grid.col [ Col.xs12, Col.md6, Col.middleXs ] [ body ]
             , Grid.col [ Col.xs12, Col.md6 ] [ uiView ]
             ]
         ]
@@ -148,7 +158,11 @@ checkInGroupView mdl =
             []
         else
             [ Grid.col [ Col.xs12 ] [ groupPhotoView False ]
-            , Grid.col [ Col.xs12 ] [ Data.listPersonView Nothing mdl.checkInGroup ]
+            , Grid.col [ Col.xs12 ]
+                [ Person.onlyListPersons <|
+                    Dict.fromList <|
+                        List.map (\p -> ( p.pid, p )) mdl.checkInGroup
+                ]
             , Grid.col [ Col.xs12 ] <|
                 if mdl.groupCheckedIn then
                     [ h1 []
@@ -163,14 +177,17 @@ checkInGroupView mdl =
 
 groupInputView : Model -> Html Msg
 groupInputView mdl =
-    Form.form []
-        [ Input.number
-            [ Input.onInput UpdateGroupId
-            , Input.value mdl.searchGroupId
+    InputGroup.config
+        (InputGroup.text
+            [ Input.onInput UpdateCheckInGroupId
+            , Input.value mdl.searchCheckInGroupId
             , Input.placeholder "Group Number"
             ]
-        , Button.button [ Button.onClick SearchGroupClick ] [ text "Find" ]
-        ]
+        )
+        |> InputGroup.successors
+            [ InputGroup.button [ Button.onClick SearchGroupClick ] [ text "Find" ]
+            ]
+        |> InputGroup.view
 
 
 approveCheckInButton : Html Msg

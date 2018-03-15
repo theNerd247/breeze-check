@@ -112,11 +112,17 @@ update msg mdl cfg =
 
         NewPersonMsg m ->
             let
+                newPpl =
+                    mdl.newPersons
+                        |> Dict.values
+                        |> List.map (\p -> ( p.pid, p ))
+                        |> Dict.fromList
+
                 --the order of union matters. if the user goes
                 --back to edit the persons then we want those
                 --items to update in the rest of the model
                 merged =
-                    Dict.union mdl.newPersons mdl.waitingCheckIn
+                    Dict.union newPpl mdl.waitingCheckIn
             in
             ( mdl
                 |> NewPerson.afterCreateNewAttendees m
