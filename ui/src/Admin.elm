@@ -7,11 +7,12 @@ import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Utilities.Display as Display
 import BreezeApi as BreezeApi
 import Data as Data
 import Dict as Dict
 import ErrorMsg as Err
-import Html as Html exposing (Html, h1, program, text)
+import Html as Html exposing (Html, br, div, h1, hr, p, program, text)
 import Html.Attributes exposing (attribute, class)
 import Nested exposing (modifyBoth)
 import Pages as Pages
@@ -27,6 +28,7 @@ type alias Model =
         , groupCheckedIn : Bool
         , ui : Pages.Model
         , groupId : String
+        , groupNotFound : Bool
         }
 
 
@@ -55,6 +57,7 @@ main =
             , groupCheckedIn = False
             , ui = Tuple.first uiProg.init
             , groupId = ""
+            , groupNotFound = False
             }
     in
     program
@@ -99,12 +102,35 @@ update msg mdl =
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
 updateSearchGroupClick mdl =
-    BreezeApi.getCheckInGroup SearchGroupResponse (toCheckInGroupId mdl.searchCheckInGroupId) { mdl | groupCheckedIn = False, checkInGroup = [] }
+    BreezeApi.getCheckInGroup SearchGroupResponse
+        (toCheckInGroupId
+            mdl.searchCheckInGroupId
+        )
+        { mdl
+            | groupCheckedIn = False
+            , checkInGroup = []
+            , groupNotFound = False
+        }
 
 
 updateCheckInGroup : List Data.Person -> Model -> ( Model, Cmd Msg )
 updateCheckInGroup ps mdl =
-    ( { mdl | checkInGroup = ps, groupId = mdl.searchCheckInGroupId }, Cmd.none )
+    case ps of
+        [] ->
+            ( { mdl
+                | groupNotFound = True
+                , groupId = mdl.searchCheckInGroupId
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            ( { mdl
+                | checkInGroup = ps
+                , groupId = mdl.searchCheckInGroupId
+              }
+            , Cmd.none
+            )
 
 
 updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
@@ -126,7 +152,7 @@ view mdl =
         groupInputRow =
             Grid.row
                 [ Row.centerXs ]
-                [ Grid.col [ Col.xs6 ] [ groupInputView mdl ] ]
+                [ Grid.col [ Col.xs12 ] [ groupInputView mdl ] ]
 
         errors =
             Html.map Err <| Err.view mdl
@@ -136,16 +162,18 @@ view mdl =
 
         body =
             Grid.row []
-                [ Grid.col []
-                    [ checkInGroupRow
+                [ Grid.col [ Col.xs12 ]
+                    [ errors
                     , groupInputRow
-                    , errors
+                    , br [] []
+                    , checkInGroupRow
                     ]
                 ]
     in
-    Grid.containerFluid [ class "clearfix" ]
+    Grid.container []
         [ Grid.row []
             [ Grid.col [ Col.xs12, Col.md6, Col.middleXs ] [ body ]
+            , Grid.col [ Col.xs12, Col.attrs [ Display.noneMd ] ] [ hr [] [] ]
             , Grid.col [ Col.xs12, Col.md6 ] [ uiView ]
             ]
         ]
@@ -153,9 +181,19 @@ view mdl =
 
 checkInGroupView : Model -> Html Msg
 checkInGroupView mdl =
-    Grid.row [ Row.centerXs ] <|
-        if List.isEmpty mdl.checkInGroup then
+    Grid.row [ Row.centerXs, Row.attrs [ class "text-center" ] ] <|
+        if List.isEmpty mdl.checkInGroup && not mdl.groupNotFound then
             []
+        else if List.isEmpty mdl.checkInGroup && mdl.groupNotFound then
+            [ Grid.col [ Col.xs12 ]
+                [ p [ class "text-danger" ]
+                    [ text <|
+                        "The group for "
+                            ++ toString mdl.groupId
+                            ++ " doesn't have any members"
+                    ]
+                ]
+            ]
         else
             [ Grid.col [ Col.xs12 ] [ groupPhotoView False ]
             , Grid.col [ Col.xs12 ]
@@ -200,7 +238,7 @@ groupPhotoView hasPhotos =
     let
         status =
             if hasPhotos then
-                checkMark
+                Html.i [ class "fas fa-times text-success" ] []
             else
                 Html.i [ class "fas fa-times text-danger" ] []
     in

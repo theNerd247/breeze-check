@@ -1,11 +1,15 @@
 module UI exposing (..)
 
+import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Popover as Popover
+import Bootstrap.Utilities.Flex as Flex
 import BreezeApi as BreezeApi
 import EventInfo as EventInfo
-import Html exposing (body)
-import Html.Attributes exposing (class)
+import Html exposing (div)
+import Html.Attributes exposing (class, style)
 import Nested exposing (modifyCmd)
 import Pages exposing (..)
 import Pages.CartPage as CartPage
@@ -88,8 +92,10 @@ mainUpdate msg mdl =
 mainView mdl =
     withCurrentPage mdl pages <|
         \c ->
-            body
-                [ class "mb-3" ]
-                [ navbar c pages mdl
-                , view mdl c
+            Grid.containerFluid [ class "mb-3" ]
+                [ Grid.row
+                    [ Row.attrs [ Flex.col, style [ ( "height", "100vh" ) ] ] ]
+                    [ Grid.col [ Col.xsAuto ] [ navbar c pages mdl ]
+                    , Grid.col [] [ view mdl c ]
+                    ]
                 ]

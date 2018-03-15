@@ -7,6 +7,9 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Popover as Popover
 import Bootstrap.Progress as Progress
+import Bootstrap.Utilities.Flex as Flex
+import Bootstrap.Utilities.Size as Size
+import Bootstrap.Utilities.Spacing as Spacing
 import BreezeApi as BreezeApi
 import Dict as Dict
 import ErrorMsg as Err
@@ -165,26 +168,27 @@ view mdl cfg =
             Html.map ErrorMsg <| Err.view mdl
 
         loading =
-            if mdl.loadingStatus == BreezeApi.Waiting then
-                Grid.row [ Row.centerXs ]
-                    [ Grid.col [ Col.xs12 ]
-                        [ loadingBar
-                        ]
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xs12 ]
+                    [ if mdl.loadingStatus == BreezeApi.Waiting then
+                        loadingBar
+                      else
+                        text ""
                     ]
-            else
-                div [] []
+                ]
 
         page =
-            Grid.row [ Row.centerLg ]
-                [ Grid.col [ Col.lg8 ]
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xs12 ]
                     [ cfg.pageView mdl
                     ]
                 ]
     in
-    Grid.containerFluid []
-        [ errors
-        , loading
-        , page
+    Grid.row
+        [ Row.attrs [ Flex.col, Size.h100, Flex.alignItemsCenter ], Row.leftXs ]
+        [ Grid.col [ Col.xsAuto, Col.attrs [ Size.w100, Spacing.mb3 ] ] [ errors ]
+        , Grid.col [ Col.xsAuto, Col.attrs [ Size.w100, Spacing.mb3 ] ] [ loading ]
+        , Grid.col [] [ page ]
         ]
 
 
@@ -202,6 +206,7 @@ navbar cfg pages mdl =
     in
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
+        |> Navbar.attrs [ class "order-1" ]
         |> Navbar.brand []
             [ h3 [] [ text <| cfg.pageTitle ] ]
         |> Navbar.items
@@ -219,6 +224,7 @@ loadingBar =
     Progress.progress
         [ Progress.value 100
         , Progress.animated
+        , Progress.wrapperAttrs [ style [ ( "height", "20px" ) ] ]
         ]
 
 

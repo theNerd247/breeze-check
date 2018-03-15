@@ -13,6 +13,7 @@
 
     <!-- Elm application  -->
     <apply template="importElm"/>
+
   </head>
   <body>
     <script type="text/javascript">Elm.UI.fullscreen()</script>

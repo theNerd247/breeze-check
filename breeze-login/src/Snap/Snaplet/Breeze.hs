@@ -247,10 +247,7 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
 getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  g <- withTVarRead personDB $ toList . getEQ (GID gid)
-  case g of
-    [] -> throwM $ BreezeException $ "There isn't anybody for the group: " <> (show gid)
-    _ -> return g
+  withTVarRead personDB $ toList . getEQ (GID gid)
 
 cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do

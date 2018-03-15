@@ -431,9 +431,9 @@ firstNameForm n =
 lastNameForm : String -> Html PersonMsg
 lastNameForm n =
     Input.text
-        [ Input.onInput UpdateFirstName
+        [ Input.onInput UpdateLastName
         , Input.value n
-        , Input.placeholder "First Name"
+        , Input.placeholder "Last Name"
         ]
 
 
