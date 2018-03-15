@@ -135,7 +135,7 @@ selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> (Bool -> Persons
 selectPersons f personChecked selectAllMsg =
     let
         selheader =
-            [ Table.td [ Table.cellAttr <| colspan 3 ]
+            [ Table.td [ Table.cellAttr <| colspan 3, Table.cellAttr <| class "px-1" ]
                 [ Checkbox.custom
                     [ Checkbox.onCheck selectAllMsg
                     , Checkbox.id "selectAll"
