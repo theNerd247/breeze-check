@@ -8,12 +8,14 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Flex as Flex
+import Bootstrap.Utilities.Size as Size
 import BreezeApi as BreezeApi
 import Data as Data
 import Dict as Dict
 import ErrorMsg as Err
-import Html as Html exposing (Html, br, div, h1, hr, p, program, text)
-import Html.Attributes exposing (attribute, class)
+import Html as Html exposing (Html, br, div, h1, h4, hr, p, program, text)
+import Html.Attributes exposing (attribute, class, style)
 import Nested exposing (modifyBoth)
 import Pages as Pages
 import Person as Person
@@ -160,21 +162,27 @@ view mdl =
         uiView =
             Html.map UI <| UI.mainView mdl.ui
 
+        title =
+            h1 [] [ text "Admin" ]
+
         body =
-            Grid.row []
-                [ Grid.col [ Col.xs12 ]
+            div [ class "row flex-column h-100 mx-1" ]
+                [ div [ class "text-center", style [ ( "flex-grow", "1" ) ] ] [ title ]
+                , div [ style [ ( "flex-grow", "12" ) ] ]
+                    --, Grid.col [ Col.xs10, Col.attrs [ Size.w100 ] ]
                     [ errors
+                    , br [] []
                     , groupInputRow
                     , br [] []
                     , checkInGroupRow
                     ]
                 ]
     in
-    Grid.container []
+    Grid.containerFluid []
         [ Grid.row []
-            [ Grid.col [ Col.xs12, Col.md6, Col.middleXs ] [ body ]
-            , Grid.col [ Col.xs12, Col.attrs [ Display.noneMd ] ] [ hr [] [] ]
-            , Grid.col [ Col.xs12, Col.md6 ] [ uiView ]
+            [ Grid.col [ Col.md6, Col.xs12 ] [ body ]
+            , Grid.col [ Col.attrs [ Display.noneMd ] ] [ hr [] [] ]
+            , Grid.col [ Col.md6, Col.xs12 ] [ uiView ]
             ]
         ]
 
@@ -195,11 +203,16 @@ checkInGroupView mdl =
                 ]
             ]
         else
-            [ Grid.col [ Col.xs12 ] [ groupPhotoView False ]
-            , Grid.col [ Col.xs12 ]
-                [ Person.onlyListPersons <|
-                    Dict.fromList <|
-                        List.map (\p -> ( p.pid, p )) mdl.checkInGroup
+            let
+                ps =
+                    mdl.checkInGroup
+                        |> List.map (\p -> ( p.pid, p ))
+                        |> Dict.fromList
+            in
+            [ Grid.col [ Col.xs12 ]
+                [ Person.config
+                    |> Person.extraCol (groupPhotoView << .wantsPhotos)
+                    |> Person.view ps
                 ]
             , Grid.col [ Col.xs12 ] <|
                 if mdl.groupCheckedIn then
@@ -215,17 +228,19 @@ checkInGroupView mdl =
 
 groupInputView : Model -> Html Msg
 groupInputView mdl =
-    InputGroup.config
-        (InputGroup.text
-            [ Input.onInput UpdateCheckInGroupId
-            , Input.value mdl.searchCheckInGroupId
-            , Input.placeholder "Group Number"
-            ]
-        )
-        |> InputGroup.successors
-            [ InputGroup.button [ Button.onClick SearchGroupClick ] [ text "Find" ]
-            ]
-        |> InputGroup.view
+    Form.form []
+        [ InputGroup.config
+            (InputGroup.text
+                [ Input.onInput UpdateCheckInGroupId
+                , Input.value mdl.searchCheckInGroupId
+                , Input.placeholder "Group Number"
+                ]
+            )
+            |> InputGroup.successors
+                [ InputGroup.button [ Button.onClick SearchGroupClick ] [ text "Find" ]
+                ]
+            |> InputGroup.view
+        ]
 
 
 approveCheckInButton : Html Msg
@@ -242,7 +257,7 @@ groupPhotoView hasPhotos =
             else
                 Html.i [ class "fas fa-times text-danger" ] []
     in
-    h1 []
+    h4 []
         [ Html.i [ class "fas fa-camera" ] []
         , status
         ]
