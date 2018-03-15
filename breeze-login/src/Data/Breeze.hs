@@ -41,6 +41,7 @@ type LastName = String
 type PersonId = Int
 type Phone = String
 type TempPersonId = PersonId
+type IsParent = Bool
 
 customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix }
 
@@ -124,6 +125,7 @@ data Person = Person
   , _checkedIn :: CheckInStatus
   , _newPersonInfo :: Maybe NewPersonInfo
   , _wantsPhotos :: Bool
+  , _isParent :: Bool
   } deriving (Show, Data, Eq, Ord, Generic, ElmType)
 
 makeClassy ''Person
@@ -209,6 +211,7 @@ instance FromJSON BreezePerson where
     <*> pure CheckedOut
     <*> pure Nothing
     <*> pure False
+    <*> pure False
 
 parseName :: Object -> Parser Name
 parseName o = Name
@@ -227,6 +230,7 @@ instance FromJSON ParseAttendance where
     <*> (o .: "details" >>= parseName)
     <*> (o .: "check_out" >>= return . parseCheckedOut )
     <*> pure Nothing
+    <*> pure False
     <*> pure False
     where
       parseCheckedOut :: String -> CheckInStatus

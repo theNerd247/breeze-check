@@ -4,6 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
+import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Table as Table
 import Data as Data
@@ -31,6 +32,7 @@ type PersonMsg
     | UpdateCheckedIn Data.CheckInStatus
     | UpdateNewPersonInfo NewPersonInfoMsg
     | UpdateWantsPhotos Bool
+    | UpdateIsParent Bool
 
 
 type NewPersonInfoMsg
@@ -226,6 +228,7 @@ initPerson =
     , personName = { lastName = "", firstName = "" }
     , checkedIn = Data.CheckedOut
     , newPersonInfo = Just initNewPersonInfo
+    , isParent = False
     , wantsPhotos = False
     }
 
@@ -281,6 +284,9 @@ updatePerson msg mdl =
 
         UpdateWantsPhotos b ->
             { mdl | wantsPhotos = b }
+
+        UpdateIsParent b ->
+            { mdl | isParent = b }
 
 
 updateNewPersonInfo : NewPersonInfoMsg -> Data.NewPersonInfo -> Data.NewPersonInfo
@@ -435,6 +441,16 @@ lastNameForm n =
         , Input.value n
         , Input.placeholder "Last Name"
         ]
+
+
+isParentForm : Bool -> Html PersonMsg
+isParentForm mdl =
+    Checkbox.checkbox
+        [ Checkbox.onCheck UpdateIsParent
+        , Checkbox.checked mdl
+        , Checkbox.id "isParent"
+        ]
+        "I'm An Adult"
 
 
 newPersonInfoForm : Maybe Data.NewPersonInfo -> Html PersonMsg
