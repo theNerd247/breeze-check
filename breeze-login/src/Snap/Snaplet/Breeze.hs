@@ -166,7 +166,7 @@ runBreeze' a = do
 
 getAttendance' :: (MonadIO m, MonadThrow m) => Breeze -> m ()
 getAttendance' config = flip evalStateT config $ do
-  let eid = config^.eventId
+  eid <- (liftIO . atomically $ readTVar (config^.breezeEventInfo)) >>= return . (view eventId)
   eas <- runBreeze' $ GetAttendance eid
   withTVarWrite personDB $ appEndo . fold $
     eas & mapped %~ Endo . updateAttending
@@ -264,7 +264,7 @@ cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do
 approveCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   gid <- fromParam "groupid"
-  eid <- use eventId
+  eid <- withTVarRead breezeEventInfo (^.eventId)
   il <- use infoLogger
   toCheckIn <- withTVarRead personDB $ toList . getEQ (GID gid)
   vs <- forM toCheckIn $ \p -> do
@@ -281,13 +281,14 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
-  conf <- case (config^.debug) of
-    True -> return $ config & eventId .~ "40532683" & eventName .~ "Staff Meeting"
+  einfo <- case (config^.debug) of
+    True -> return $ def & eventId .~ "40532683" & eventName .~ "Staff Meeting"
     _ -> do 
       es <- runBreeze config GetEvents
-      return $ config & eventId .~ (es^?! traverse.eventId) & eventName .~ (es^?! traverse.eventName)
-  getAttendance' conf
-  return conf
+      return $ def & eventId .~ (es^?! traverse.eventId) & eventName .~ (es^?! traverse.eventName)
+  liftIO . atomically $ writeTVar (config^.breezeEventInfo) einfo
+  getAttendance' config
+  return config
   `catch` handleBreeze `catch` handleHTTP
   where
     handleBreeze :: BreezeException -> ExceptT Text IO a
@@ -307,26 +308,28 @@ getEventListHandler = withTop breezeLens $ runAesonApi $ runBreeze' GetEvents
 eventInfoHandle :: (HasBreezeApp b) => Handler b v ()
 eventInfoHandle = getEvent <|> setEvent
   where 
-    getEvent = method GET $ withTop breezeLens $ runAesonApi $ use eventInfo
+    getEvent = method GET $ withTop breezeLens $ runAesonApi $ do
+      withTVarRead breezeEventInfo id
     setEvent = method POST $ withTop breezeLens $ runAesonApi $ do 
       eid <- fromBody 
       es <- runBreeze' GetEvents
       let validEvent = es^? traverse.filtered (view $ eventId.to (==eid))
       maybe 
         (throwM $ BreezeException $ "Event with id: " ++ eid ++ " doesn't exist")
-        return
+        (\e -> withTVarWrite breezeEventInfo (const e) >> return e)
         validEvent
 
 mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
+  einfo <- liftIO $ newTVarIO def
   gcntr <- liftIO $ newTVarIO 0
   (ilgr, icln) <- liftIO $ initInfoLogger
   (elgr, ecln) <- liftIO $ initErrLogger
   return $ Breeze 
     { _apiKey = "e6e14e8a7e79bb7c62173b9879bacaee"
     , _apiUrl = "https://mountainviewmarietta.breezechms.com/api"
-    , _breezeEventInfo = def
+    , _breezeEventInfo = einfo
     , _personDB = pdb
     , _infoLogger = ilgr
     , _errLogger = elgr

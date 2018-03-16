@@ -265,10 +265,7 @@ data Breeze = Breeze
   , _errLoggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
   , _debug :: Bool
-  , _breezeEventInfo :: EventInfo
+  , _breezeEventInfo :: TVar EventInfo
   } deriving (Data, Generic)
 
 makeClassy ''Breeze
-
-instance HasEventInfo Breeze where
-  eventInfo = breezeEventInfo

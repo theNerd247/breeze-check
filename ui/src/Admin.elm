@@ -4,6 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.InputGroup as InputGroup
+import Bootstrap.Form.Select as Select
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -16,7 +17,7 @@ import Dict as Dict
 import ErrorMsg as Err
 import EventInfo as EventInfo
 import Html as Html exposing (Html, br, div, h1, h4, hr, p, program, text)
-import Html.Attributes exposing (attribute, class, style)
+import Html.Attributes exposing (attribute, class, style, value)
 import Nested exposing (modifyBoth, modifyMdl)
 import Pages as Pages
 import Person as Person
@@ -45,7 +46,7 @@ type Msg
     | Err Err.Msg
     | UI Pages.Msg
     | GetEventInfoListReturn (BreezeApi.Msg (List Data.EventInfo))
-    | SetEventInfo Data.EventInfo
+    | SetEventInfo Data.EventId
 
 
 uiProg =
@@ -66,9 +67,18 @@ main =
             , groupNotFound = False
             , eventInfoList = []
             }
+
+        ( mdl, emsg ) =
+            BreezeApi.getEventList GetEventInfoListReturn model
     in
     program
-        { init = ( model, Cmd.map UI <| Tuple.second uiProg.init )
+        { init =
+            ( mdl
+            , Cmd.batch
+                [ Cmd.map UI <| Tuple.second uiProg.init
+                , emsg
+                ]
+            )
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none
@@ -107,17 +117,18 @@ update msg mdl =
                 |> modifyBoth (\m -> { mdl | ui = m }) UI
 
         GetEventInfoListReturn r ->
-            BreezeApi.update eventListResult r mdl
+            BreezeApi.update getEventListResult r mdl
 
-        SetEventInfo e ->
+        SetEventInfo eid ->
             let
                 ui =
                     mdl.ui
             in
-            modifyMdl (\m -> { mdl | ui = m }) <| BreezeApi.setEventInfo e.eventId (UI << Pages.EventInfoMsg << EventInfo.EventInfoResult) mdl.ui
+            modifyMdl (\m -> { mdl | ui = m }) <| BreezeApi.setEventInfo eid (UI << Pages.EventInfoMsg << EventInfo.EventInfoResult) mdl.ui
 
 
-eventListResult es mdl =
+getEventListResult : List Data.EventInfo -> Model -> ( Model, Cmd Msg )
+getEventListResult es mdl =
     ( { mdl | eventInfoList = es }, Cmd.none )
 
 
@@ -178,6 +189,14 @@ view mdl =
         errors =
             Html.map Err <| Err.view mdl
 
+        eventInfoRow =
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ eventInfoListView
+                        mdl.eventInfoList
+                    ]
+                ]
+
         uiView =
             Html.map UI <| UI.mainView mdl.ui
 
@@ -194,6 +213,7 @@ view mdl =
                     , groupInputRow
                     , br [] []
                     , checkInGroupRow
+                    , eventInfoRow
                     ]
                 ]
     in
@@ -285,3 +305,16 @@ groupPhotoView hasPhotos =
 checkMark : Html msg
 checkMark =
     Html.i [ class "fas fa-check text-success" ] []
+
+
+eventInfoListView : List Data.EventInfo -> Html Msg
+eventInfoListView es =
+    Form.form []
+        [ Select.custom
+            [ Select.onChange <| SetEventInfo
+            ]
+          <|
+            List.map
+                (\e -> Select.item [ value e.eventId ] [ text e.eventName ])
+                es
+        ]
