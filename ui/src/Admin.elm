@@ -14,9 +14,10 @@ import BreezeApi as BreezeApi
 import Data as Data
 import Dict as Dict
 import ErrorMsg as Err
+import EventInfo as EventInfo
 import Html as Html exposing (Html, br, div, h1, h4, hr, p, program, text)
 import Html.Attributes exposing (attribute, class, style)
-import Nested exposing (modifyBoth)
+import Nested exposing (modifyBoth, modifyMdl)
 import Pages as Pages
 import Person as Person
 import Tuple as Tuple
@@ -31,6 +32,7 @@ type alias Model =
         , ui : Pages.Model
         , groupId : String
         , groupNotFound : Bool
+        , eventInfoList : List Data.EventInfo
         }
 
 
@@ -42,6 +44,8 @@ type Msg
     | CheckInApprovedResponse (BreezeApi.Msg Bool)
     | Err Err.Msg
     | UI Pages.Msg
+    | GetEventInfoListReturn (BreezeApi.Msg (List Data.EventInfo))
+    | SetEventInfo Data.EventInfo
 
 
 uiProg =
@@ -60,6 +64,7 @@ main =
             , ui = Tuple.first uiProg.init
             , groupId = ""
             , groupNotFound = False
+            , eventInfoList = []
             }
     in
     program
@@ -100,6 +105,20 @@ update msg mdl =
         UI msg ->
             UI.mainUpdate msg mdl.ui
                 |> modifyBoth (\m -> { mdl | ui = m }) UI
+
+        GetEventInfoListReturn r ->
+            BreezeApi.update eventListResult r mdl
+
+        SetEventInfo e ->
+            let
+                ui =
+                    mdl.ui
+            in
+            modifyMdl (\m -> { mdl | ui = m }) <| BreezeApi.setEventInfo e.eventId (UI << Pages.EventInfoMsg << EventInfo.EventInfoResult) mdl.ui
+
+
+eventListResult es mdl =
+    ( { mdl | eventInfoList = es }, Cmd.none )
 
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )

@@ -8,6 +8,7 @@ module Snap.Snaplet.Breeze where
 import Control.Concurrent.STM.TVar
 import Control.Monad.STM
 import Control.Lens hiding ((.=))
+import Control.Applicative ((<|>))
 import Control.Monad.Catch hiding (Handler)
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
@@ -38,6 +39,7 @@ import qualified Data.ByteString.Char8 as Char8
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Network.HTTP.Simple as HTTP
+import qualified Data.List as List
 
 data FindPeople = FindPeople LastName (Maybe Address)
 data GetAttendance = GetAttendance EventId
@@ -299,8 +301,21 @@ listAttendanceHandle = withTop breezeLens $
   withTVarRead personDB (("<pre>" ++) . (++ "</pre>") . concat . List.intersperse "\n". fmap show . toList)
     >>= writeLBS . fromStrict . Char8.pack
 
+getEventListHandler :: (HasBreezeApp b) => Handler b v ()
+getEventListHandler = withTop breezeLens $ runAesonApi $ runBreeze' GetEvents
+
 eventInfoHandle :: (HasBreezeApp b) => Handler b v ()
-eventInfoHandle = withTop breezeLens $ runAesonApi $ use eventInfo
+eventInfoHandle = getEvent <|> setEvent
+  where 
+    getEvent = method GET $ withTop breezeLens $ runAesonApi $ use eventInfo
+    setEvent = method POST $ withTop breezeLens $ runAesonApi $ do 
+      eid <- fromBody 
+      es <- runBreeze' GetEvents
+      let validEvent = es^? traverse.filtered (view $ eventId.to (==eid))
+      maybe 
+        (throwM $ BreezeException $ "Event with id: " ++ eid ++ " doesn't exist")
+        return
+        validEvent
 
 mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
@@ -318,7 +333,7 @@ mkBreeze = do
     , _infoLoggerCleanup = icln
     , _errLoggerCleanup = ecln
     , _checkInGroupCounter = gcntr
-    , _debug = True
+    , _debug = False
     }
 
 
@@ -329,6 +344,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("checkin", userCheckInHandle)
     , ("attendance", listAttendanceHandle)
     , ("eventinfo", eventInfoHandle)
+    , ("eventList", getEventListHandler)
     , ("getgroup", getCheckInGroupHandle)
     , ("approve", approveCheckinHandle) 
     , ("cancel", cancelCheckinHandle)

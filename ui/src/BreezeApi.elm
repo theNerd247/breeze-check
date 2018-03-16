@@ -152,6 +152,14 @@ fromResult f g r =
             g b
 
 
+getEventList f mdl =
+    sendGet "eventList" (Decode.list Data.decodeEventInfo) f mdl
+
+
+setEventInfo eid f mdl =
+    sendPost "eventinfo" (Http.jsonBody <| Encode.string eid) Data.decodeEventInfo f mdl
+
+
 fromResponse :
     Response a
     -> Result.Result String a

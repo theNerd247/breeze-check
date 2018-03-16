@@ -14,10 +14,6 @@
     <!-- Elm application  -->
     <apply template="importAdminElm"/>
 
-    <style>
-      body { min-height: 100vh; display: flex;}
-    </style>
-
   </head>
   <body>
     <script type="text/javascript">Elm.Admin.fullscreen()</script>

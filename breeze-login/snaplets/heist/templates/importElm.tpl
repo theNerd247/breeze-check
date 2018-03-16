@@ -1,2 +1,2 @@
-<bind tag="elmVersion">1.2.2</bind>
+<bind tag="elmVersion">1.2.3</bind>
 <script src="./js/elm.${elmVersion}.js"></script>
