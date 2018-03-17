@@ -247,7 +247,7 @@ editPersons newPerson =
                 ]
                 [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
 
-        header =
+        editHeader =
             [ addButton
             , Html.map PersonMsg <| firstNameForm newPerson.personName.firstName
             , Html.map PersonMsg <| lastNameForm newPerson.personName.lastName
@@ -266,6 +266,7 @@ editPersons newPerson =
     in
     config
         |> showIfEmpty True
+        |> header editHeader
         |> cols
             [ deleteButton
             , setNameView "First Name" UpdateFirstName (.personName >> .firstName)

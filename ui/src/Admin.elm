@@ -69,14 +69,15 @@ main =
             }
 
         --( mdl, emsg ) =
-            --BreezeApi.getEventList GetEventInfoListReturn model
-          --TOOD: uncomment after easter egg hunt
+        --BreezeApi.getEventList GetEventInfoListReturn model
+        --TOOD: uncomment after easter egg hunt
     in
     program
         { init =
             ( model
             , Cmd.batch
                 [ Cmd.map UI <| Tuple.second uiProg.init
+
                 --, emsg --TODO: uncomment after easter egg hunt
                 ]
             )
@@ -214,6 +215,7 @@ view mdl =
                     , groupInputRow
                     , br [] []
                     , checkInGroupRow
+
                     --, eventInfoRow --TODO: uncomment when easter egg hunt is
                     --finished
                     ]
@@ -252,7 +254,11 @@ checkInGroupView mdl =
             in
             [ Grid.col [ Col.xs12 ]
                 [ Person.config
-                    |> Person.extraCol (groupPhotoView << .wantsPhotos)
+                    |> Person.cols
+                        [ groupPhotoView << .wantsPhotos
+                        , \p -> text p.personName.firstName
+                        , \p -> text p.personName.lastName
+                        ]
                     |> Person.view ps
                 ]
             , Grid.col [ Col.xs12 ] <|

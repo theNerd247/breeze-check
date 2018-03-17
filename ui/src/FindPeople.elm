@@ -246,14 +246,6 @@ waitingPersons =
     Person.onlyListPersons << .waitingCheckIn
 
 
-waitingPersonsWithEdit : HasFind m -> Html Msg
-waitingPersonsWithEdit mdl =
-    Html.map EditWaitingMsg <|
-        Person.view
-            mdl.waitingCheckIn
-            Person.editPersons
-
-
 waitingPersonsWithPhotoSelect : HasFind m -> Html Msg
 waitingPersonsWithPhotoSelect mdl =
     Html.map EditWaitingMsg <|

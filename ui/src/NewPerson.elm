@@ -67,8 +67,8 @@ newPersonsForm : HasNewPersons m -> Html Msg
 newPersonsForm mdl =
     Form.form [] <|
         [ Person.editPersons mdl.newPerson
-            |> Person.mapConfig PersonsMsg
             |> Person.view mdl.newPersons
+            |> Html.map PersonsMsg
         ]
 
 
