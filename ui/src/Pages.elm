@@ -7,9 +7,6 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Popover as Popover
 import Bootstrap.Progress as Progress
-import Bootstrap.Utilities.Flex as Flex
-import Bootstrap.Utilities.Size as Size
-import Bootstrap.Utilities.Spacing as Spacing
 import BreezeApi as BreezeApi
 import Dict as Dict
 import ErrorMsg as Err
@@ -235,18 +232,12 @@ continueButton disabled buttonText =
     if disabled then
         Html.div [] []
     else
-        Grid.row [ Row.centerXs, Row.attrs [ class "align-items-end" ] ]
-            [ Grid.col [ Col.xs12 ]
-                [ div [ class "text-center", class "align-text-bottom" ]
-                    [ Button.button
-                        [ Button.onClick Continue
-                        , Button.outlineSuccess
-                        , Button.disabled disabled
-                        ]
-                        buttonText
-                    ]
-                ]
+        Button.button
+            [ Button.onClick Continue
+            , Button.outlineSuccess
+            , Button.disabled disabled
             ]
+            buttonText
 
 
 goToPageButton : Router.Route -> List (Html Msg) -> Html Msg
@@ -261,20 +252,14 @@ goToPageButton r buttonText =
 checkInButton : Bool -> Html Msg
 checkInButton disabled =
     if disabled then
-        Html.div [] []
+        text ""
     else
-        Grid.row [ Row.centerXs, Row.attrs [ class "align-items-end" ] ]
-            [ Grid.col [ Col.xs12 ]
-                [ div [ class "text-center", class "align-text-bottom" ]
-                    [ Button.button
-                        [ Button.onClick <| FindMsg Find.CheckInClick
-                        , Button.outlineSuccess
-                        , Button.disabled disabled
-                        ]
-                        [ text "Check-in" ]
-                    ]
-                ]
+        Button.button
+            [ Button.onClick <| FindMsg Find.CheckInClick
+            , Button.outlineSuccess
+            , Button.disabled disabled
             ]
+            [ text "Check-in" ]
 
 
 pageWrapper : String -> List (Html msg) -> Html msg

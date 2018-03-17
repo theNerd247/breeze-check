@@ -1,8 +1,5 @@
 module Pages.NewPersonsPage exposing (..)
 
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import Dict as Dict
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
@@ -23,18 +20,13 @@ config =
 
 view : Model -> Html Msg
 view mdl =
-    div []
-        [ Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xs12, Col.attrs [ class "text-center" ] ]
-                [ h4 [] [ text "Enter Your Family Members Below" ]
-                , Html.map NewPersonMsg <| NewPerson.newPersonsForm mdl
-                ]
+    pageWrapper ""
+        [ div [ class "grow-1 text-center" ]
+            [ h4 [] [ text "Add Everyone Who Is New Below" ]
+            , Html.map NewPersonMsg <| NewPerson.newPersonsForm mdl
             ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xs12, Col.attrs [ class "text-center" ] ]
-                [ continueButton (Dict.size mdl.newPersons <= 0)
-                    [ text "Next"
-                    ]
-                ]
+        , div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
+            [ div [ class "grow-auto px-3" ] [ goToPageButton Router.Selected [ text "Back" ] ]
+            , div [ class "grow-auto px-3" ] [ continueButton (Dict.isEmpty mdl.newPersons) [ text "Next" ] ]
             ]
         ]

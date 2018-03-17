@@ -1,8 +1,5 @@
 module Pages.EditFamilyInfoPage exposing (..)
 
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import Dict as Dict
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
@@ -23,19 +20,16 @@ config =
 
 view : Model -> Html Msg
 view mdl =
-    div []
-        [ Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xs12, Col.attrs [ class "text-center" ] ]
-                [ h4 [] [ text "Enter Your Family Members Below" ]
-                , Html.map NewPersonMsg <| NewPerson.newPersonInfoForm mdl
-                ]
+    pageWrapper ""
+        [ div [ class "text-center" ]
+            [ h4 [] [ text "Enter Your Family Members Below" ]
+            , Html.map NewPersonMsg <| NewPerson.newPersonInfoForm mdl
             ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
-                [ if Dict.size mdl.newPersons > 0 then
-                    Html.map NewPersonMsg <| NewPerson.createAttendeesButton
-                  else
-                    text ""
-                ]
+        , div [ class "grid-auto d-flex flex-row justify-content-around" ]
+            [ goToPageButton Router.NewPersons [ text "Back" ]
+            , if Dict.isEmpty mdl.newPersons then
+                Html.map NewPersonMsg <| NewPerson.createAttendeesButton
+              else
+                text ""
             ]
         ]
