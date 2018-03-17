@@ -68,15 +68,16 @@ main =
             , eventInfoList = []
             }
 
-        ( mdl, emsg ) =
-            BreezeApi.getEventList GetEventInfoListReturn model
+        --( mdl, emsg ) =
+            --BreezeApi.getEventList GetEventInfoListReturn model
+          --TOOD: uncomment after easter egg hunt
     in
     program
         { init =
-            ( mdl
+            ( model
             , Cmd.batch
                 [ Cmd.map UI <| Tuple.second uiProg.init
-                , emsg
+                --, emsg --TODO: uncomment after easter egg hunt
                 ]
             )
         , update = update
@@ -213,7 +214,8 @@ view mdl =
                     , groupInputRow
                     , br [] []
                     , checkInGroupRow
-                    , eventInfoRow
+                    --, eventInfoRow --TODO: uncomment when easter egg hunt is
+                    --finished
                     ]
                 ]
     in

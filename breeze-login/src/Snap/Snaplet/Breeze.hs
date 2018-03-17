@@ -336,7 +336,7 @@ mkBreeze = do
     , _infoLoggerCleanup = icln
     , _errLoggerCleanup = ecln
     , _checkInGroupCounter = gcntr
-    , _debug = False
+    , _debug = True
     }
 
 
