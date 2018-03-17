@@ -5,7 +5,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Dict as Dict
 import FindPeople as Find
-import Html as Html exposing (Html, div, h2, h3, h4, p, text)
+import Html as Html exposing (Html, br, div, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
 import Pages exposing (..)
 import Router as Router
@@ -32,11 +32,11 @@ view mdl =
                 ]
 
         results =
-            Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
-                [ Grid.col [ Col.xs12 ] <|
-                    [ Html.map FindMsg <| Find.searchResultsView mdl
-                    ]
-                , Grid.col [ Col.xsAuto ] [ notFoundButton ]
+            div [ class "d-flex flex-column w-100 align-items-center" ]
+                [ Html.map FindMsg <| Find.searchResultsView mdl
+                , br [] []
+                , p [ class "text-secondary" ] [ text "(If you can't find your family click here)" ]
+                , notFoundButton
                 ]
 
         notFoundButton =
@@ -60,6 +60,6 @@ view mdl =
     in
     pageWrapper "justify-content-start"
         [ searchBar
-        , div [ class "grow-6" ] [ results ]
+        , div [ class "grow-2" ] [ results ]
         , div [ class "grow-6" ] [ nextButton ]
         ]

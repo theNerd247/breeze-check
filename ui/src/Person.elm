@@ -51,6 +51,7 @@ type AddressMsg
 type alias Config msg =
     { cols : List (Data.Person -> Html msg)
     , rowOptions : Data.Person -> List (Table.RowOption msg)
+    , cellOptions : List (Table.CellOption msg)
     , header : List (Html msg)
     , headerOptions : List (Table.CellOption msg)
     , showIfEmpty : Bool
@@ -181,6 +182,7 @@ config : Config msg
 config =
     { cols = []
     , rowOptions = always []
+    , cellOptions = []
     , header = []
     , headerOptions = []
     , showIfEmpty = False
@@ -199,6 +201,7 @@ mapConfig f mdl =
         , rowOptions = always []
         , header = List.map (Html.map f) mdl.header
         , headerOptions = []
+        , cellOptions = []
         , showIfEmpty = mdl.showIfEmpty
     }
 
@@ -227,6 +230,11 @@ headerOptions ops mdl =
 showIfEmpty : Bool -> Config a -> Config a
 showIfEmpty x mdl =
     { mdl | showIfEmpty = x }
+
+
+cellOptions : List (Table.CellOption msg) -> Config msg -> Config msg
+cellOptions ops mdl =
+    { mdl | cellOptions = ops }
 
 
 editPersons : Data.Person -> Config PersonsMsg
@@ -283,13 +291,14 @@ selectPersons f personChecked =
                 , Checkbox.id "selectAll"
                 , Checkbox.inline
                 ]
-                "Select All"
+                ""
 
         selPerson p =
             Checkbox.custom
                 [ Checkbox.id <| toString p.pid
                 , Checkbox.checked <| personChecked p
                 , Checkbox.onCheck <| Update p.pid << f
+                , Checkbox.inline
                 ]
                 ""
 
@@ -306,7 +315,12 @@ selectPersons f personChecked =
             , \p -> text p.personName.firstName
             , \p -> text p.personName.lastName
             ]
-        |> header [ selheader ]
+        |> header [ selheader, text "", text "" ]
+        |> headerOptions
+            [ Table.cellAttr <| class "col-xs-1"
+            , Table.cellAttr <| class "col-xs-5"
+            , Table.cellAttr <| class "col-xs-5"
+            ]
         |> rowOptions setActive
 
 
@@ -499,22 +513,35 @@ newPersonInfoForm m =
         |> Html.map UpdateNewPersonInfo
 
 
-tableCell : List (Html msg) -> Table.Cell msg
-tableCell =
-    Table.td [ Table.cellAttr <| class "d-inline-block col-5 px-1" ]
+makeCells : List (Table.CellOption msg) -> List (Html msg) -> List (Table.Cell msg)
+makeCells ops cells =
+    let
+        size =
+            max (List.length ops) (List.length cells)
 
+        emptyOp =
+            Table.cellAttr <| class ""
 
-tableCellShort : List (Html msg) -> Table.Cell msg
-tableCellShort =
-    Table.td [ Table.cellAttr <| class "d-inline-block col-2 px-1" ]
+        makeSized x xs =
+            List.take size <| xs ++ List.repeat (size - List.length xs) x
+
+        os =
+            makeSized emptyOp ops
+
+        cs =
+            makeSized (text "") cells
+    in
+    List.map2 (\op c -> Table.td [ op ] [ c ]) os cs
 
 
 view : Persons -> Config msg -> Html msg
 view ps config =
     let
+        hs =
+            List.length config.cols - List.length config.header
+
         head =
-            config.header
-                |> List.map (Table.th config.headerOptions << List.singleton)
+            makeCells config.headerOptions config.header
                 |> Table.simpleThead
 
         body =
@@ -533,8 +560,7 @@ view ps config =
 
 
 personRow : Config msg -> Data.Person -> Table.Row msg
-personRow cfg p =
-    cfg.cols
-        |> List.map (\f -> Table.td [] [ f p ])
+personRow config p =
+    makeCells config.cellOptions (List.map (\f -> f p) config.cols)
         |> Table.tr
-            (cfg.rowOptions p)
+            (config.rowOptions p)
