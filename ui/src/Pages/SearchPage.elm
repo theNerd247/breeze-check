@@ -14,7 +14,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Search
-    , nextPageRoute = Router.Selected
     , pageTitle = "Search"
     , pageView = view
     , showInNavbar = True

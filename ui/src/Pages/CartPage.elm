@@ -14,7 +14,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Cart
-    , nextPageRoute = Router.Photo
     , pageTitle = "Cart"
     , pageView = view
     , showInNavbar = True
@@ -38,20 +37,5 @@ view mdl =
                     , Find.waitingPersons mdl
                     ]
             ]
-        , Grid.row [ Row.centerXs, Row.attrs [ class "mb-3" ] ]
-            [ Grid.col [ Col.xsAuto ]
-                [ goToPageButton
-                    (if disableCheckin then
-                        Router.Search
-                     else
-                        Router.Selected
-                    )
-                    [ text "Go Back" ]
-                ]
-            ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
-                [ continueButton disableCheckin [ text "Continue" ]
-                ]
-            ]
+        , navButtons Router.Selected disableCheckin Router.Photo
         ]

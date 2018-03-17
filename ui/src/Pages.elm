@@ -23,7 +23,6 @@ import Router as Router
 type Msg
     = FindMsg Find.Msg
     | NewPersonMsg NewPerson.Msg
-    | Continue
     | ErrorMsg Err.Msg
     | EventInfoMsg EventInfo.Msg
     | RouterMsg Router.Msg
@@ -52,7 +51,6 @@ type alias Model =
 
 type alias Config =
     { pageRoute : Router.Route
-    , nextPageRoute : Router.Route
     , pageTitle : String
     , pageView : Model -> Html Msg
     , showInNavbar : Bool
@@ -66,7 +64,6 @@ type alias Pages =
 config : Config
 config =
     { pageRoute = Router.Home
-    , nextPageRoute = Router.Home
     , pageTitle = ""
     , pageView = always (Html.div [] [])
     , showInNavbar = False
@@ -77,12 +74,11 @@ pageNotFound : Config
 pageNotFound =
     { config
         | pageTitle = "404"
-        , nextPageRoute = Router.Home
         , pageView =
             always <|
                 div []
                     [ h3 [] [ text "The page you're looking for doesn't exist" ]
-                    , continueButton False [ text "Home" ]
+                    , continueButton False Router.Home [ text "Home" ]
                     ]
     }
 
@@ -108,9 +104,6 @@ update msg mdl cfg =
                 |> Find.afterCancel m (Router.setRoute mdl Router.Selected)
                 |> Find.update m
                 |> modifyCmd FindMsg
-
-        Continue ->
-            ( Router.setRoute mdl cfg.nextPageRoute, Cmd.none )
 
         NewPersonMsg m ->
             let
@@ -227,17 +220,20 @@ loadingBar =
         ]
 
 
-continueButton : Bool -> List (Html Msg) -> Html Msg
-continueButton disabled buttonText =
-    if disabled then
-        Html.div [] []
-    else
-        Button.button
-            [ Button.onClick Continue
-            , Button.outlineSuccess
-            , Button.disabled disabled
-            ]
-            buttonText
+continueButton : Bool -> Router.Route -> List (Html Msg) -> Html Msg
+continueButton disabled r buttonText =
+    Button.button
+        [ if disabled then
+            Button.attrs []
+          else
+            Button.onClick <| RouterMsg <| Router.SetRoute r
+        , if disabled then
+            Button.outlineSecondary
+          else
+            Button.outlineSuccess
+        , Button.disabled disabled
+        ]
+        buttonText
 
 
 goToPageButton : Router.Route -> List (Html Msg) -> Html Msg
@@ -251,17 +247,32 @@ goToPageButton r buttonText =
 
 checkInButton : Bool -> Html Msg
 checkInButton disabled =
-    if disabled then
-        text ""
-    else
-        Button.button
-            [ Button.onClick <| FindMsg Find.CheckInClick
-            , Button.outlineSuccess
-            , Button.disabled disabled
-            ]
-            [ text "Check-in" ]
+    Button.button
+        [ if disabled then
+            Button.attrs []
+          else
+            Button.onClick <| FindMsg Find.CheckInClick
+        , if disabled then
+            Button.outlineSecondary
+          else
+            Button.outlineSuccess
+        , Button.disabled disabled
+        ]
+        [ text "Check-in" ]
 
 
 pageWrapper : String -> List (Html msg) -> Html msg
 pageWrapper attrs =
     div [ class <| "d-flex flex-column h-100 align-items-center " ++ attrs ]
+
+
+navButtons : Router.Route -> Bool -> Router.Route -> Html Msg
+navButtons rb disabled rc =
+    let
+        continueCol =
+            continueButton disabled
+    in
+    div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
+        [ div [ class "grow-auto px-3" ] [ goToPageButton rb [ text "Back" ] ]
+        , div [ class "grow-auto px-3" ] [ continueButton disabled rc [ text "Next" ] ]
+        ]

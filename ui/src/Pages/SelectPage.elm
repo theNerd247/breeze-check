@@ -14,7 +14,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Selected
-    , nextPageRoute = Router.Cart
     , pageTitle = "Results"
     , pageView = view
     , showInNavbar = True
@@ -47,6 +46,7 @@ view mdl =
 
         nextButton =
             continueButton (nselected <= 0)
+                Router.Cart
                 [ text <| "Continue (" ++ toString nselected ++ ")"
                 ]
 

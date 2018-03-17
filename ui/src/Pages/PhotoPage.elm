@@ -12,7 +12,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Photo
-    , nextPageRoute = Router.Safety
     , pageTitle = "Photo Waiver"
     , pageView = view
     , showInNavbar = False
@@ -43,9 +42,8 @@ view mdl =
             [ Grid.col []
                 [ Html.map FindMsg <| Find.waitingPersonsWithPhotoSelect mdl ]
             ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
-                [ continueButton False [ text "Continue" ]
-                ]
-            ]
+        , navButtons
+            Router.Cart
+            False
+            Router.Safety
         ]

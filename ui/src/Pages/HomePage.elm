@@ -24,7 +24,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Home
-    , nextPageRoute = Router.Search
     , pageTitle = "Home"
     , pageView = view
     , showInNavbar = False
@@ -46,6 +45,7 @@ view mdl =
             , brf
             , p [] [ text "Let's get you checked in!" ]
             , continueButton False
+                Router.Search
                 [ text "Check-in  "
                 , Html.i [ class "fas fa-sign-in-alt" ] []
                 ]

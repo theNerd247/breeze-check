@@ -15,7 +15,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Safety
-    , nextPageRoute = Router.WaitingApproval
     , pageTitle = "Safety Waiver"
     , pageView = view
     , showInNavbar = False

@@ -14,7 +14,6 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.WaitingApproval
-    , nextPageRoute = Router.WaitingApproval
     , pageTitle = "Checking In"
     , pageView = view
     , showInNavbar = False

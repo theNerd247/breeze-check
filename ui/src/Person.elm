@@ -194,18 +194,6 @@ cols f mdl =
     { mdl | cols = f }
 
 
-mapConfig : (a -> b) -> Config a -> Config b
-mapConfig f mdl =
-    { mdl
-        | cols = List.map (\g -> Html.map f << g) mdl.cols
-        , rowOptions = always []
-        , header = List.map (Html.map f) mdl.header
-        , headerOptions = []
-        , cellOptions = []
-        , showIfEmpty = mdl.showIfEmpty
-    }
-
-
 
 -- | If you are using map make sure to set this AFTER the map is performed so
 -- the resulting typ is mapped correctly. This is due to Table.RowOptions not
@@ -280,6 +268,11 @@ editPersons newPerson =
             , setNameView "First Name" UpdateFirstName (.personName >> .firstName)
             , setNameView "Last Name" UpdateLastName (.personName >> .lastName)
             ]
+        |> headerOptions
+            [ Table.cellAttr <| class "px-1"
+            , Table.cellAttr <| class "px-1"
+            , Table.cellAttr <| class "px-1"
+            ]
 
 
 selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> Config PersonsMsg
@@ -315,7 +308,7 @@ selectPersons f personChecked =
             , \p -> text p.personName.firstName
             , \p -> text p.personName.lastName
             ]
-        |> header [ selheader, text "", text "" ]
+        |> header [ selheader, text "Select All", text "" ]
         |> headerOptions
             [ Table.cellAttr <| class "col-xs-1"
             , Table.cellAttr <| class "col-xs-5"
