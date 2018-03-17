@@ -4,7 +4,6 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
-import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Table as Table
 import Data as Data
@@ -23,6 +22,7 @@ type PersonsMsg
     | Update Data.PersonId PersonMsg
     | Delete Data.PersonId
     | UpdateAll PersonMsg
+    | PersonMsg PersonMsg
 
 
 type PersonMsg
@@ -49,164 +49,12 @@ type AddressMsg
 
 
 type alias Config msg =
-    { extraCol : Maybe (Data.Person -> Html msg)
-    , lastNameView : Data.Person -> Html msg
-    , firstNameView : Data.Person -> Html msg
+    { cols : List (Data.Person -> Html msg)
     , rowOptions : Data.Person -> List (Table.RowOption msg)
-    , header : List (Table.Cell msg)
+    , header : List (Html msg)
+    , headerOptions : List (Table.CellOption msg)
     , showIfEmpty : Bool
     }
-
-
-config : Config msg
-config =
-    { extraCol = Nothing
-    , lastNameView = \p -> text p.personName.lastName
-    , firstNameView = \p -> text p.personName.firstName
-    , rowOptions = always []
-    , header = []
-    , showIfEmpty = False
-    }
-
-
-extraCol : (Data.Person -> Html msg) -> Config msg -> Config msg
-extraCol f mdl =
-    { mdl | extraCol = Just f }
-
-
-lastNameView : (Data.Person -> Html msg) -> Config msg -> Config msg
-lastNameView f mdl =
-    { mdl | lastNameView = f }
-
-
-firstNameView : (Data.Person -> Html msg) -> Config msg -> Config msg
-firstNameView f mdl =
-    { mdl | firstNameView = f }
-
-
-
--- | If you are using map make sure to set this AFTER the map is performed so
--- the resulting typ is mapped correctly. This is due to Table.RowOptions not
--- being a functor
-
-
-rowOps : (Data.Person -> List (Table.RowOption msg)) -> Config msg -> Config msg
-rowOps f cfg =
-    { cfg | rowOptions = f }
-
-
-setHeader : List (Table.Cell msg) -> Config msg -> Config msg
-setHeader f mdl =
-    { mdl | header = f }
-
-
-mapConfig : (a -> b) -> Config a -> Config b
-mapConfig f mdl =
-    { mdl
-        | extraCol = Maybe.map (\g -> Html.map f << g) mdl.extraCol
-        , lastNameView = Html.map f << mdl.lastNameView
-        , firstNameView = Html.map f << mdl.firstNameView
-        , rowOptions = always []
-        , header = []
-    }
-
-
-showIfEmpty : Bool -> Config a -> Config a
-showIfEmpty x mdl =
-    { mdl | showIfEmpty = x }
-
-
-editPersons : Config PersonsMsg
-editPersons =
-    let
-        setNameView ph f g p =
-            Input.text
-                [ Input.onInput <| Update p.pid << f
-                , Input.value <| g p
-                , Input.placeholder ph
-                ]
-
-        deleteButton p =
-            Button.button
-                [ Button.onClick <| Delete p.pid
-                , Button.danger
-                , Button.roleLink
-                ]
-                [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
-    in
-    config
-        |> showIfEmpty True
-        |> firstNameView (setNameView "First Name" UpdateFirstName (.personName >> .firstName))
-        |> lastNameView (setNameView "Last Name" UpdateLastName (.personName >> .lastName))
-        |> extraCol deleteButton
-
-
-selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> (Bool -> PersonsMsg) -> Config PersonsMsg
-selectPersons f personChecked selectAllMsg =
-    let
-        selheader =
-            [ Table.td [ Table.cellAttr <| colspan 3, Table.cellAttr <| class "px-1" ]
-                [ Checkbox.custom
-                    [ Checkbox.onCheck selectAllMsg
-                    , Checkbox.id "selectAll"
-                    , Checkbox.inline
-                    ]
-                    "Select All"
-                ]
-            ]
-
-        selPerson p =
-            Checkbox.custom
-                [ Checkbox.id <| toString p.pid
-                , Checkbox.checked <| personChecked p
-                , Checkbox.onCheck <| Update p.pid << f
-                ]
-                ""
-
-        setActive p =
-            if personChecked p then
-                [ Table.rowSuccess
-                ]
-            else
-                []
-    in
-    config
-        |> extraCol selPerson
-        |> setHeader selheader
-        |> rowOps setActive
-
-
-selectPersonsForCheckIn : Config PersonsMsg
-selectPersonsForCheckIn =
-    let
-        setChecked b =
-            if b then
-                Data.SelectedForCheckIn
-            else
-                Data.CheckedOut
-
-        personChecked p =
-            case p.checkedIn of
-                Data.SelectedForCheckIn ->
-                    True
-
-                _ ->
-                    False
-
-        m =
-            UpdateCheckedIn << setChecked
-    in
-    selectPersons m personChecked (UpdateAll << m)
-
-
-selectPersonsForWantsPhotos : Config PersonsMsg
-selectPersonsForWantsPhotos =
-    selectPersons UpdateWantsPhotos .wantsPhotos (UpdateAll << UpdateWantsPhotos)
-
-
-onlyListPersons : Persons -> Html msg
-onlyListPersons =
-    flip view config
 
 
 initPersons : Persons
@@ -258,6 +106,9 @@ updatePersons msg mdl =
 
         UpdateAll f ->
             Dict.map (\_ p -> updatePerson f p) mdl
+
+        _ ->
+            mdl
 
 
 updatePerson : PersonMsg -> Data.Person -> Data.Person
@@ -324,6 +175,176 @@ updateAddress msg mdl =
 
         UpdateZip z ->
             { mdl | zipcode = z }
+
+
+config : Config msg
+config =
+    { cols = []
+    , rowOptions = always []
+    , header = []
+    , headerOptions = []
+    , showIfEmpty = False
+    }
+
+
+cols : List (Data.Person -> Html msg) -> Config msg -> Config msg
+cols f mdl =
+    { mdl | cols = f }
+
+
+mapConfig : (a -> b) -> Config a -> Config b
+mapConfig f mdl =
+    { mdl
+        | cols = List.map (\g -> Html.map f << g) mdl.cols
+        , rowOptions = always []
+        , header = List.map (Html.map f) mdl.header
+        , headerOptions = []
+        , showIfEmpty = mdl.showIfEmpty
+    }
+
+
+
+-- | If you are using map make sure to set this AFTER the map is performed so
+-- the resulting typ is mapped correctly. This is due to Table.RowOptions not
+-- being a functor
+
+
+rowOptions : (Data.Person -> List (Table.RowOption msg)) -> Config msg -> Config msg
+rowOptions f cfg =
+    { cfg | rowOptions = f }
+
+
+header : List (Html msg) -> Config msg -> Config msg
+header f mdl =
+    { mdl | header = f }
+
+
+headerOptions : List (Table.CellOption msg) -> Config msg -> Config msg
+headerOptions ops mdl =
+    { mdl | headerOptions = ops }
+
+
+showIfEmpty : Bool -> Config a -> Config a
+showIfEmpty x mdl =
+    { mdl | showIfEmpty = x }
+
+
+editPersons : Data.Person -> Config PersonsMsg
+editPersons newPerson =
+    let
+        setNameView ph f g p =
+            Input.text
+                [ Input.onInput <| Update p.pid << f
+                , Input.value <| g p
+                , Input.placeholder ph
+                ]
+
+        deleteButton p =
+            Button.button
+                [ Button.onClick <| Delete p.pid
+                , Button.danger
+                , Button.roleLink
+                ]
+                [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
+
+        header =
+            [ addButton
+            , Html.map PersonMsg <| firstNameForm newPerson.personName.firstName
+            , Html.map PersonMsg <| lastNameForm newPerson.personName.lastName
+            ]
+
+        addButton =
+            Button.button
+                [ Button.onClick <| Create newPerson
+                , Button.success
+                , Button.disabled <|
+                    String.isEmpty
+                        newPerson.personName.firstName
+                        || String.isEmpty newPerson.personName.lastName
+                ]
+                [ text "Add" ]
+    in
+    config
+        |> showIfEmpty True
+        |> cols
+            [ deleteButton
+            , setNameView "First Name" UpdateFirstName (.personName >> .firstName)
+            , setNameView "Last Name" UpdateLastName (.personName >> .lastName)
+            ]
+
+
+selectPersons : (Bool -> PersonMsg) -> (Data.Person -> Bool) -> Config PersonsMsg
+selectPersons f personChecked =
+    let
+        selheader =
+            Checkbox.custom
+                [ Checkbox.onCheck <| UpdateAll << f
+                , Checkbox.id "selectAll"
+                , Checkbox.inline
+                ]
+                "Select All"
+
+        selPerson p =
+            Checkbox.custom
+                [ Checkbox.id <| toString p.pid
+                , Checkbox.checked <| personChecked p
+                , Checkbox.onCheck <| Update p.pid << f
+                ]
+                ""
+
+        setActive p =
+            if personChecked p then
+                [ Table.rowSuccess
+                ]
+            else
+                []
+    in
+    config
+        |> cols
+            [ selPerson
+            , \p -> text p.personName.firstName
+            , \p -> text p.personName.lastName
+            ]
+        |> header [ selheader ]
+        |> rowOptions setActive
+
+
+selectPersonsForCheckIn : Config PersonsMsg
+selectPersonsForCheckIn =
+    let
+        setChecked b =
+            if b then
+                Data.SelectedForCheckIn
+            else
+                Data.CheckedOut
+
+        personChecked p =
+            case p.checkedIn of
+                Data.SelectedForCheckIn ->
+                    True
+
+                _ ->
+                    False
+
+        m =
+            UpdateCheckedIn << setChecked
+    in
+    selectPersons m personChecked
+
+
+selectPersonsForWantsPhotos : Config PersonsMsg
+selectPersonsForWantsPhotos =
+    selectPersons UpdateWantsPhotos .wantsPhotos
+
+
+onlyListPersons : Persons -> Html msg
+onlyListPersons ps =
+    config
+        |> cols
+            [ \p -> text p.personName.firstName
+            , \p -> text p.personName.lastName
+            ]
+        |> view ps
 
 
 streetForm : String -> Html AddressMsg
@@ -491,34 +512,28 @@ view : Persons -> Config msg -> Html msg
 view ps config =
     let
         head =
-            Table.simpleThead config.header
+            config.header
+                |> List.map (Table.th config.headerOptions << List.singleton)
+                |> Table.simpleThead
 
         body =
             Dict.values ps
                 |> List.map (personRow config)
                 |> Table.tbody []
     in
-    if config.showIfEmpty && Dict.isEmpty ps then
+    if not config.showIfEmpty && Dict.isEmpty ps then
+        text ""
+    else
         Table.table
             { thead = head
             , tbody = body
             , options = [ Table.hover, Table.striped ]
             }
-    else
-        text ""
 
 
 personRow : Config msg -> Data.Person -> Table.Row msg
 personRow cfg p =
-    Table.tr
-        (cfg.rowOptions p)
-        [ tableCellShort <|
-            case cfg.extraCol of
-                Nothing ->
-                    []
-
-                Just f ->
-                    [ f p ]
-        , tableCell [ cfg.firstNameView p ]
-        , tableCell [ cfg.lastNameView p ]
-        ]
+    cfg.cols
+        |> List.map (\f -> Table.td [] [ f p ])
+        |> Table.tr
+            (cfg.rowOptions p)

@@ -5,7 +5,6 @@ import Bootstrap.Form as Form
 import Bootstrap.Grid as Grid
 import Data exposing (..)
 import Dict as Dict
-import Dict.Extra as DExtra
 import Html as Html exposing (Html, br, text)
 import Person as Person
 
@@ -15,8 +14,7 @@ type alias HasNewPersons m =
 
 
 type Msg
-    = CreateNewPerson
-    | PersonsMsg Person.PersonsMsg
+    = PersonsMsg Person.PersonsMsg
     | PersonMsg Person.PersonMsg
     | CreateNewAttendees
 
@@ -34,30 +32,32 @@ afterCreateNewAttendees msg b a =
 update : Msg -> HasNewPersons m -> HasNewPersons m
 update msg mdl =
     case msg of
-        CreateNewPerson ->
-            let
-                np =
-                    mdl.newPerson
-
-                pid =
-                    np.pid + 1
-
-                ip =
-                    Person.initPerson
-            in
-            { mdl
-                | newPersons =
-                    Dict.insert pid
-                        { np | pid = pid, checkedIn = Data.SelectedForCheckIn }
-                        mdl.newPersons
-                , newPerson = { ip | pid = pid }
-            }
-
         PersonMsg msg ->
             { mdl | newPerson = Person.updatePerson msg mdl.newPerson }
 
         PersonsMsg msg ->
-            { mdl | newPersons = Person.updatePersons msg mdl.newPersons }
+            case msg of
+                Person.PersonMsg m ->
+                    { mdl | newPerson = Person.updatePerson m mdl.newPerson }
+
+                Person.Create np ->
+                    let
+                        pid =
+                            np.pid + 1
+
+                        ip =
+                            Person.initPerson
+                    in
+                    { mdl
+                        | newPersons =
+                            Dict.insert pid
+                                { np | pid = pid, checkedIn = Data.SelectedForCheckIn }
+                                mdl.newPersons
+                        , newPerson = { ip | pid = pid }
+                    }
+
+                _ ->
+                    { mdl | newPersons = Person.updatePersons msg mdl.newPersons }
 
         _ ->
             mdl
@@ -65,21 +65,9 @@ update msg mdl =
 
 newPersonsForm : HasNewPersons m -> Html Msg
 newPersonsForm mdl =
-    let
-        header =
-            [ Person.tableCellShort [ addButton mdl.newPerson ]
-            , Person.tableCell
-                [ Html.map PersonMsg <| Person.firstNameForm mdl.newPerson.personName.firstName
-                ]
-            , Person.tableCell
-                [ Html.map PersonMsg <| Person.lastNameForm mdl.newPerson.personName.lastName
-                ]
-            ]
-    in
     Form.form [] <|
-        [ Person.editPersons
+        [ Person.editPersons mdl.newPerson
             |> Person.mapConfig PersonsMsg
-            |> Person.setHeader header
             |> Person.view mdl.newPersons
         ]
 
@@ -100,18 +88,6 @@ newPersonInfoForm mdl =
         |> Dict.map personForm
         |> Dict.values
         |> Form.form []
-
-
-addButton : Data.Person -> Html Msg
-addButton mdl =
-    Button.button
-        [ Button.onClick CreateNewPerson
-        , Button.success
-        , Button.disabled <|
-            String.isEmpty mdl.personName.firstName
-                || String.isEmpty mdl.personName.lastName
-        ]
-        [ text "Add" ]
 
 
 createAttendeesButton : Html Msg
