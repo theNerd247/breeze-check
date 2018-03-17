@@ -1,11 +1,11 @@
 module Pages.SearchPage exposing (..)
 
-import Bootstrap.Grid.Row as Row
-import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
+import Bootstrap.Utilities.Flex as Flex
 import FindPeople as Find
-import Html as Html exposing (Html, div, h2, text, h4)
+import Html as Html exposing (Html, br, div, h2, h4, p, text)
 import Html.Attributes exposing (class)
 import Pages exposing (..)
 import Router as Router
@@ -25,9 +25,16 @@ view : Model -> Html Msg
 view mdl =
     let
         title =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
-                    [ h4 [] [ text "Let's Start By Finding Your Family" ]
+            div
+                [ class "text-center" ]
+                [ h4 [] [ text "Let's Start By Finding Your Family" ]
+                , br [] []
+                , p []
+                    [ text
+                        """
+                        If you've brought visitors with you don't worry! We'll
+                        make sure they check-in later.
+                        """
                     ]
                 ]
 
@@ -38,7 +45,7 @@ view mdl =
                     ]
                 ]
     in
-    div [ class "d-flex flex-column justify-content-around align-items-center h-100"]
-        [ div [class "order-1 grow-1 d-flex align-items-center"] [title]
-        , div [class "order-2 grow-6"] [searchForm]
+    pageWrapper "justify-content-around"
+        [ div [ class "grow-1 d-flex align-items-center" ] [ title ]
+        , div [ class "grow-6" ] [ searchForm ]
         ]

@@ -54,6 +54,7 @@ type alias Config msg =
     , firstNameView : Data.Person -> Html msg
     , rowOptions : Data.Person -> List (Table.RowOption msg)
     , header : List (Table.Cell msg)
+    , showIfEmpty : Bool
     }
 
 
@@ -64,6 +65,7 @@ config =
     , firstNameView = \p -> text p.personName.firstName
     , rowOptions = always []
     , header = []
+    , showIfEmpty = False
     }
 
 
@@ -109,6 +111,11 @@ mapConfig f mdl =
     }
 
 
+showIfEmpty : Bool -> Config a -> Config a
+showIfEmpty x mdl =
+    { mdl | showIfEmpty = x }
+
+
 editPersons : Config PersonsMsg
 editPersons =
     let
@@ -128,6 +135,7 @@ editPersons =
                 [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
     in
     config
+        |> showIfEmpty True
         |> firstNameView (setNameView "First Name" UpdateFirstName (.personName >> .firstName))
         |> lastNameView (setNameView "Last Name" UpdateLastName (.personName >> .lastName))
         |> extraCol deleteButton
@@ -490,11 +498,14 @@ view ps config =
                 |> List.map (personRow config)
                 |> Table.tbody []
     in
-    Table.table
-        { thead = head
-        , tbody = body
-        , options = [ Table.hover, Table.striped ]
-        }
+    if config.showIfEmpty && Dict.isEmpty ps then
+        Table.table
+            { thead = head
+            , tbody = body
+            , options = [ Table.hover, Table.striped ]
+            }
+    else
+        text ""
 
 
 personRow : Config msg -> Data.Person -> Table.Row msg

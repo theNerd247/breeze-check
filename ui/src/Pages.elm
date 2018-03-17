@@ -44,6 +44,7 @@ type alias Model =
                         { navbarState : Navbar.State
                         , aggreedToSafetyWaiver : Bool
                         , popoverState : Popover.State
+
                         --, needsNewPersons : Bool
                         }
                     )
@@ -185,11 +186,11 @@ view mdl cfg =
                     ]
                 ]
     in
-    div [class "d-flex h-100 flex-column justify-content-center"]
+    div [ class "d-flex h-100 flex-column justify-content-center" ]
         --[ Row.attrs [ Flex.col, Size.h100, Flex.alignItemsCenter ], Row.leftXs ]
-        [ div [ class "order-1 w-100 grow-auto"] [ errors ]
-        , div [ class "order-2 w-100 grow-auto"] [ loading ]
-        , div [ class "order-3 w-100 grow-1 h-100"] [ page ]
+        [ div [ class "order-1 w-100 grow-auto" ] [ errors ]
+        , div [ class "order-2 w-100 grow-auto" ] [ loading ]
+        , div [ class "order-3 w-100 grow-1 h-100" ] [ page ]
         ]
 
 
@@ -274,3 +275,8 @@ checkInButton disabled =
                     ]
                 ]
             ]
+
+
+pageWrapper : String -> List (Html msg) -> Html msg
+pageWrapper attrs =
+    div [ class <| "d-flex flex-column h-100 align-items-center " ++ attrs ]

@@ -17,6 +17,7 @@ import Html as Html
         , button
         , div
         , h2
+        , h4
         , h5
         , header
         , hr
@@ -219,28 +220,24 @@ searchPersonsForm mdl =
 searchResultsView : HasFind m -> Html Msg
 searchResultsView mdl =
     let
-        nfmsg =
-            case mdl.personNotFound of
-                Just name ->
-                    div []
-                        [ p [ class "text-center text-danger" ] [ text "No one has the last name of" ]
-                        , h5 [ class "text-center" ] [ text name ]
-                        ]
-
-                _ ->
-                    text ""
+        nfmsg name =
+            div [ class "text-center" ]
+                [ h4 [] [ text "Nobody Has The Last Name Of" ]
+                , h5 [] [ text name ]
+                ]
 
         table =
-            if Dict.size mdl.foundPeople > 0 then
-                Person.selectPersonsForCheckIn
-                    |> Person.view mdl.foundPeople
-                    |> Html.map SelectPersonsMsg
-            else
-                text ""
+            Person.selectPersonsForCheckIn
+                |> Person.view mdl.foundPeople
+                |> Html.map SelectPersonsMsg
     in
     div []
-        [ nfmsg
-        , table
+        [ case mdl.personNotFound of
+            Just name ->
+                nfmsg name
+
+            _ ->
+                table
         ]
 
 

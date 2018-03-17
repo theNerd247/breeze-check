@@ -5,7 +5,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Dict as Dict
 import FindPeople as Find
-import Html as Html exposing (Html, div, h2, h3, h4, text)
+import Html as Html exposing (Html, div, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
 import Pages exposing (..)
 import Router as Router
@@ -24,23 +24,12 @@ config =
 view : Model -> Html Msg
 view mdl =
     let
-        hasSelectablePeople =
-            Dict.size mdl.foundPeople
-
-        nselected =
-            Dict.size mdl.waitingCheckIn
-
         title =
-            case hasSelectablePeople of
-                0 ->
-                    text ""
-
-                _ ->
-                    Grid.row [ Row.centerXs ]
-                        [ Grid.col [ Col.xs12 ]
-                            [ h4 [ class "text-center" ] [ text "Now, Select Who You'd Like To Check-in" ]
-                            ]
-                        ]
+            Grid.row [ Row.centerXs ]
+                [ Grid.col [ Col.xsAuto ]
+                    [ h4 [] [ text "Now, Select Who You'd Like To Check-in" ]
+                    ]
+                ]
 
         results =
             Grid.row [ Row.attrs [ class "pb-3" ], Row.centerXs ]
@@ -51,13 +40,26 @@ view mdl =
                 ]
 
         notFoundButton =
-            goToPageButton Router.NewPersons [ text "Add A New Person" ]
+            goToPageButton Router.NewPersons [ text "Create My Family" ]
+
+        nselected =
+            Dict.size mdl.waitingCheckIn
+
+        nextButton =
+            continueButton (nselected <= 0)
+                [ text <| "Continue (" ++ toString nselected ++ ")"
+                ]
+
+        searchBar =
+            div [ class "w-100 grow-1 d-flex justify-content-center align-items-center" ]
+                [ div [ class "w-100 order-1" ]
+                    [ Html.map FindMsg <|
+                        Find.searchPersonsForm mdl
+                    ]
+                ]
     in
-    div []
-        [ Html.map FindMsg <| Find.searchPersonsForm mdl
-        , title
-        , results
-        , continueButton (nselected <= 0)
-            [ text <| "Continue (" ++ toString nselected ++ ")"
-            ]
+    pageWrapper "justify-content-start"
+        [ searchBar
+        , div [ class "grow-6" ] [ results ]
+        , div [ class "grow-6" ] [ nextButton ]
         ]
