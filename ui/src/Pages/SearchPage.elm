@@ -39,6 +39,6 @@ view mdl =
                 ]
     in
     div [ class "d-flex flex-column justify-content-around align-items-center h-100"]
-        [ div [class "order-1 grow-1"] [title]
+        [ div [class "order-1 grow-1 d-flex align-items-center"] [title]
         , div [class "order-2 grow-6"] [searchForm]
         ]
