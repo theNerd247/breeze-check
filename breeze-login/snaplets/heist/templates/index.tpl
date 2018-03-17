@@ -14,6 +14,8 @@
     <!-- Elm application  -->
     <apply template="importElm"/>
 
+    <apply template="css"/>
+
   </head>
   <body>
     <script type="text/javascript">Elm.UI.fullscreen()</script>

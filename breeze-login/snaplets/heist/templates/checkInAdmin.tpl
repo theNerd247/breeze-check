@@ -14,6 +14,8 @@
     <!-- Elm application  -->
     <apply template="importAdminElm"/>
 
+    <apply template="css"/>
+
   </head>
   <body>
     <script type="text/javascript">Elm.Admin.fullscreen()</script>

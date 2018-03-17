@@ -44,6 +44,7 @@ type alias Model =
                         { navbarState : Navbar.State
                         , aggreedToSafetyWaiver : Bool
                         , popoverState : Popover.State
+                        --, needsNewPersons : Bool
                         }
                     )
                 )
@@ -178,17 +179,17 @@ view mdl cfg =
                 ]
 
         page =
-            Grid.row [ Row.centerXs ]
+            Grid.row [ Row.centerXs, Row.attrs [ class "h-100" ] ]
                 [ Grid.col [ Col.xs12 ]
                     [ cfg.pageView mdl
                     ]
                 ]
     in
-    Grid.row
-        [ Row.attrs [ Flex.col, Size.h100, Flex.alignItemsCenter ], Row.leftXs ]
-        [ Grid.col [ Col.xsAuto, Col.attrs [ Size.w100, Spacing.mb3 ] ] [ errors ]
-        , Grid.col [ Col.xsAuto, Col.attrs [ Size.w100, Spacing.mb3 ] ] [ loading ]
-        , Grid.col [] [ page ]
+    div [class "d-flex h-100 flex-column justify-content-center"]
+        --[ Row.attrs [ Flex.col, Size.h100, Flex.alignItemsCenter ], Row.leftXs ]
+        [ div [ class "order-1 w-100 grow-auto"] [ errors ]
+        , div [ class "order-2 w-100 grow-auto"] [ loading ]
+        , div [ class "order-3 w-100 grow-1 h-100"] [ page ]
         ]
 
 

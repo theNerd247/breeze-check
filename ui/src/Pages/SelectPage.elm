@@ -38,7 +38,7 @@ view mdl =
                 _ ->
                     Grid.row [ Row.centerXs ]
                         [ Grid.col [ Col.xs12 ]
-                            [ h4 [ class "text-center" ] [ text "Select Your Family Members" ]
+                            [ h4 [ class "text-center" ] [ text "Now, Select Who You'd Like To Check-in" ]
                             ]
                         ]
 
