@@ -94,7 +94,7 @@ mainView mdl =
         \c ->
             Grid.containerFluid [ class "mb-3" ]
                 [ Grid.row
-                    [ Row.attrs [ Flex.col, style [ ( "height", "100vh" ) ] ] ]
+                    [ Row.attrs [ Flex.col, style [ ( "min-height", "100vh" ) ] ] ]
                     [ Grid.col [ Col.xsAuto ] [ navbar c pages mdl ]
                     , Grid.col [] [ view mdl c ]
                     ]

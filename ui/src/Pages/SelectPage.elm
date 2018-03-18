@@ -60,6 +60,6 @@ view mdl =
     in
     pageWrapper "justify-content-start"
         [ searchBar
-        , div [ class "grow-2" ] [ results ]
+        , div [ class "grow-1 pb-3" ] [ results ]
         , div [ class "grow-6" ] [ nextButton ]
         ]
