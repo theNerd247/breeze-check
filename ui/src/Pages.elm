@@ -101,7 +101,7 @@ update msg mdl cfg =
         FindMsg m ->
             Find.afterSearch m (Router.setRoute mdl Router.Selected) mdl
                 |> Find.afterCheckIn m (Router.setRoute mdl Router.WaitingApproval)
-                |> Find.afterCancel m (Router.setRoute mdl Router.Selected)
+                |> Find.afterCancel m (Router.setRoute mdl Router.Cart)
                 |> Find.update m
                 |> modifyCmd FindMsg
 
