@@ -263,7 +263,7 @@ checkInButton disabled =
 
 pageWrapper : String -> List (Html msg) -> Html msg
 pageWrapper attrs =
-    div [ class <| "d-flex flex-column h-100 align-items-center " ++ attrs ]
+    div [ class <| "d-flex flex-column h-100 align-items-center pb-3" ++ attrs ]
 
 
 navButtons : Router.Route -> Bool -> Router.Route -> Html Msg

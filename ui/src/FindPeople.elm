@@ -121,9 +121,27 @@ update msg mdl =
                     Person.updatePersons msg mdl.foundPeople
 
                 newWaiting =
-                    Dict.filter
-                        (\_ p -> p.checkedIn == Data.SelectedForCheckIn)
-                        updated
+                    case msg of
+                        -- If we're getting an update on the search result list
+                        Person.Update pid m ->
+                            case m of
+                                -- ...specifically the checkedIn field of a
+                                -- person
+                                -- and we're selecting them for checkin then
+                                Person.UpdateCheckedIn Data.SelectedForCheckIn ->
+                                    Person.updatePersons
+                                        (mdl.foundPeople
+                                            |> Dict.get pid
+                                            |> Maybe.withDefault Person.initPerson
+                                            |> Person.Create
+                                        )
+                                        mdl.waitingCheckIn
+
+                                _ ->
+                                    Person.updatePersons (Person.Delete pid) mdl.waitingCheckIn
+
+                        _ ->
+                            mdl.waitingCheckIn
             in
             ( { mdl
                 | foundPeople = updated
