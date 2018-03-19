@@ -33,13 +33,13 @@ New Family  : {lastname, [firstname], currentChurch, email, phone?, address} -> 
 -}
 
 type CheckInGroupId = Int
-type ChurchInfo = String
-type Email = String
-type EventId = String
-type FirstName = String
-type LastName = String
+type ChurchInfo = Text.Text
+type Email = Text.Text
+type EventId = Text.Text
+type FirstName = Text.Text
+type LastName = Text.Text
 type PersonId = Int
-type Phone = String
+type Phone = Text.Text
 type TempPersonId = PersonId
 type IsParent = Bool
 
@@ -47,6 +47,9 @@ customAesonOptions = defaultOptions {fieldLabelModifier = removeUnderscorePrefix
 
 removeUnderscorePrefix ('_':xs) = xs
 removeUnderscorePrefix xs = xs
+
+instance Default (Text.Text) where
+  def = mempty
 
 data BreezeException = BreezeException { breezeErr :: String }
   deriving (Show, Generic, ElmType)
@@ -178,9 +181,9 @@ instance Default Bool where
 
 instance Default Person
 
-newtype FName = FName String deriving (Eq, Ord, Data)
+newtype FName = FName Text.Text deriving (Eq, Ord, Data)
 
-newtype LName = LName String deriving (Eq, Ord, Data)
+newtype LName = LName Text.Text deriving (Eq, Ord, Data)
 
 newtype GID = GID CheckInGroupId deriving (Eq, Ord, Data)
 

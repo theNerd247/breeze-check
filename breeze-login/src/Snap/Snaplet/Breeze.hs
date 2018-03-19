@@ -36,6 +36,8 @@ import Simple.Snap
 import Simple.String (fromParam, skipParse)
 import Snap
 import qualified Data.ByteString.Char8 as Char8
+import qualified Data.Text as Text
+import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Network.HTTP.Simple as HTTP
@@ -74,7 +76,7 @@ instance BreezeApi GetAttendance where
   type BreezeResponse GetAttendance = [Person]
   runBreeze b (GetAttendance eid) = do 
     ps <- runApiReq b "/events/attendance/list"
-      [ ("instance_id", Just . Char8.pack $ eid)
+      [ ("instance_id", Just . encodeUtf8 $ eid)
       , ("details",     Just "true")
       , ("type",        Just "person")
       ]
@@ -93,7 +95,7 @@ instance BreezeApi Checkin where
       chkIn p = do 
         r <- runApiReq b "/events/attendance/add"
           [ ("person_id"   , Just . Char8.pack . show $ p^.pid)
-          , ("instance_id" , Just . Char8.pack $ eid)
+          , ("instance_id" , Just . encodeUtf8 $ eid)
           , ("direction"   , Just "in")
           ]
         return $ if r then (p & checkedIn .~ CheckedIn) else p
@@ -104,8 +106,8 @@ instance BreezeApi MakeNewPerson where
     case np^? newPersonInfo . _Just . fullyNew of
       Just True -> do
         ps <- runApiReq b "/people/add" $ 
-          [ ("first"       , Just . Char8.pack $ np^.firstName)
-          , ("last"        , Just . Char8.pack $ np^.lastName)
+          [ ("first"       , Just . encodeUtf8 $ np^.firstName)
+          , ("last"        , Just . encodeUtf8 $ np^.lastName)
           ] ++ personFields
         return $ (ps :: BreezePerson)^.bPerson
 
@@ -193,9 +195,9 @@ getAttendance' config = flip evalStateT config $ do
     
 getPersonsHandle :: (HasBreezeApp b) => Handler b v ()
 getPersonsHandle = withTop breezeLens $ runAesonApi $ do 
-  lname <- (sanitize . skipParse) <$> fromParam "lastname"
+  lname <- (sanitize . Text.pack . skipParse) <$> fromParam "lastname"
   ps <- runBreeze' $ FindPeople lname Nothing
-  let persons = ps^..folded.filtered (isPrefixOf lname . (view lastName))
+  let persons = ps^..folded.filtered (Text.isPrefixOf lname . (view lastName))
   withTVarWrite personDB $ addMissingPersons persons
   withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (persons^..folded.pid))
     where
@@ -205,7 +207,7 @@ getPersonsHandle = withTop breezeLens $ runAesonApi $ do
         (return db)
         (getOne $ db @= (p^.pid))
 
-      sanitize n = n^..folded.filtered (Char.isAlpha).to Char.toLower & (ix 0) %~ Char.toUpper
+      sanitize = Text.toTitle . Text.filter (Char.isAlpha)
 
 updatePerson :: (Person -> Person) -> Person -> IxSet Person -> IxSet Person
 updatePerson f p = updateIx (p^.pid) (f p)
@@ -267,6 +269,7 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
   toCheckIn <- withTVarRead personDB $ toList . getEQ (GID gid)
   vs <- forM toCheckIn $ \p -> do
       checkedInPerson <- runBreeze' $ Checkin eid p
+
       withTVarWrite personDB $ 
         case p^.checkedIn of
           c@(WaitingCreation _ _) -> updateIx c checkedInPerson
@@ -313,7 +316,7 @@ eventInfoHandle = getEvent <|> setEvent
       es <- runBreeze' GetEvents
       let validEvent = es^? traverse.filtered (view $ eventId.to (==eid))
       maybe 
-        (throwM $ BreezeException $ "Event with id: " ++ eid ++ " doesn't exist")
+        (throwM $ BreezeException $ "Event with id: " ++ (Text.unpack eid) ++ " doesn't exist")
         (\e -> withTVarWrite breezeEventInfo (const e) >> return e)
         validEvent
 
