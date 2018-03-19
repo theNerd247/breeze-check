@@ -91,6 +91,16 @@ afterCancel msg b a =
             a
 
 
+resetFind : HasFind m -> HasFind m
+resetFind mdl =
+    { mdl
+        | searchLastName = ""
+        , foundPeople = Person.initPersons
+        , personNotFound = Nothing
+        , groupId = Nothing
+    }
+
+
 update : Msg -> HasFind m -> ( HasFind m, Cmd Msg )
 update msg mdl =
     case msg of
@@ -170,7 +180,6 @@ searchResult ppl mdl =
         insertFound =
             List.map (\p -> ( p.pid, p )) ppl
                 |> Dict.fromList
-                |> Dict.union mdl.waitingCheckIn
 
         m =
             case ppl of

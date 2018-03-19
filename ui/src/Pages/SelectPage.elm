@@ -7,6 +7,7 @@ import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, br, div, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
+import NewPerson as NewPerson
 import Pages exposing (..)
 import Router as Router
 
@@ -34,12 +35,20 @@ view mdl =
             div [ class "d-flex flex-column w-100 align-items-center" ]
                 [ Html.map FindMsg <| Find.searchResultsView mdl
                 , br [] []
-                , p [ class "text-secondary" ] [ text "(If you can't find your family click here)" ]
+                , p [ class "text-secondary" ]
+                    [ text
+                        """
+                      (If you can't find your family click "Create New Family")
+                      """
+                    ]
                 , notFoundButton
                 ]
 
         notFoundButton =
-            goToPageButton Router.NewPersons [ text "Create My Family" ]
+            goToPageAndThenButton
+                Router.NewPersons
+                [ text "Create New Family" ]
+                NewPerson.resetNewPersons
 
         nselected =
             Dict.size mdl.waitingCheckIn
@@ -47,7 +56,7 @@ view mdl =
         nextButton =
             continueButton (nselected <= 0)
                 Router.Cart
-                [ text <| "Continue (" ++ toString nselected ++ ")"
+                [ text <| "Check-In (" ++ toString nselected ++ ")"
                 ]
 
         searchBar =

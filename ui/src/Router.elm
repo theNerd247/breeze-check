@@ -1,10 +1,20 @@
 module Router exposing (..)
 
+import Data as Data
 import Html exposing (Html)
 import Navigation as Nav
 import RouteUrl as Url
 import RouteUrl.Builder as Builder
-import UrlParser exposing ((<?>), customParam, map, oneOf, parsePath, top)
+import UrlParser
+    exposing
+        ( (<?>)
+        , customParam
+        , map
+        , oneOf
+        , parsePath
+        , stringParam
+        , top
+        )
 
 
 type Route
@@ -12,11 +22,12 @@ type Route
     | Search
     | Selected
     | NewPersons
-    | EditFamilyInfo
+    | EditFamilyInfo Data.LastName
     | Cart
     | Photo
     | Safety
     | WaitingApproval
+    | PageNotFound
 
 
 type Msg
@@ -59,35 +70,43 @@ update msg mdl =
             setRoute mdl r
 
 
-routeName : Route -> String
+routeName : Route -> Builder.Builder -> Builder.Builder
 routeName r =
+    let
+        pageQ t =
+            Builder.addQuery "page" t
+    in
     case r of
         Search ->
-            "search"
+            pageQ "search"
 
         Selected ->
-            "selected"
+            pageQ "selected"
 
         Photo ->
-            "photo"
+            pageQ "photo"
 
         WaitingApproval ->
-            "waiting"
+            pageQ "waiting"
 
         Cart ->
-            "cart"
+            pageQ "cart"
 
         Safety ->
-            "safety"
+            pageQ "safety"
 
         Home ->
-            "home"
+            pageQ "home"
 
         NewPersons ->
-            "newfamily"
+            pageQ "newfamily"
 
-        EditFamilyInfo ->
-            "editfamily"
+        EditFamilyInfo lname ->
+            pageQ "editfamily"
+                >> Builder.addQuery "newlastname" lname
+
+        PageNotFound ->
+            pageQ "pagenotfound"
 
 
 guardRoute : Route -> Route -> Route
@@ -122,14 +141,8 @@ delta2url : HasRoutes m -> HasRoutes m -> Maybe Url.UrlChange
 delta2url old new =
     Builder.builder
         |> Builder.newEntry
-        |> Builder.replaceQuery
-            [ ( "page"
-              , routeName <|
-                    guardRoute
-                        old.currentRoute
-                        new.currentRoute
-              )
-            ]
+        |> Builder.replaceQuery []
+        |> routeName (guardRoute old.currentRoute new.currentRoute)
         |> Builder.toUrlChange
         |> Just
 
@@ -137,44 +150,67 @@ delta2url old new =
 location2messages : Nav.Location -> List Msg
 location2messages l =
     let
-        pg r =
-            case r of
+        pg t r =
+            customParam "page" <|
+                Maybe.andThen
+                    (\p ->
+                        if t == p then
+                            Just r
+                        else
+                            Nothing
+                    )
+
+        search =
+            top <?> pg "search" Search
+
+        selected =
+            top <?> pg "selected" Selected
+
+        photo =
+            top <?> pg "photo" Photo
+
+        waiting =
+            top <?> pg "waiting" WaitingApproval
+
+        safety =
+            top <?> pg "safety" Safety
+
+        home =
+            top <?> pg "home" Home
+
+        newfamily =
+            top <?> pg "newfamily" NewPersons
+
+        cart =
+            top <?> pg "cart" Cart
+
+        editPersons =
+            let
+                combineR mr ms =
+                    Maybe.andThen (\f -> Maybe.map (\s -> f s) ms) mr
+            in
+            map combineR <| top <?> pg "editfamilyinfo" EditFamilyInfo <?> stringParam "newlastname"
+
+        resolveMaybe x =
+            case x of
                 Nothing ->
-                    Home
+                    Nothing
 
-                Just s ->
-                    case s of
-                        "search" ->
-                            Search
-
-                        "selected" ->
-                            Selected
-
-                        "photo" ->
-                            Photo
-
-                        "waiting" ->
-                            WaitingApproval
-
-                        "cart" ->
-                            Cart
-
-                        "safety" ->
-                            Safety
-
-                        "home" ->
-                            Home
-
-                        "editfamily" ->
-                            EditFamilyInfo
-
-                        "newfamily" ->
-                            NewPersons
-
-                        _ ->
-                            Home
+                Just x ->
+                    x
     in
-    (top <?> customParam "page" pg)
+    oneOf
+        [ home
+        , search
+        , selected
+        , newfamily
+        , cart
+        , photo
+        , safety
+        , waiting
+        , editPersons
+        ]
         |> flip parsePath l
+        |> resolveMaybe
         |> Maybe.map (List.singleton << SetRoute)
-        |> Maybe.withDefault [ SetRoute Home ]
+        |> Maybe.withDefault [ SetRoute PageNotFound ]

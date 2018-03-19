@@ -75,6 +75,7 @@ init =
             , currentRoute = Router.Home
             , navbarState = navstate
             , popoverState = Popover.initialState
+            , currentInfoEdit = 0
             }
     in
     ( mdl

@@ -23,5 +23,13 @@ view mdl =
             [ h4 [] [ text "Enter Your Family Members Below" ]
             , Html.map NewPersonMsg <| NewPerson.newPersonInfoForm mdl
             ]
-        , navButtons Router.NewPersons False Router.Selected
+        , navButtonsNewPerson
+        ]
+
+
+navButtonsNewPerson : Html Msg
+navButtonsNewPerson =
+    div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
+        [ div [ class "grow-auto px-3" ] [ goToPageButton Router.NewPersons [ text "Back" ] ]
+        , div [ class "grow-auto px-3" ] [ Html.map NewPersonMsg <| NewPerson.createAttendeesButton ]
         ]

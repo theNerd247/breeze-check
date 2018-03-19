@@ -29,6 +29,7 @@ type Msg
     | NavbarMsg Navbar.State
     | AgreedToSafetyWaiver Bool
     | PopoverMsg Popover.State
+    | GoToPage Router.Route (Model -> Model)
 
 
 type alias Model =
@@ -74,6 +75,7 @@ pageNotFound : Config
 pageNotFound =
     { config
         | pageTitle = "404"
+        , pageRoute = Router.PageNotFound
         , pageView =
             always <|
                 div []
@@ -124,7 +126,8 @@ update msg mdl cfg =
                     (Router.setRoute
                         { mdl
                             | waitingCheckIn = merged
-                            , foundPeople = merged
+                            , foundPeople = Dict.empty
+                            , newPersons = Dict.empty
                             , searchLastName = ""
                             , personNotFound = Nothing
                         }
@@ -151,6 +154,9 @@ update msg mdl cfg =
 
         AgreedToSafetyWaiver b ->
             ( { mdl | aggreedToSafetyWaiver = b }, Cmd.none )
+
+        GoToPage r f ->
+            ( f <| Router.setRoute mdl r, Cmd.none )
 
 
 view : Model -> Config -> Html Msg
@@ -236,10 +242,24 @@ continueButton disabled r buttonText =
         buttonText
 
 
+backButton : Router.Route -> Html Msg
+backButton r =
+    goToPageButton r [ text "Back" ]
+
+
 goToPageButton : Router.Route -> List (Html Msg) -> Html Msg
 goToPageButton r buttonText =
     Button.button
         [ Button.onClick <| RouterMsg <| Router.SetRoute r
+        , Button.outlinePrimary
+        ]
+        buttonText
+
+
+goToPageAndThenButton : Router.Route -> List (Html Msg) -> (Model -> Model) -> Html Msg
+goToPageAndThenButton r buttonText f =
+    Button.button
+        [ Button.onClick <| GoToPage r f
         , Button.outlinePrimary
         ]
         buttonText
@@ -266,13 +286,20 @@ pageWrapper attrs =
     div [ class <| "d-flex flex-column h-100 align-items-center pb-3" ++ attrs ]
 
 
+navButtonsWrapper : Html Msg -> Html Msg -> Html Msg
+navButtonsWrapper r l =
+    div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
+        [ div [ class "grow-auto px-3" ] [ r ]
+        , div [ class "grow-auto px-3" ] [ l ]
+        ]
+
+
 navButtons : Router.Route -> Bool -> Router.Route -> Html Msg
 navButtons rb disabled rc =
     let
         continueCol =
             continueButton disabled
     in
-    div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
-        [ div [ class "grow-auto px-3" ] [ goToPageButton rb [ text "Back" ] ]
-        , div [ class "grow-auto px-3" ] [ continueButton disabled rc [ text "Next" ] ]
-        ]
+    navButtonsWrapper
+        (goToPageButton rb [ text "Back" ])
+        (continueButton disabled rc [ text "Next" ])

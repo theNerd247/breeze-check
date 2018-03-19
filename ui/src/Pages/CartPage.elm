@@ -37,5 +37,11 @@ view mdl =
                     , Find.waitingPersons mdl
                     ]
             ]
+        , div [ class "d-flex flex-row justify-content-center pb-3" ]
+            [ goToPageAndThenButton
+                Router.Selected
+                [ text "Check-In More People" ]
+                Find.resetFind
+            ]
         , navButtons Router.Selected disableCheckin Router.Photo
         ]

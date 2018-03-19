@@ -16,13 +16,17 @@ type alias Persons =
     Dict Data.PersonId Data.Person
 
 
-type PersonsMsg
-    = Create Data.Person
-    | Replace Data.Person
-    | Update Data.PersonId PersonMsg
-    | Delete Data.PersonId
-    | UpdateAll PersonMsg
-    | PersonMsg PersonMsg
+type DictMsg m k a
+    = Create a
+    | Replace a
+    | Update k m
+    | Delete k
+    | UpdateAll m
+    | PersonMsg m
+
+
+type alias PersonsMsg =
+    DictMsg PersonMsg Data.PersonId Data.Person
 
 
 type PersonMsg
@@ -90,26 +94,30 @@ initPerson =
     }
 
 
-updatePersons : PersonsMsg -> Persons -> Persons
-updatePersons msg mdl =
+updateDict f u msg mdl =
     case msg of
         Create p ->
-            Dict.insert p.pid p mdl
+            Dict.insert (f p) p mdl
 
         Replace p ->
-            Dict.update p.pid (Maybe.map <| always p) mdl
+            Dict.update (f p) (Maybe.map <| always p) mdl
 
-        Update pid msg ->
-            Dict.update pid (Maybe.map <| updatePerson msg) mdl
+        Update k m ->
+            Dict.update k (Maybe.map <| u m) mdl
 
-        Delete pid ->
-            Dict.remove pid mdl
+        Delete k ->
+            Dict.remove k mdl
 
-        UpdateAll f ->
-            Dict.map (\_ p -> updatePerson f p) mdl
+        UpdateAll g ->
+            Dict.map (\_ p -> u g p) mdl
 
         _ ->
             mdl
+
+
+updatePersons : PersonsMsg -> Persons -> Persons
+updatePersons =
+    updateDict .pid updatePerson
 
 
 updatePerson : PersonMsg -> Data.Person -> Data.Person
@@ -490,7 +498,7 @@ isParentForm mdl =
         "I'm An Adult"
 
 
-newPersonInfoForm : Maybe Data.NewPersonInfo -> Html PersonMsg
+newPersonInfoForm : Maybe Data.NewPersonInfo -> Html NewPersonInfoMsg
 newPersonInfoForm m =
     m
         |> Maybe.withDefault initNewPersonInfo
@@ -503,7 +511,6 @@ newPersonInfoForm m =
                         ]
                     ]
            )
-        |> Html.map UpdateNewPersonInfo
 
 
 makeCells : List (Table.CellOption msg) -> List (Html msg) -> List (Table.Cell msg)
