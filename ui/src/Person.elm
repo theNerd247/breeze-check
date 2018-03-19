@@ -80,6 +80,7 @@ initNewPersonInfo =
     { newAddress = address
     , newCurrentChurch = Nothing
     , newEmail = ""
+    , fullyNew = True
     }
 
 

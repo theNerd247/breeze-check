@@ -24,15 +24,20 @@ view mdl =
         [ div [ class "text-center" ]
             [ h4 []
                 [ text <|
-                    "Please Provide Info for the "
-                        ++ Zipper.current mdl.lastNamesIndex.lastNames
-                        ++ " family"
+                    "Contact Information For The "
+                        ++ (formatName <| Zipper.current mdl.lastNamesIndex.lastNames)
+                        ++ " Family"
                 ]
             , Html.map NewPersonMsg <|
                 NewPerson.newPersonInfoForm mdl
             ]
         , nav mdl
         ]
+
+
+formatName : String -> String
+formatName s =
+    String.toUpper (String.left 1 s) ++ (String.toLower <| String.dropLeft 1 s)
 
 
 nav : Model -> Html Msg

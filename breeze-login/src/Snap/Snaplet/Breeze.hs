@@ -100,29 +100,25 @@ instance BreezeApi Checkin where
 
 instance BreezeApi MakeNewPerson where
   type BreezeResponse MakeNewPerson = Person
-  runBreeze b (MakeNewPerson np) = do
-    ps <- runApiReq b "/people/add" $ 
-      [ ("first"       , Just . Char8.pack $ np^.firstName)
-      , ("last"        , Just . Char8.pack $ np^.lastName)
-      ] ++
-      case np^.newPersonInfo of
-        Nothing -> []
-        (Just a) -> 
-          [("fields_json" , Just . toStrict . encode $
-            [ field "697961327" "address" (toJSON True) $ object
-                [ "street_address" .= (a^.street)
-                , "city"   .= (a^.city)
-                , "state"  .= (a^.state)
-                , "zip"    .= (a^.zipcode)
-                ]
-            , field "2005562485" "email" (toJSON True) $ object
-                [ "address" .= (a^.newEmail) ]
-            , field "2105844304" "textarea" (toJSON $ a^.newCurrentChurch) Null
-            ])
-          ]
-    return $ (ps :: BreezePerson)^.bPerson
+  runBreeze b (MakeNewPerson np) = 
+    case np^? newPersonInfo . _Just . fullyNew of
+      Just True -> do
+        ps <- runApiReq b "/people/add" $ 
+          [ ("first"       , Just . Char8.pack $ np^.firstName)
+          , ("last"        , Just . Char8.pack $ np^.lastName)
+          ] ++ personFields
+        return $ (ps :: BreezePerson)^.bPerson
+
+      Just False -> do
+        ps <- runApiReq b "/people/update" $ 
+          [ ("person_id"       , Just . Char8.pack . show $ np^.pid)
+          ] ++ personFields
+        return $ (ps :: BreezePerson)^.bPerson
+
+      _ -> return np
 
     where
+
       field :: String -> String -> Value -> Value -> Value
       field i t r d = object
         [ "field_id"       .= i 
@@ -130,6 +126,24 @@ instance BreezeApi MakeNewPerson where
         , "response"       .= r
         , "details"        .= d
         ]
+  
+      personFields = 
+        case np^.newPersonInfo of
+          Nothing -> []
+          (Just a) -> 
+            [("fields_json" , Just . toStrict . encode $
+              [ field "697961327" "address" (toJSON True) $ object
+                  [ "street_address" .= (a^.street)
+                  , "city"   .= (a^.city)
+                  , "state"  .= (a^.state)
+                  , "zip"    .= (a^.zipcode)
+                  ]
+              , field "2005562485" "email" (toJSON True) $ object
+                  [ "address" .= (a^.newEmail) ]
+              , field "2105844304" "textarea" (toJSON $ a^.newCurrentChurch) Null
+              ])
+            ]
+
 
 instance BreezeApi GetEvents where
   type BreezeResponse GetEvents = NonEmpty EventInfo
@@ -190,6 +204,7 @@ getPersonsHandle = withTop breezeLens $ runAesonApi $ do
         (insert p db)
         (return db)
         (getOne $ db @= (p^.pid))
+
       sanitize n = n^..folded.filtered (Char.isAlpha).to Char.toLower & (ix 0) %~ Char.toUpper
 
 updatePerson :: (Person -> Person) -> Person -> IxSet Person -> IxSet Person
@@ -210,38 +225,21 @@ chainTVarWrite l f xs = withTVarWrite l $
 
 userCheckInHandle :: (HasBreezeApp b) => Handler b v ()
 userCheckInHandle = withTop breezeLens $ runAesonApi $ do
-  ps <- fromBody
-  let persons = (ps :: [Person])^..folded.filtered (view $ newPersonInfo . to (isn't _Just))
-  let pids = persons^..folded.pid
-  let newPersons = ps \\ persons
-  notCheckedIn <- withTVarRead personDB $ toList . getEQ CheckedOut . (@+ pids)
   il <- use infoLogger
-  liftIO $ il $ "Checkin recieved: \n" ++ (show ps)
-  {-case notCheckedIn of-}
-    {--- TODO: redo case where requested person being checked in is already-}
-    {--- waiting or has already been checked in-}
-    {-[] -> do-}
-      {-cgid <- withTVarRead checkInGroupCounter id-}
-      {-waiting <- withTVarRead personDB $ toList . (@>=<= (0, cgid)) . (@+ pids)-}
-      {-let mid = firstOf traverse waiting ^? _Just . checkedIn . _WaitingApproval-}
-      {-maybe -}
-        {-(throwM $ BreezeException $ "Could not find persons to login: " <> (show pids)) -}
-        {-(return) -}
-        {-mid-}
-    {-_ -> do-}
+  ps <- fromBody
+  let forCheckInOnly = (ps :: [Person])^..folded.filtered (\p -> p^?newPersonInfo . _Just . fullyNew . to not ^. non True)
+  {-let forUpdateOnly = ps^..folded.filtered (\p -> p^?newPersonInfo . _Just . fullyNew . to not ^. non False)-}
+  let newPersons = ps^..folded.filtered (\p -> p^?newPersonInfo . _Just . fullyNew ^. non False)
   withTVarWrite checkInGroupCounter (+1)
+  liftIO $ il $ "Checkin recieved: \n" ++ (show ps)
   gid <- withTVarRead checkInGroupCounter id
   liftIO $ il $ "Creating checkin group: " 
           <> (show gid) 
           <> "\n"
-          <> (fold $ notCheckedIn^..folded.to show.to (<>"\n"))
-          <> "\n"
-          <> "New persons: "
-          <> "\n"
-          <> (fold $ newPersons^..folded.to show.to (<>"\n"))
-  chainTVarWrite personDB (updatePerson $ set checkedIn $ WaitingApproval gid) notCheckedIn
+          <> (fold $ ps^..folded.to show.to (<>"\n"))
+  chainTVarWrite personDB (updatePerson $ set checkedIn $ WaitingApproval gid) forCheckInOnly
+  {-chainTVarWrite personDB (updatePerson $ \p -> p & checkedIn .~ WaitingCreation gid (p^.pid)) forUpdateOnly-}
   chainTVarWrite personDB insert $ 
-  {-liftIO $ il $ show $-}
     newPersons
       ^@..folded ^..folded.to (\(i,p) -> p & checkedIn .~ (WaitingCreation gid i))
   return gid

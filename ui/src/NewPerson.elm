@@ -95,7 +95,7 @@ resetNewPersonInfos ps mdl =
             }
 
         lls =
-            mdl.newPersons |> Dict.values |> List.map (.personName >> .lastName)
+            mdl.newPersons |> Dict.values |> List.map (.personName >> .lastName >> String.toLower)
 
         nps =
             -- grab everyone we're checking in by last name and see if the user
@@ -106,7 +106,7 @@ resetNewPersonInfos ps mdl =
                     |> Dict.filter
                         (\_ x ->
                             List.member
-                                x.personName.lastName
+                                (String.toLower x.personName.lastName)
                                 lls
                         )
                 )
@@ -115,7 +115,7 @@ resetNewPersonInfos ps mdl =
         npis =
             nps
                 |> Dict.values
-                |> DExtra.groupBy (\p -> p.personName.lastName)
+                |> DExtra.groupBy (.personName >> .lastName >> String.toLower)
                 |> Dict.map mkindex
 
         lnames =

@@ -106,6 +106,7 @@ data NewPersonInfo = NewPersonInfo
   { _newAddress :: Address
   , _newCurrentChurch :: Maybe String
   , _newEmail :: String
+  , _fullyNew :: Bool
   } deriving (Show, Eq , Ord, Data, Generic, ElmType)
 
 makeLenses ''NewPersonInfo
