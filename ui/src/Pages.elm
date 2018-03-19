@@ -109,8 +109,8 @@ update msg mdl cfg =
 
         NewPersonMsg m ->
             let
-                newPpl =
-                    mdl.newPersons
+                newPpl nm =
+                    nm.newPersons
                         |> Dict.values
                         |> List.map (\p -> ( p.pid, p ))
                         |> Dict.fromList
@@ -118,22 +118,24 @@ update msg mdl cfg =
                 --the order of union matters. if the user goes
                 --back to edit the persons then we want those
                 --items to update in the rest of the model
-                merged =
-                    Dict.union newPpl mdl.waitingCheckIn
+                merged nm =
+                    Dict.union (newPpl nm) mdl.waitingCheckIn
             in
             ( mdl
-                |> NewPerson.afterCreateNewAttendees m
-                    (Router.setRoute
-                        { mdl
-                            | waitingCheckIn = merged
-                            , foundPeople = Dict.empty
-                            , newPersons = Dict.empty
-                            , searchLastName = ""
-                            , personNotFound = Nothing
-                        }
-                        Router.Selected
-                    )
                 |> NewPerson.update m
+                |> (\nm ->
+                        NewPerson.guardCreateNewAttendess m
+                            (Router.setRoute
+                                { mdl
+                                    | waitingCheckIn = merged nm
+                                    , foundPeople = Dict.empty
+                                    , searchLastName = ""
+                                    , personNotFound = Nothing
+                                }
+                                Router.Selected
+                            )
+                            nm
+                   )
             , Cmd.none
             )
 

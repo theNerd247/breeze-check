@@ -143,7 +143,7 @@ update msg mdl =
                                         (mdl.foundPeople
                                             |> Dict.get pid
                                             |> Maybe.withDefault Person.initPerson
-                                            |> Person.Create
+                                            |> Person.Create pid
                                         )
                                         mdl.waitingCheckIn
 

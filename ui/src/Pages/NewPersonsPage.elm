@@ -24,51 +24,10 @@ view mdl =
             , Html.map NewPersonMsg <| NewPerson.newPersonsForm mdl
             , navButtonsWrapper
                 (backButton Router.Selected)
-                (goToPageAndThenButton Router.EditFamilyInfo [ text "Next" ] <|
-                    NewPerson.resetCurrentInfoEdit
-                        << NewPerson.resetNewPersons
+                (goToPageAndThenButton
+                    Router.EditFamilyInfo
+                    [ text "Next" ]
+                    NewPerson.resetNewPersonInfos
                 )
             ]
-        ]
-
-
-nav =
-    div []
-        [ personForm np
-        , div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
-            [ div [ class "grow-auto px-3" ] [ l ]
-            , div [ class "grow-auto px-3" ] [ navButton NextInfoEdit isLast "Next Family" ]
-            ]
-        ]
-
-
-nextButton =
-    Button.button
-        [ if isLast then
-            Button.onClick CreateNewAttendees
-          else
-            NextInfoEdit
-        , Button.outlinePrimary
-        ]
-        [ text <|
-            if isLast then
-                "Save"
-            else
-                "Next Family"
-        ]
-
-
-prevButton =
-    Button.button
-        [ if isLast then
-            Button.onClick CreateNewAttendees
-          else
-            NextInfoEdit
-        , Button.outlinePrimary
-        ]
-        [ text <|
-            if isLast then
-                "Save"
-            else
-                "Next Family"
         ]

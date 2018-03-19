@@ -17,8 +17,8 @@ type alias Persons =
 
 
 type DictMsg m k a
-    = Create a
-    | Replace a
+    = Create k a
+    | Replace k a
     | Update k m
     | Delete k
     | UpdateAll m
@@ -94,13 +94,14 @@ initPerson =
     }
 
 
-updateDict f u msg mdl =
+updateDict : (m -> a -> a) -> DictMsg m comparable a -> Dict comparable a -> Dict comparable a
+updateDict u msg mdl =
     case msg of
-        Create p ->
-            Dict.insert (f p) p mdl
+        Create k p ->
+            Dict.insert k p mdl
 
-        Replace p ->
-            Dict.update (f p) (Maybe.map <| always p) mdl
+        Replace k p ->
+            Dict.update k (Maybe.map <| always p) mdl
 
         Update k m ->
             Dict.update k (Maybe.map <| u m) mdl
@@ -117,7 +118,7 @@ updateDict f u msg mdl =
 
 updatePersons : PersonsMsg -> Persons -> Persons
 updatePersons =
-    updateDict .pid updatePerson
+    updateDict updatePerson
 
 
 updatePerson : PersonMsg -> Data.Person -> Data.Person
@@ -259,7 +260,7 @@ editPersons newPerson =
 
         addButton =
             Button.button
-                [ Button.onClick <| Create newPerson
+                [ Button.onClick <| Create newPerson.pid newPerson
                 , Button.success
                 , Button.disabled <|
                     String.isEmpty

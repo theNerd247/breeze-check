@@ -11,6 +11,7 @@ import EventInfo as EventInfo
 import Html exposing (div)
 import Html.Attributes exposing (class, style)
 import Nested exposing (modifyCmd)
+import NewPerson as NewPerson
 import Pages exposing (..)
 import Pages.CartPage as CartPage
 import Pages.EditFamilyInfoPage as EditFamilyInfoPage
@@ -69,13 +70,14 @@ init =
             , searchLastName = ""
             , eventInfo = { eventName = "", eventId = "" }
             , personNotFound = Nothing
-            , newPerson = initPerson
-            , newPersons = initPersons
             , aggreedToSafetyWaiver = False
             , currentRoute = Router.Home
             , navbarState = navstate
             , popoverState = Popover.initialState
-            , currentInfoEdit = 0
+            , newPerson = initPerson
+            , newPersons = Person.initPersons
+            , newPersonInfos = NewPerson.initNewPersonInfos
+            , lastNamesIndex = NewPerson.initLastNamesIndex
             }
     in
     ( mdl

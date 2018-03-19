@@ -1,6 +1,5 @@
 module Router exposing (..)
 
-import Data as Data
 import Html exposing (Html)
 import Navigation as Nav
 import RouteUrl as Url
@@ -22,7 +21,7 @@ type Route
     | Search
     | Selected
     | NewPersons
-    | EditFamilyInfo Data.LastName
+    | EditFamilyInfo
     | Cart
     | Photo
     | Safety
@@ -101,9 +100,8 @@ routeName r =
         NewPersons ->
             pageQ "newfamily"
 
-        EditFamilyInfo lname ->
+        EditFamilyInfo ->
             pageQ "editfamily"
-                >> Builder.addQuery "newlastname" lname
 
         PageNotFound ->
             pageQ "pagenotfound"
@@ -185,11 +183,7 @@ location2messages l =
             top <?> pg "cart" Cart
 
         editPersons =
-            let
-                combineR mr ms =
-                    Maybe.andThen (\f -> Maybe.map (\s -> f s) ms) mr
-            in
-            map combineR <| top <?> pg "editfamilyinfo" EditFamilyInfo <?> stringParam "newlastname"
+            top <?> pg "editfamilyinfo" EditFamilyInfo
 
         resolveMaybe x =
             case x of
@@ -213,4 +207,4 @@ location2messages l =
         |> flip parsePath l
         |> resolveMaybe
         |> Maybe.map (List.singleton << SetRoute)
-        |> Maybe.withDefault [ SetRoute PageNotFound ]
+        |> Maybe.withDefault [ SetRoute Home ]
