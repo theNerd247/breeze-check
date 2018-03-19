@@ -9,8 +9,6 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Display as Display
-import Bootstrap.Utilities.Flex as Flex
-import Bootstrap.Utilities.Size as Size
 import BreezeApi as BreezeApi
 import Data as Data
 import Dict as Dict
@@ -21,17 +19,19 @@ import Html.Attributes exposing (attribute, class, style, value)
 import Nested exposing (modifyBoth, modifyMdl)
 import Pages as Pages
 import Person as Person
+import Result as Result
+import Router as Router
 import Tuple as Tuple
 import UI as UI
 
 
 type alias Model =
     BreezeApi.HasBreezeApi
-        { searchCheckInGroupId : String
+        { searchCheckInGroupId : Maybe Data.CheckInGroupId
         , checkInGroup : List Data.Person
         , groupCheckedIn : Bool
         , ui : Pages.Model
-        , groupId : String
+        , groupId : Maybe Data.CheckInGroupId
         , groupNotFound : Bool
         , eventInfoList : List Data.EventInfo
         }
@@ -57,13 +57,13 @@ main : Program Never Model Msg
 main =
     let
         model =
-            { searchCheckInGroupId = ""
+            { searchCheckInGroupId = Nothing
             , checkInGroup = []
             , errors = []
             , loadingStatus = BreezeApi.initLoadingStatus
             , groupCheckedIn = False
             , ui = Tuple.first uiProg.init
-            , groupId = ""
+            , groupId = Nothing
             , groupNotFound = False
             , eventInfoList = []
             }
@@ -87,17 +87,11 @@ main =
         }
 
 
-toCheckInGroupId : String -> Data.CheckInGroupId
-toCheckInGroupId =
-    String.toInt
-        >> BreezeApi.fromResult (always 0) identity
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg mdl =
     case msg of
         UpdateCheckInGroupId s ->
-            ( { mdl | searchCheckInGroupId = s }, Cmd.none )
+            ( { mdl | searchCheckInGroupId = s |> String.toInt |> Result.toMaybe }, Cmd.none )
 
         SearchGroupClick ->
             updateSearchGroupClick mdl
@@ -136,15 +130,18 @@ getEventListResult es mdl =
 
 updateSearchGroupClick : Model -> ( Model, Cmd Msg )
 updateSearchGroupClick mdl =
-    BreezeApi.getCheckInGroup SearchGroupResponse
-        (toCheckInGroupId
-            mdl.searchCheckInGroupId
-        )
-        { mdl
-            | groupCheckedIn = False
-            , checkInGroup = []
-            , groupNotFound = False
-        }
+    case mdl.searchCheckInGroupId of
+        Nothing ->
+            ( mdl, Cmd.none )
+
+        Just gid ->
+            BreezeApi.getCheckInGroup SearchGroupResponse
+                gid
+                { mdl
+                    | groupCheckedIn = False
+                    , checkInGroup = []
+                    , groupNotFound = False
+                }
 
 
 updateCheckInGroup : List Data.Person -> Model -> ( Model, Cmd Msg )
@@ -159,8 +156,23 @@ updateCheckInGroup ps mdl =
             )
 
         _ ->
+            let
+                ui =
+                    mdl.ui
+
+                newUI =
+                    { ui
+                        | currentRoute = Router.WaitingApproval
+                        , waitingCheckIn =
+                            ps
+                                |> List.map (\p -> ( p.pid, p ))
+                                |> Dict.fromList
+                        , groupId = mdl.searchCheckInGroupId
+                    }
+            in
             ( { mdl
                 | checkInGroup = ps
+                , ui = newUI
                 , groupId = mdl.searchCheckInGroupId
               }
             , Cmd.none
@@ -169,7 +181,12 @@ updateCheckInGroup ps mdl =
 
 updateCheckInApprovedClicked : Model -> ( Model, Cmd Msg )
 updateCheckInApprovedClicked mdl =
-    BreezeApi.approveCheckIn CheckInApprovedResponse (toCheckInGroupId mdl.groupId) mdl
+    case mdl.groupId of
+        Nothing ->
+            ( mdl, Cmd.none )
+
+        Just gid ->
+            BreezeApi.approveCheckIn CheckInApprovedResponse gid mdl
 
 
 updateCheckInApprovedResponse : Bool -> Model -> ( Model, Cmd Msg )
@@ -279,7 +296,11 @@ groupInputView mdl =
         [ InputGroup.config
             (InputGroup.text
                 [ Input.onInput UpdateCheckInGroupId
-                , Input.value mdl.searchCheckInGroupId
+                , Input.value
+                    (mdl.searchCheckInGroupId
+                        |> Maybe.map toString
+                        |> Maybe.withDefault ""
+                    )
                 , Input.placeholder "Group Number"
                 ]
             )
