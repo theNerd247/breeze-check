@@ -79,16 +79,41 @@ resetNewPersons mdl =
     }
 
 
-resetNewPersonInfos : HasNewPersons m -> HasNewPersons m
-resetNewPersonInfos mdl =
+resetNewPersonInfos : Person.Persons -> HasNewPersons m -> HasNewPersons m
+resetNewPersonInfos ps mdl =
     let
+        -- instead of using a new data set everytime update it from the list of
+        -- peoples last names if possible
+        getNewPersonInfo =
+            List.filterMap .newPersonInfo
+                >> List.head
+                >> Maybe.withDefault Person.initNewPersonInfo
+
         mkindex _ ps =
             { npids = ps |> List.map .pid
-            , npInfo = Person.initNewPersonInfo
+            , npInfo = getNewPersonInfo ps
             }
 
+        lls =
+            mdl.newPersons |> Dict.values |> List.map (.personName >> .lastName)
+
+        nps =
+            -- grab everyone we're checking in by last name and see if the user
+            -- is trying to add someone by that last name. Then update everyone
+            -- who has that lastname
+            Dict.union
+                (ps
+                    |> Dict.filter
+                        (\_ x ->
+                            List.member
+                                x.personName.lastName
+                                lls
+                        )
+                )
+                mdl.newPersons
+
         npis =
-            mdl.newPersons
+            nps
                 |> Dict.values
                 |> DExtra.groupBy (\p -> p.personName.lastName)
                 |> Dict.map mkindex
@@ -109,7 +134,8 @@ resetNewPersonInfos mdl =
                 |> Zipper.current
     in
     { mdl
-        | newPersonInfos = npis
+        | newPersons = nps
+        , newPersonInfos = npis
         , lastNamesIndex = { lastNames = lnames, lastKey = lkey, firstKey = fkey }
     }
 
@@ -184,7 +210,7 @@ update msg mdl =
                 lnames =
                     { l
                         | lastNames =
-                            Zipper.next mdl.lastNamesIndex.lastNames
+                            Zipper.previous mdl.lastNamesIndex.lastNames
                                 |> Maybe.withDefault
                                     mdl.lastNamesIndex.lastNames
                     }

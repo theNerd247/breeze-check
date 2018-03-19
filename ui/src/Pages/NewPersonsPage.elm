@@ -1,5 +1,7 @@
 module Pages.NewPersonsPage exposing (..)
 
+import Bootstrap.Button as Button
+import Dict as Dict
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
 import NewPerson as NewPerson
@@ -24,10 +26,17 @@ view mdl =
             , Html.map NewPersonMsg <| NewPerson.newPersonsForm mdl
             , navButtonsWrapper
                 (backButton Router.Selected)
-                (goToPageAndThenButton
-                    Router.EditFamilyInfo
+                (Button.button
+                    [ Button.onClick <|
+                        GoToPage Router.EditFamilyInfo <|
+                            \m ->
+                                NewPerson.resetNewPersonInfos
+                                    m.waitingCheckIn
+                                    m
+                    , Button.outlinePrimary
+                    , Button.disabled <| Dict.isEmpty mdl.newPersons
+                    ]
                     [ text "Next" ]
-                    NewPerson.resetNewPersonInfos
                 )
             ]
         ]

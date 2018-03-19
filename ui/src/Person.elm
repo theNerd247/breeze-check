@@ -88,7 +88,7 @@ initPerson =
     { pid = 0
     , personName = { lastName = "", firstName = "" }
     , checkedIn = Data.CheckedOut
-    , newPersonInfo = Just initNewPersonInfo
+    , newPersonInfo = Nothing
     , isParent = False
     , wantsPhotos = False
     }
