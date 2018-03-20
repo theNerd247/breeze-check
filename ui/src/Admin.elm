@@ -234,12 +234,22 @@ view mdl =
         title =
             h1 [] [ text "Admin" ]
 
+        loading =
+            if mdl.loadingStatus == BreezeApi.Waiting then
+                div [ class "w-100" ]
+                    [ Pages.loadingBar
+                    ]
+            else
+                text ""
+
         body =
             div [ class "row flex-column h-100 mx-1" ]
                 [ div [ class "text-center", style [ ( "flex-grow", "1" ) ] ] [ title ]
                 , div [ style [ ( "flex-grow", "12" ) ] ]
                     --, Grid.col [ Col.xs10, Col.attrs [ Size.w100 ] ]
                     [ errors
+                    , br [] []
+                    , loading
                     , br [] []
                     , groupInputRow
                     , br [] []
