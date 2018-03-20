@@ -111,32 +111,9 @@ routeName r =
             pageQ "editconfirm"
 
 
-guardRoute : Route -> Route -> Route
-guardRoute old new =
-    let
-        hasPrior x y =
-            if old == x then
-                y
-            else
-                old
-    in
-    case new of
-        Photo ->
-            hasPrior Cart Photo
-
-        Safety ->
-            hasPrior Photo Safety
-
-        WaitingApproval ->
-            hasPrior Safety WaitingApproval
-
-        _ ->
-            new
-
-
 setRoute : HasRoutes m -> Route -> HasRoutes m
 setRoute mdl r =
-    { mdl | currentRoute = guardRoute mdl.currentRoute r }
+    { mdl | currentRoute = r }
 
 
 delta2url : HasRoutes m -> HasRoutes m -> Maybe Url.UrlChange
@@ -144,7 +121,7 @@ delta2url old new =
     Builder.builder
         |> Builder.newEntry
         |> Builder.replaceQuery []
-        |> routeName (guardRoute old.currentRoute new.currentRoute)
+        |> routeName new.currentRoute
         |> Builder.toUrlChange
         |> Just
 

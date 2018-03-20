@@ -159,13 +159,20 @@ update msg mdl =
                         ip =
                             Person.initPerson
                     in
-                    { mdl
-                        | newPersons =
-                            Dict.insert pid
-                                { np | pid = pid, checkedIn = Data.SelectedForCheckIn }
-                                mdl.newPersons
-                        , newPerson = { ip | pid = pid }
-                    }
+                    resetNewPersonInfos Dict.empty
+                        { mdl
+                            | newPersons =
+                                Dict.insert pid
+                                    { np | pid = pid, checkedIn = Data.SelectedForCheckIn }
+                                    mdl.newPersons
+                            , newPerson = { ip | pid = pid }
+                        }
+
+                Person.Delete ix ->
+                    resetNewPersonInfos Dict.empty
+                        { mdl
+                            | newPersons = Person.updatePersons msg mdl.newPersons
+                        }
 
                 _ ->
                     { mdl | newPersons = Person.updatePersons msg mdl.newPersons }
@@ -246,12 +253,11 @@ newPersonsForm mdl =
         ]
 
 
-newPersonReviewForm : HasNewPersons m -> Html Msg
-newPersonReviewForm mdl =
+newPersonReview : HasNewPersons m -> Html Msg
+newPersonReview mdl =
     Form.form []
-        [ Person.editPersons mdl.newPerson
-            |> Person.header []
-            |> Person.view mdl.newPersons
+        [ mdl.newPersons
+            |> Person.onlyListPersons
             |> Html.map PersonsMsg
         ]
 

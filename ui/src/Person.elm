@@ -441,22 +441,26 @@ currentChurchForm mdl =
                 Nothing ->
                     False
     in
-    Form.row []
-        [ Form.col []
-            [ Checkbox.custom
-                [ Checkbox.onCheck (UpdateCurrentChurch << setCurrChurch)
-                , Checkbox.checked fromMaybe
-                , Checkbox.id "currentChurchId"
+    div []
+        [ Form.row []
+            [ Form.col []
+                [ Checkbox.custom
+                    [ Checkbox.onCheck (UpdateCurrentChurch << setCurrChurch)
+                    , Checkbox.checked fromMaybe
+                    , Checkbox.id "currentChurchId"
+                    ]
+                    "Are you regularly attending a church?"
                 ]
-                "Are you regularly attending a church?"
             ]
-        , Form.col []
-            [ Input.text
-                [ Input.onInput (UpdateCurrentChurch << Just)
-                , Input.placeholder "Currently Attending Church"
-                , Input.value <| Maybe.withDefault "" mdl
-                , Input.disabled (not fromMaybe)
-                , Input.small
+        , Form.row []
+            [ Form.col []
+                [ Input.text
+                    [ Input.onInput (UpdateCurrentChurch << Just)
+                    , Input.placeholder "Currently Attending Church"
+                    , Input.value <| Maybe.withDefault "" mdl
+                    , Input.disabled (not fromMaybe)
+                    , Input.small
+                    ]
                 ]
             ]
         ]

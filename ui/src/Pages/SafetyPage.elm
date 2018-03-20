@@ -92,10 +92,9 @@ view mdl =
                     "I Agree"
                 ]
             ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xsAuto ]
-                [ checkInButton
-                    (not mdl.aggreedToSafetyWaiver)
-                ]
-            ]
+        , navButtonsWrapper
+            (backButton Router.Photo)
+            (checkInButton
+                (not mdl.aggreedToSafetyWaiver)
+            )
         ]
