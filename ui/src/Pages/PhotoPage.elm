@@ -1,7 +1,7 @@
 module Pages.PhotoPage exposing (..)
 
 import FindPeople as Find
-import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
+import Html as Html exposing (Html, br, div, h1, h2, h3, h4, h5, p, text)
 import Html.Attributes exposing (class)
 import Pages exposing (..)
 import Router as Router
@@ -24,9 +24,13 @@ view mdl =
             , p []
                 [ text
                     """
-                    photo page
+                    We have a photographer here taking pictures of the event for
+                    Mountain View Chuch.
                     """
                 ]
+            , h5 [] [ text "Do You Mind If You're In A Photo?" ]
+            , br [] []
+            , h4 [] [ text "We Don't Mind" ]
             ]
         , div [ class "grow-6 w-100" ]
             [ Html.map FindMsg <| Find.waitingPersonsWithPhotoSelect mdl
