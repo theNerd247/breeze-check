@@ -536,7 +536,7 @@ makeCells ops cells =
         cs =
             makeSized (text "") cells
     in
-    List.map2 (\op c -> Table.td [ op ] [ c ]) os cs
+    List.map2 (\op c -> Table.td [ op, Table.cellAttr <| class "align-middle" ] [ c ]) os cs
 
 
 view : Persons -> Config msg -> Html msg
@@ -560,7 +560,7 @@ view ps config =
         Table.table
             { thead = head
             , tbody = body
-            , options = [ Table.hover, Table.striped ]
+            , options = [ Table.hover, Table.striped, Table.attr <| class "align-middle" ]
             }
 
 
