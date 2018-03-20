@@ -1,9 +1,5 @@
 module Pages.SearchPage exposing (..)
 
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
-import Bootstrap.Utilities.Flex as Flex
 import FindPeople as Find
 import Html as Html exposing (Html, br, div, h2, h4, p, text)
 import Html.Attributes exposing (class)
@@ -38,13 +34,9 @@ view mdl =
                 ]
 
         searchForm =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xs12 ]
-                    [ Html.map FindMsg <| Find.searchPersonsForm mdl
-                    ]
-                ]
+            Html.map FindMsg <| Find.searchPersonsForm mdl
     in
     pageWrapper "justify-content-around"
         [ div [ class "grow-1 d-flex align-items-center" ] [ title ]
-        , div [ class "grow-6" ] [ searchForm ]
+        , div [ class "grow-6 w-80" ] [ searchForm ]
         ]

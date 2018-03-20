@@ -30,14 +30,14 @@ view mdl =
                 text ""
 
         results =
-            div [ class "d-flex flex-column w-100 align-items-center" ]
+            div [ class "d-flex flex-column align-items-center" ]
                 [ title
                 , Html.map FindMsg <| Find.searchResultsView mdl
                 , br [] []
                 , p [ class "text-secondary text-center" ]
                     [ text
                         """
-                        If you can't find your family click the button below
+                        If you can't find your family click "Add Missing Members"
                         """
                     ]
                 , notFoundButton
@@ -68,6 +68,8 @@ view mdl =
     in
     pageWrapper "justify-content-start"
         [ searchBar
-        , div [ class "grow-1 pb-3" ] [ results ]
-        , div [ class "grow-6" ] [ nextButton ]
+        , div [ class "grow-1 pb-3 w-100" ] [ results ]
+        , br [] []
+        , p [ class "text-center text-secondary" ] [ text "Once you're done click \"Check-In\"" ]
+        , div [ class "grow-6 w-80" ] [ nextButton ]
         ]

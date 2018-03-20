@@ -184,7 +184,7 @@ view mdl cfg =
                     ]
                 ]
     in
-    div [ class "d-flex h-100 flex-column justify-content-center" ]
+    div [ class "d-flex my-3 h-100 flex-column justify-content-center" ]
         --[ Row.attrs [ Flex.col, Size.h100, Flex.alignItemsCenter ], Row.leftXs ]
         [ div [ class "order-1 w-100 grow-auto" ] [ errors ]
         , div [ class "order-2 w-100 grow-auto" ] [ loading ]

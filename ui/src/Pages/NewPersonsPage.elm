@@ -14,7 +14,7 @@ config =
     { pageRoute = Router.NewPersons
     , pageTitle = "New Attendees"
     , pageView = view
-    , showInNavbar = True
+    , showInNavbar = False
     }
 
 

@@ -1,10 +1,8 @@
 module Pages.PhotoPage exposing (..)
 
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import FindPeople as Find
 import Html as Html exposing (Html, div, h1, h2, h3, h4, p, text)
+import Html.Attributes exposing (class)
 import Pages exposing (..)
 import Router as Router
 
@@ -20,24 +18,18 @@ config =
 
 view : Model -> Html Msg
 view mdl =
-    div []
-        [ Grid.row [ Row.centerXs ]
-            [ Grid.col [ Col.xs12 ]
-                [ h1 [] [ text "May We Take You're Picture Please?" ]
-                , p []
-                    [ text
-                        """
-                        photo page
-                        """
-                    ]
-                , p []
-                    [ Html.b [] [ text "We won't publish any names or contant information!" ]
-                    ]
+    pageWrapper ""
+        [ div [ class "grow-1 text-center w-100" ]
+            [ h1 [] [ text "Photo Waiver" ]
+            , p []
+                [ text
+                    """
+                    photo page
+                    """
                 ]
             ]
-        , Grid.row [ Row.centerXs ]
-            [ Grid.col []
-                [ Html.map FindMsg <| Find.waitingPersonsWithPhotoSelect mdl ]
+        , div [ class "grow-6 w-100" ]
+            [ Html.map FindMsg <| Find.waitingPersonsWithPhotoSelect mdl
             ]
         , navButtons
             Router.Cart

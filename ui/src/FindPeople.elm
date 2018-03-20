@@ -130,32 +130,39 @@ update msg mdl =
                 updated =
                     Person.updatePersons msg mdl.foundPeople
 
-                newWaiting =
-                    case msg of
-                        -- If we're getting an update on the search result list
-                        Person.Update pid m ->
-                            case m of
-                                -- ...specifically the checkedIn field of a
-                                -- person
-                                -- and we're selecting them for checkin then
-                                Person.UpdateCheckedIn Data.SelectedForCheckIn ->
-                                    Person.updatePersons
-                                        (mdl.foundPeople
-                                            |> Dict.get pid
-                                            |> Maybe.withDefault Person.initPerson
-                                            |> Person.Create pid
-                                        )
-                                        mdl.waitingCheckIn
-
-                                _ ->
-                                    Person.updatePersons (Person.Delete pid) mdl.waitingCheckIn
+                updateSel pid m =
+                    case m of
+                        -- ...specifically the checkedIn field of a
+                        -- person
+                        -- and we're selecting them for checkin then
+                        Person.UpdateCheckedIn Data.SelectedForCheckIn ->
+                            Person.updatePersons
+                                (mdl.foundPeople
+                                    |> Dict.get pid
+                                    |> Maybe.withDefault Person.initPerson
+                                    |> Person.Create pid
+                                )
 
                         _ ->
-                            mdl.waitingCheckIn
+                            Person.updatePersons (Person.Delete pid)
+
+                newWaiting =
+                    case msg of
+                        Person.UpdateAll m ->
+                            mdl.foundPeople
+                                |> Dict.keys
+                                |> List.foldl (\pid f -> f << updateSel pid m) identity
+
+                        -- If we're getting an update on the search result list
+                        Person.Update pid m ->
+                            updateSel pid m
+
+                        _ ->
+                            identity
             in
             ( { mdl
                 | foundPeople = updated
-                , waitingCheckIn = newWaiting
+                , waitingCheckIn = newWaiting mdl.waitingCheckIn
               }
             , Cmd.none
             )
@@ -258,14 +265,12 @@ searchResultsView mdl =
                 |> Person.view mdl.foundPeople
                 |> Html.map SelectPersonsMsg
     in
-    div []
-        [ case mdl.personNotFound of
-            Just name ->
-                nfmsg name
+    case mdl.personNotFound of
+        Just name ->
+            nfmsg name
 
-            _ ->
-                table
-        ]
+        _ ->
+            table
 
 
 waitingPersons : HasFind m -> Html msg

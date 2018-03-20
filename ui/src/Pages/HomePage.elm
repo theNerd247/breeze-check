@@ -36,7 +36,7 @@ view mdl =
         brf =
             br [] []
     in
-    div []
+    pageWrapper ""
         [ div [ class "text-center" ]
             [ h2 [] [ text "Welcome to" ]
             , h4 [] [ text "Mountain View Church's" ]

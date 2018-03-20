@@ -2,9 +2,6 @@ module Pages.SafetyPage exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import Bootstrap.Popover as Popover
 import Html as Html exposing (Html, div, h1, h2, h3, h4, h5, p, span, text)
 import Html.Attributes exposing (class)
@@ -28,7 +25,7 @@ liabilityStatement =
 Egg Hunt on March 23, 2018, I/we on behalf of myself or my/our child participant
 release, forever discharge and agree to hold harmless Mountain View Church,
 the staff and volunteers thereof from any and all liability, claims or demands for
-personal injury, sickness, or death, as well as property damage and expenses, of
+personal injury, or sickness, as well as property damage and expenses, of
 any nature whatsoever which may be incurred by the undersigned and the
 participant that occur while said participant is participating in the above described
 activity.
@@ -70,27 +67,23 @@ liabilityPopover buttonText mdl =
 
 view : Model -> Html Msg
 view mdl =
-    div []
-        [ Grid.row [ Row.centerXs, Row.attrs [ class "text-center" ] ]
-            [ Grid.col [ Col.xs12 ]
-                [ h4 [] [ text "Safety First!" ]
-                , nurseNotice
-                , p []
-                    [ text "By Selecting \"I Agree\" you are agreeing to Mountain View Church's" ]
-                , p []
-                    [ liabilityPopover "event liability release form" mdl
-                    ]
+    pageWrapper ""
+        [ div [ class "text-center" ]
+            [ h4 [] [ text "Safety First!" ]
+            , nurseNotice
+            , p []
+                [ text "By Selecting \"I Agree\" you are agreeing to Mountain View Church's" ]
+            , p []
+                [ liabilityPopover "event liability release form" mdl
                 ]
             ]
-        , Grid.row [ Row.centerXs, Row.attrs [ class "mb-3" ] ]
-            [ Grid.col [ Col.xsAuto ]
-                [ Checkbox.custom
-                    [ Checkbox.onCheck AgreedToSafetyWaiver
-                    , Checkbox.checked mdl.aggreedToSafetyWaiver
-                    , Checkbox.id "safetyAgreement"
-                    ]
-                    "I Agree"
+        , div [ class "mb-3" ]
+            [ Checkbox.custom
+                [ Checkbox.onCheck AgreedToSafetyWaiver
+                , Checkbox.checked mdl.aggreedToSafetyWaiver
+                , Checkbox.id "safetyAgreement"
                 ]
+                "I Agree"
             ]
         , navButtonsWrapper
             (backButton Router.Photo)
