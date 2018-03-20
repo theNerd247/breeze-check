@@ -91,7 +91,7 @@ initPerson =
     , checkedIn = Data.CheckedOut
     , newPersonInfo = Nothing
     , isParent = False
-    , wantsPhotos = False
+    , wantsPhotos = True
     }
 
 

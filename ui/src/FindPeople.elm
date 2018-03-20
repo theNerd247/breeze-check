@@ -178,7 +178,7 @@ searchResult : List Data.Person -> HasFind m -> ( HasFind m, Cmd Msg )
 searchResult ppl mdl =
     let
         insertFound =
-            List.map (\p -> ( p.pid, p )) ppl
+            List.map (\p -> ( p.pid, { p | wantsPhotos = True } )) ppl
                 |> Dict.fromList
 
         m =
