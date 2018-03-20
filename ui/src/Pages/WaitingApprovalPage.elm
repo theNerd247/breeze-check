@@ -4,6 +4,7 @@ import FindPeople as Find
 import Html as Html exposing (Html, br, div, h1, h2, h3, h4, p, text)
 import Html.Attributes exposing (class, for, style)
 import Pages exposing (..)
+import Person as Person
 import Router as Router
 
 
@@ -41,7 +42,7 @@ view mdl =
             div [ class "w-100 text-center grow-6" ]
                 [ h3 [] [ text "You're Checking In" ]
                 , br [] []
-                , Find.waitingPersons mdl
+                , Person.onlyListPersons mdl.waitingCheckIn
                 ]
     in
     pageWrapper "" <|

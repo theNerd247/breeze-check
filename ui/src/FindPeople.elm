@@ -273,9 +273,24 @@ searchResultsView mdl =
             table
 
 
-waitingPersons : HasFind m -> Html msg
-waitingPersons =
-    Person.onlyListPersons << .waitingCheckIn
+waitingPersons : HasFind m -> Html Msg
+waitingPersons mdl =
+    let
+        deleteButton p =
+            Button.button
+                [ Button.onClick <| EditWaitingMsg <| Person.Delete p.pid
+                , Button.danger
+                , Button.roleLink
+                ]
+                [ Html.i [ class "far fa-trash-alt text-danger" ] [] ]
+    in
+    Person.config
+        |> Person.cols
+            [ deleteButton
+            , \p -> text p.personName.firstName
+            , \p -> text p.personName.lastName
+            ]
+        |> Person.view mdl.waitingCheckIn
 
 
 waitingPersonsWithPhotoSelect : HasFind m -> Html Msg

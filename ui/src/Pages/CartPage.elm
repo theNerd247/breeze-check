@@ -30,7 +30,7 @@ view mdl =
                 ]
             else
                 [ h4 [] [ text "Make Sure Everyone is Here" ]
-                , Find.waitingPersons mdl
+                , Html.map FindMsg <| Find.waitingPersons mdl
                 ]
         , p [ class "text-center text-secondary" ]
             [ text

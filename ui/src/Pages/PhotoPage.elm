@@ -24,8 +24,9 @@ view mdl =
             , p []
                 [ text
                     """
-                    We have a photographer here taking pictures of the event for
-                    Mountain View Chuch.
+                    We have a photographer here taking photos of the event for
+                    Mountain View Chuch. The photos will be used for our website
+                    and other online materials.
                     """
                 ]
             , h5 [] [ text "Do You Mind If You're In A Photo?" ]
