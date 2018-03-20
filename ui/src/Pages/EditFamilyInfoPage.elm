@@ -14,7 +14,7 @@ config =
     { pageRoute = Router.EditFamilyInfo
     , pageTitle = "New Attendees"
     , pageView = view
-    , showInNavbar = True
+    , showInNavbar = False
     }
 
 
@@ -25,7 +25,7 @@ view mdl =
             [ h4 []
                 [ text <|
                     "Contact Information For The "
-                        ++ (formatName <| Zipper.current mdl.lastNamesIndex.lastNames)
+                        ++ (NewPerson.formatName <| Zipper.current mdl.lastNamesIndex.lastNames)
                         ++ " Family"
                 ]
             , Html.map NewPersonMsg <|
@@ -35,17 +35,11 @@ view mdl =
         ]
 
 
-formatName : String -> String
-formatName s =
-    String.toUpper (String.left 1 s) ++ (String.toLower <| String.dropLeft 1 s)
-
-
 nav : Model -> Html Msg
 nav mdl =
-    div [ class "grow-6 d-flex flex-row justify-content-center w-100" ]
-        [ div [ class "grow-auto px-3" ] [ prevButton mdl ]
-        , div [ class "grow-auto px-3" ] [ nextButton mdl ]
-        ]
+    navButtonsWrapper
+        (prevButton mdl)
+        (nextButton mdl)
 
 
 nextButton : Model -> Html Msg
@@ -56,16 +50,15 @@ nextButton mdl =
     in
     Button.button
         [ Button.onClick <|
-            NewPersonMsg <|
-                if isLast then
-                    NewPerson.CreateNewAttendees
-                else
-                    NewPerson.NextNewInfo
+            if isLast then
+                RouterMsg <| Router.SetRoute Router.EditConfirm
+            else
+                NewPersonMsg <| NewPerson.NextNewInfo
         , Button.outlinePrimary
         ]
         [ text <|
             if isLast then
-                "Save"
+                "Next"
             else
                 "Next Family"
         ]

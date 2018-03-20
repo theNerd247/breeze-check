@@ -500,10 +500,9 @@ isParentForm mdl =
         "I'm An Adult"
 
 
-newPersonInfoForm : Maybe Data.NewPersonInfo -> Html NewPersonInfoMsg
+newPersonInfoForm : Data.NewPersonInfo -> Html NewPersonInfoMsg
 newPersonInfoForm m =
     m
-        |> Maybe.withDefault initNewPersonInfo
         |> (\mdl ->
                 Form.row []
                     [ Form.col []

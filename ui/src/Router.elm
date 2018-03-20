@@ -21,6 +21,7 @@ type Route
     | Search
     | Selected
     | NewPersons
+    | EditConfirm
     | EditFamilyInfo
     | Cart
     | Photo
@@ -106,6 +107,9 @@ routeName r =
         PageNotFound ->
             pageQ "pagenotfound"
 
+        EditConfirm ->
+            pageQ "editconfirm"
+
 
 guardRoute : Route -> Route -> Route
 guardRoute old new =
@@ -184,6 +188,9 @@ location2messages l =
 
         editPersons =
             top <?> pg "editfamilyinfo" EditFamilyInfo
+
+        editConfirm =
+            top <?> pg "editconfirm" EditConfirm
 
         resolveMaybe x =
             case x of

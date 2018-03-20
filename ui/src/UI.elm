@@ -14,6 +14,7 @@ import Nested exposing (modifyCmd)
 import NewPerson as NewPerson
 import Pages exposing (..)
 import Pages.CartPage as CartPage
+import Pages.EditConfirmPage as EditConfirmPage
 import Pages.EditFamilyInfoPage as EditFamilyInfoPage
 import Pages.HomePage as HomePage
 import Pages.NewPersonsPage as NewPersonsPage
@@ -37,6 +38,7 @@ pages =
     , SafetyPage.config
     , WaitingApprovalPage.config
     , EditFamilyInfoPage.config
+    , EditConfirmPage.config
     ]
 
 

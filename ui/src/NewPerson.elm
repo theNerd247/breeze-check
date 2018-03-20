@@ -221,6 +221,11 @@ update msg mdl =
             { mdl | newPersonInfos = updateNPI m mdl.newPersonInfos }
 
 
+formatName : String -> String
+formatName s =
+    String.toUpper (String.left 1 s) ++ (String.toLower <| String.dropLeft 1 s)
+
+
 updateNPI : NPIMsg -> NPIDict -> NPIDict
 updateNPI =
     let
@@ -234,8 +239,18 @@ updateNPI =
 
 newPersonsForm : HasNewPersons m -> Html Msg
 newPersonsForm mdl =
-    Form.form [] <|
+    Form.form []
         [ Person.editPersons mdl.newPerson
+            |> Person.view mdl.newPersons
+            |> Html.map PersonsMsg
+        ]
+
+
+newPersonReviewForm : HasNewPersons m -> Html Msg
+newPersonReviewForm mdl =
+    Form.form []
+        [ Person.editPersons mdl.newPerson
+            |> Person.header []
             |> Person.view mdl.newPersons
             |> Html.map PersonsMsg
         ]
@@ -249,7 +264,14 @@ newPersonInfoForm mdl =
     in
     mdl.newPersonInfos
         |> Dict.get curName
-        |> Maybe.map .npInfo
+        |> Maybe.map (npiForm curName)
+        |> Maybe.withDefault (text "")
+
+
+npiForm : LastName -> NPInfoIndex -> Html Msg
+npiForm curName mdl =
+    mdl
+        |> .npInfo
         |> Person.newPersonInfoForm
         |> Html.map (NPIMsg << Person.Update curName)
 

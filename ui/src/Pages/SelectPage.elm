@@ -1,8 +1,5 @@
 module Pages.SelectPage exposing (..)
 
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import Dict as Dict
 import FindPeople as Find
 import Html as Html exposing (Html, br, div, h2, h3, h4, p, text)
@@ -15,7 +12,7 @@ import Router as Router
 config : Config
 config =
     { pageRoute = Router.Selected
-    , pageTitle = "Results"
+    , pageTitle = "Search Results"
     , pageView = view
     , showInNavbar = True
     }
@@ -25,21 +22,23 @@ view : Model -> Html Msg
 view mdl =
     let
         title =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
+            if mdl.personNotFound == Nothing then
+                div [ class "text-center" ]
                     [ h4 [] [ text "Now, Select Who You'd Like To Check-in" ]
                     ]
-                ]
+            else
+                text ""
 
         results =
             div [ class "d-flex flex-column w-100 align-items-center" ]
-                [ Html.map FindMsg <| Find.searchResultsView mdl
+                [ title
+                , Html.map FindMsg <| Find.searchResultsView mdl
                 , br [] []
-                , p [ class "text-secondary" ]
+                , p [ class "text-secondary text-center" ]
                     [ text
                         """
-                      (If you can't find your family click "Create New Family")
-                      """
+                        If you can't find your family click the button below
+                        """
                     ]
                 , notFoundButton
                 ]
@@ -47,7 +46,7 @@ view mdl =
         notFoundButton =
             goToPageAndThenButton
                 Router.NewPersons
-                [ text "Create New Family" ]
+                [ text "Add Missing Members" ]
                 NewPerson.resetNewPersons
 
         nselected =

@@ -27,11 +27,8 @@ view mdl =
                 , p []
                     [ text
                         """
-              We have a photographer here taking photos for our website and
-              other promotional materials here at Mountain View Church. You may
-              be in a few of our photos and we would like your permission to
-              publish any photo taken that has you or your family in it.
-                """
+                        photo page
+                        """
                     ]
                 , p []
                     [ Html.b [] [ text "We won't publish any names or contant information!" ]
