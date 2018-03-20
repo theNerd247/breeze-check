@@ -37,6 +37,16 @@ initLoadingStatus =
     DoneOk
 
 
+onSuccess : Msg a -> (a -> m -> m) -> m -> m
+onSuccess (Recieved msg) f m =
+    case msg of
+        Ok (Ok a) ->
+            f a m
+
+        _ ->
+            m
+
+
 update : (a -> HasBreezeApi m -> ( HasBreezeApi m, Cmd msg )) -> Msg a -> HasBreezeApi m -> ( HasBreezeApi m, Cmd msg )
 update f (Recieved r) mdl =
     fromResponse r

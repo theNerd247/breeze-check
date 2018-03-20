@@ -14,6 +14,7 @@ import Data as Data
 import Dict as Dict
 import ErrorMsg as Err
 import EventInfo as EventInfo
+import FindPeople as Find
 import Html as Html exposing (Html, br, div, h1, h4, hr, p, program, text)
 import Html.Attributes exposing (attribute, class, style, value)
 import Nested exposing (modifyBoth, modifyMdl)
@@ -109,8 +110,19 @@ update msg mdl =
             ( Err.update msg mdl, Cmd.none )
 
         UI msg ->
-            UI.mainUpdate msg mdl.ui
-                |> modifyBoth (\m -> { mdl | ui = m }) UI
+            let
+                ( newUI, uiCmd ) =
+                    UI.mainUpdate msg mdl.ui
+                        |> modifyBoth (\m -> { mdl | ui = m }) UI
+            in
+            if mdl.ui.groupId == Nothing && newUI.ui.groupId /= Nothing then
+                let
+                    ( m, cm ) =
+                        updateSearchGroupClick { newUI | searchCheckInGroupId = newUI.ui.groupId }
+                in
+                ( m, Cmd.batch [ uiCmd, cm ] )
+            else
+                ( newUI, uiCmd )
 
         GetEventInfoListReturn r ->
             BreezeApi.update getEventListResult r mdl
@@ -321,7 +333,7 @@ groupPhotoView hasPhotos =
     let
         status =
             if hasPhotos then
-                Html.i [ class "fas fa-times text-success" ] []
+                Html.i [ class "fas fa-check text-success" ] []
             else
                 Html.i [ class "fas fa-times text-danger" ] []
     in
