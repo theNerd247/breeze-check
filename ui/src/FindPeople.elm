@@ -19,6 +19,7 @@ import Html as Html
         , h2
         , h4
         , h5
+        , h6
         , header
         , hr
         , main_
@@ -256,8 +257,9 @@ searchResultsView mdl =
     let
         nfmsg name =
             div [ class "text-center" ]
-                [ h4 [] [ text "Nobody Has The Last Name Of" ]
-                , h5 [] [ text name ]
+                [ h5 [] [ text "No One With  The Last Name Of" ]
+                , h6 [] [ text name ]
+                , h5 [] [ text "Is Available" ]
                 ]
 
         table =

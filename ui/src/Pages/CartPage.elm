@@ -34,7 +34,7 @@ view mdl =
                 ]
         , p [ class "text-center text-secondary" ]
             [ text
-                """If you've brought visitors and they aren't here then
+                """If you've brought visitors and they aren't listed above then
                     click "Check-In More People"
                  """
             ]

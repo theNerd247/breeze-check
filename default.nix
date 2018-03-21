@@ -11,6 +11,6 @@ let
 in
 
 buildEnv rec {
-  name = "breeze-check-1.0.0";
+  name = "breeze-check-1.5.0";
   paths = [breeze-log breeze-ui];
 }

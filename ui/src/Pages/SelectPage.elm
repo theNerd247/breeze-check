@@ -1,8 +1,9 @@
 module Pages.SelectPage exposing (..)
 
+import Bootstrap.Button as Button
 import Dict as Dict
 import FindPeople as Find
-import Html as Html exposing (Html, br, div, h2, h3, h4, p, text)
+import Html as Html exposing (Html, br, div, h2, h3, h5, p, span, text)
 import Html.Attributes exposing (class, for, style)
 import NewPerson as NewPerson
 import Pages exposing (..)
@@ -24,7 +25,7 @@ view mdl =
         title =
             if mdl.personNotFound == Nothing then
                 div [ class "text-center" ]
-                    [ h4 [] [ text "Now, Select Who You'd Like To Check-in" ]
+                    [ h5 [] [ text "Now, Select Who You'd Like To Check-in" ]
                     ]
             else
                 text ""
@@ -34,11 +35,9 @@ view mdl =
                 [ title
                 , Html.map FindMsg <| Find.searchResultsView mdl
                 , br [] []
-                , p [ class "text-secondary text-center" ]
-                    [ text
-                        """
-                        If you can't find your family click "Add Missing Members"
-                        """
+                , p [ class "text-secondary text-center w-50" ]
+                    [ span [] [ text "If you can't find your family click" ]
+                    , span [] [ text """ "Add Missing Members" """ ]
                     ]
                 , notFoundButton
                 ]
@@ -53,9 +52,13 @@ view mdl =
             Dict.size mdl.waitingCheckIn
 
         nextButton =
-            continueButton (nselected <= 0)
-                Router.Cart
-                [ text <| "Check-In (" ++ toString nselected ++ ")"
+            Button.button
+                [ Button.onClick <| RouterMsg <| Router.SetRoute <| Router.Cart
+                , Button.disabled <| nselected <= 0
+                , Button.block
+                , Button.success
+                ]
+                [ text <| "Next"
                 ]
 
         searchBar =
@@ -70,6 +73,5 @@ view mdl =
         [ searchBar
         , div [ class "grow-1 pb-3 w-100" ] [ results ]
         , br [] []
-        , p [ class "text-center text-secondary" ] [ text "Once you're done click \"Check-In\"" ]
-        , div [ class "grow-6 w-80" ] [ nextButton ]
+        , div [ class "grow-6 w-75" ] [ nextButton ]
         ]

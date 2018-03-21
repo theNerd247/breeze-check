@@ -97,10 +97,9 @@ mainUpdate msg mdl =
 mainView mdl =
     withCurrentPage mdl pages <|
         \c ->
-            Grid.containerFluid [ class "mb-3" ]
-                [ Grid.row
-                    [ Row.attrs [ Flex.col, style [ ( "min-height", "100vh" ) ] ] ]
-                    [ Grid.col [ Col.xsAuto ] [ navbar c pages mdl ]
-                    , Grid.col [] [ view mdl c ]
+            div [ class "mb-3" ]
+                [ div [ class "d-flex flex-column", style [ ( "min-height", "100vh" ) ] ]
+                    [ div [ class "grow-auto" ] [ navbar c pages mdl ]
+                    , div [ class "grow-1 px-2 d-flex flex-column" ] [ view mdl c ]
                     ]
                 ]

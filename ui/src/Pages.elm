@@ -1,9 +1,6 @@
 module Pages exposing (..)
 
 import Bootstrap.Button as Button
-import Bootstrap.Grid as Grid
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Popover as Popover
 import Bootstrap.Progress as Progress
@@ -168,27 +165,23 @@ view mdl cfg =
             Html.map ErrorMsg <| Err.view mdl
 
         loading =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xs12 ]
-                    [ if mdl.loadingStatus == BreezeApi.Waiting then
-                        loadingBar
-                      else
-                        text ""
-                    ]
-                ]
+            if mdl.loadingStatus == BreezeApi.Waiting then
+                loadingBar
+            else
+                text ""
 
         page =
-            Grid.row [ Row.centerXs, Row.attrs [ class "h-100" ] ]
-                [ Grid.col [ Col.xs12 ]
+            div [ class "grow-1 d-flex flex-column" ]
+                [ div [ class "w-100" ]
                     [ cfg.pageView mdl
                     ]
                 ]
     in
-    div [ class "d-flex my-3 h-100 flex-column justify-content-center" ]
+    div [ class "grow-1 d-flex my-3 flex-column justify-content-center" ]
         --[ Row.attrs [ Flex.col, Size.h100, Flex.alignItemsCenter ], Row.leftXs ]
-        [ div [ class "order-1 w-100 grow-auto" ] [ errors ]
-        , div [ class "order-2 w-100 grow-auto" ] [ loading ]
-        , div [ class "order-3 w-100 grow-1 h-100" ] [ page ]
+        [ div [ class "order-1 w-100 grow-auto mb-1" ] [ errors ]
+        , div [ class "order-2 w-100 grow-auto mb-1" ] [ loading ]
+        , div [ class "order-3 w-100 grow-1 d-flex flex-column" ] [ page ]
         ]
 
 

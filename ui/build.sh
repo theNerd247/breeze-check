@@ -9,7 +9,7 @@ fi
 
 
 function buildMain() {
-  elm make --debug --output "build/$2.$version.js" "src/$1.elm"
+  elm make --output "build/$2.$version.js" "src/$1.elm"
 }
 
 mkdir -p build

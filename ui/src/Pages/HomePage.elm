@@ -46,7 +46,7 @@ view mdl =
             , p [] [ text "Let's get you checked in!" ]
             , continueButton False
                 Router.Search
-                [ text "Check-in  "
+                [ text "Start "
                 , Html.i [ class "fas fa-sign-in-alt" ] []
                 ]
             ]

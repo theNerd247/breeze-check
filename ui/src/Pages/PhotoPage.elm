@@ -21,7 +21,7 @@ view mdl =
     pageWrapper ""
         [ div [ class "grow-1 text-center w-100" ]
             [ h1 [] [ text "Photo Waiver" ]
-            , p []
+            , p [ class "text-justify" ]
                 [ text
                     """
                     We have a photographer here taking photos of the event for
@@ -29,9 +29,10 @@ view mdl =
                     and other online materials.
                     """
                 ]
-            , h5 [] [ text "Do You Mind If You're In A Photo?" ]
             , br [] []
-            , h4 [] [ text "We Don't Mind" ]
+            , h5 [] [ text "It's Ok If We're In A Photo" ]
+            , p [ class "text-center text-secondary" ]
+                [ text "deselect people below if you don't want them to appear in a photo" ]
             ]
         , div [ class "grow-6 w-100" ]
             [ Html.map FindMsg <| Find.waitingPersonsWithPhotoSelect mdl
