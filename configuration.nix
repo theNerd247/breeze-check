@@ -24,13 +24,10 @@
           mkdir -p /tmp/breeze
           cp -Rsf ${app}/* --no-preserve=mode /tmp/breeze/
           cd /tmp/breeze
-          ./bin/breeze-login
-            -p 443\
+          ./bin/breeze-login\
             --ssl-port=443\
-            --no-access-log
             --ssl-cert=${certPath}/fulllchain.pem\
-            --ssl-cert=${certPath}/privkey.pem\
-            --ssl-key-p 443
+            --ssl-key=${certPath}/privkey.pem\
         '';
       };
     };
