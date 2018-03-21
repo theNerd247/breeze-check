@@ -17,6 +17,12 @@ let
 
           heist = pkgs.haskell.lib.dontCheck old.heist;
 
+          snap = pkgs.haskell.lib.overrideCabal old.snap (
+            oldSnap: {
+              configureFlags = "-f openssl";
+            }
+          );
+
           elm-export = old.callPackage ./nix/elm-export.nix {};
 
           inherit (pkgs.callPackage ./nix/simple.nix {})

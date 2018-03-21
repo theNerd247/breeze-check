@@ -55,9 +55,6 @@ appInit = makeSnaplet "breeze-login" "a breeze login web app" Nothing $ do
     , _heist = h
     }
 
-{-logAllErrors f = f `catch` (writeLogger Snap.Snaplet.FastLogger.Error . show)-}
-
-
 handleServerErrors :: Logger -> SomeException -> Snap ()
 handleServerErrors lgger e = do 
   rq <- getRequest
@@ -70,7 +67,12 @@ handleServerErrors lgger e = do
 
 main = do 
   (l, clnLogger) <- liftIO $ initErrLogger
-  serveSnaplet 
-    (setErrorHandler (handleServerErrors l) mempty) 
-    appInit
+  let cfg = 
+        defaultConfig
+            & setSSLBind "0.0.0.0"
+            & setSSLPort 4443
+            & setSSLChainCert True
+            & setErrorHandler (handleServerErrors l)
+  serveSnaplet cfg appInit
   clnLogger
+    where
