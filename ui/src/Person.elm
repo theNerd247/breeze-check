@@ -95,6 +95,11 @@ initPerson =
     }
 
 
+fromList : List Data.Person -> Persons
+fromList =
+    List.map (\p -> ( p.pid, p )) >> Dict.fromList
+
+
 updateDict : (m -> a -> a) -> DictMsg m comparable a -> Dict comparable a -> Dict comparable a
 updateDict u msg mdl =
     case msg of

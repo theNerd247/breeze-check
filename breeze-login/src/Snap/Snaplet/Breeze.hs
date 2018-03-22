@@ -250,8 +250,20 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
 
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
 getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
-  gid <- fromParam "groupid"
-  withTVarRead personDB $ toList . getEQ (GID gid)
+  mlastName <- fromParam "lastName"
+  case mlastName of
+    Just lastName -> 
+      withTVarRead personDB $ 
+        (\ps -> 
+            ps^..folded
+              .filtered 
+                (\p -> p^.checkedIn.to (is _WaitingApproval))
+        ) 
+        . toList 
+        . getEQ (LName lastName)
+    Nothing -> do
+      gid <- fromParam "groupid"
+      withTVarRead personDB $ toList . getEQ (GID gid)
 
 cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do

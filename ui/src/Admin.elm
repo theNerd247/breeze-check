@@ -21,6 +21,7 @@ import Pages as Pages
 import Person as Person
 import Result as Result
 import Router as Router
+import SearchForm as SearchForm
 import Tuple as Tuple
 import UI as UI
 
@@ -34,6 +35,8 @@ type alias Model =
         , groupId : Maybe Data.CheckInGroupId
         , groupNotFound : Bool
         , eventInfoList : List Data.EventInfo
+        , lastNameSearch : String
+        , groupSearchPeople : Person.Persons
         }
 
 
@@ -47,6 +50,9 @@ type Msg
     | UI Pages.Msg
     | GetEventInfoListReturn (BreezeApi.Msg (List Data.EventInfo))
     | SetEventInfo Data.EventId
+    | LastNameSearch String
+    | LastNameSearchClick
+    | LastNameSearchResult (BreezeApi.Msg (List Data.Person))
 
 
 uiProg =
@@ -66,6 +72,8 @@ main =
             , groupId = Nothing
             , groupNotFound = False
             , eventInfoList = []
+            , lastNameSearch = ""
+            , groupSearchPeople = Dict.empty
             }
 
         ( mdl, emsg ) =
@@ -88,6 +96,18 @@ main =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg mdl =
     case msg of
+        LastNameSearch s ->
+            ( { mdl | lastNameSearch = s }, Cmd.none )
+
+        LastNameSearchClick ->
+            BreezeApi.getGroupByLastName
+                LastNameSearchResult
+                mdl.lastNameSearch
+                mdl
+
+        LastNameSearchResult m ->
+            BreezeApi.update updateLastNameGroupSearch m mdl
+
         UpdateCheckInGroupId s ->
             ( { mdl | searchCheckInGroupId = s |> String.toInt |> Result.toMaybe }, Cmd.none )
 
@@ -130,6 +150,11 @@ update msg mdl =
                     mdl.ui
             in
             modifyMdl (\m -> { mdl | ui = m }) <| BreezeApi.setEventInfo eid (UI << Pages.EventInfoMsg << EventInfo.EventInfoResult) mdl.ui
+
+
+updateLastNameGroupSearch : List Data.Person -> Model -> ( Model, Cmd Msg )
+updateLastNameGroupSearch ps mdl =
+    ( { mdl | groupSearchPeople = Person.fromList ps }, Cmd.none )
 
 
 getEventListResult : List Data.EventInfo -> Model -> ( Model, Cmd Msg )
@@ -210,9 +235,7 @@ view mdl =
             checkInGroupView mdl
 
         groupInputRow =
-            Grid.row
-                [ Row.centerXs ]
-                [ Grid.col [ Col.xs12 ] [ groupInputView mdl ] ]
+            div [ class "grow-auto w-100 mb-3" ] [ groupInputView mdl ]
 
         errors =
             Html.map Err <| Err.view mdl
@@ -243,6 +266,15 @@ view mdl =
             else
                 text ""
 
+        lastNameSearchRow =
+            div [ class "grow-auto w-100 mb-3" ]
+                [ SearchForm.searchForm
+                    "Last Name Of Person In Group"
+                    mdl.lastNameSearch
+                    LastNameSearchClick
+                    LastNameSearch
+                ]
+
         body =
             div [ class "row flex-column h-100 mx-1" ]
                 [ div [ class "text-center grow-1" ] [ title ]
@@ -253,6 +285,7 @@ view mdl =
                     , loading
                     , br [] []
                     , groupInputRow
+                    , lastNameSearchRow
                     , br [] []
                     , checkInGroupRow
                     , eventInfoRow
@@ -313,23 +346,14 @@ checkInGroupView mdl =
 
 groupInputView : Model -> Html Msg
 groupInputView mdl =
-    Form.form []
-        [ InputGroup.config
-            (InputGroup.text
-                [ Input.onInput UpdateCheckInGroupId
-                , Input.value
-                    (mdl.searchCheckInGroupId
-                        |> Maybe.map toString
-                        |> Maybe.withDefault ""
-                    )
-                , Input.placeholder "Group Number"
-                ]
-            )
-            |> InputGroup.successors
-                [ InputGroup.button [ Button.onClick SearchGroupClick ] [ text "Find" ]
-                ]
-            |> InputGroup.view
-        ]
+    SearchForm.searchForm
+        "Group Number"
+        (mdl.searchCheckInGroupId
+            |> Maybe.map toString
+            |> Maybe.withDefault ""
+        )
+        SearchGroupClick
+        UpdateCheckInGroupId
 
 
 approveCheckInButton : Html Msg

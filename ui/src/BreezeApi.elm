@@ -170,6 +170,14 @@ setEventInfo eid f mdl =
     sendPost "eventinfo" (Http.jsonBody <| Encode.string eid) Data.decodeEventInfo f mdl
 
 
+getGroupByLastName f lastName mdl =
+    sendGet
+        ("getgroup?lastName=" ++ lastName)
+        (Decode.list Data.decodePerson)
+        f
+        mdl
+
+
 fromResponse :
     Response a
     -> Result.Result String a

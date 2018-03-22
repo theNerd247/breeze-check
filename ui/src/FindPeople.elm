@@ -1,11 +1,6 @@
 module FindPeople exposing (..)
 
 import Bootstrap.Button as Button
-import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.InputGroup as InputGroup
-import Bootstrap.Grid.Col as Col
-import Bootstrap.Grid.Row as Row
 import BreezeApi as BreezeApi
 import Data as Data
 import Dict as Dict
@@ -30,6 +25,7 @@ import Html as Html
 import Html.Attributes exposing (class)
 import Person as Person
 import Platform.Cmd as Cmd
+import SearchForm as SearchForm
 
 
 type alias HasCheckIn m =
@@ -47,7 +43,7 @@ type alias HasFind m =
 
 
 type Msg
-    = UpdateSearchLastName String
+    = LastNamSearch String
     | SearchClick
     | SearchResponse (BreezeApi.Msg (List Data.Person))
     | CheckInClick
@@ -105,11 +101,11 @@ resetFind mdl =
 update : Msg -> HasFind m -> ( HasFind m, Cmd Msg )
 update msg mdl =
     case msg of
-        UpdateSearchLastName s ->
-            updateSearchLastName mdl s
+        LastNamSearch s ->
+            ( { mdl | searchLastName = s }, Cmd.none )
 
         SearchClick ->
-            searchClick mdl
+            BreezeApi.findPeople SearchResponse mdl.searchLastName mdl
 
         SearchResponse r ->
             BreezeApi.update searchResult r mdl
@@ -172,16 +168,6 @@ update msg mdl =
             ( { mdl | waitingCheckIn = Person.updatePersons msg mdl.waitingCheckIn }, Cmd.none )
 
 
-updateSearchLastName : HasFind m -> String -> ( HasFind m, Cmd Msg )
-updateSearchLastName mdl s =
-    ( { mdl | searchLastName = s }, Cmd.none )
-
-
-searchClick : HasFind m -> ( HasFind m, Cmd Msg )
-searchClick mdl =
-    BreezeApi.findPeople SearchResponse mdl.searchLastName mdl
-
-
 searchResult : List Data.Person -> HasFind m -> ( HasFind m, Cmd Msg )
 searchResult ppl mdl =
     let
@@ -222,36 +208,6 @@ cancelCheckinResponse _ mdl =
 -- VIEW:
 
 
-searchPersonsForm : HasFind m -> Html Msg
-searchPersonsForm mdl =
-    Form.form []
-        [ Form.row [ Row.centerXs ]
-            [ Form.col [ Col.xs12 ]
-                [ InputGroup.config
-                    (InputGroup.text
-                        [ Input.placeholder "Last Name"
-                        , Input.onInput UpdateSearchLastName
-                        , Input.value mdl.searchLastName
-                        ]
-                    )
-                    |> InputGroup.large
-                    |> InputGroup.successors
-                        [ InputGroup.button
-                            [ Button.onClick SearchClick
-                            , Button.large
-                            , Button.outlinePrimary
-                            ]
-                            [ Html.i [ class "fas fa-search" ] []
-
-                            --, text " Search"
-                            ]
-                        ]
-                    |> InputGroup.view
-                ]
-            ]
-        ]
-
-
 searchResultsView : HasFind m -> Html Msg
 searchResultsView mdl =
     let
@@ -273,6 +229,15 @@ searchResultsView mdl =
 
         _ ->
             table
+
+
+searchPersonsForm : HasFind m -> Html Msg
+searchPersonsForm mdl =
+    SearchForm.searchForm
+        "Last Name"
+        mdl.searchLastName
+        SearchClick
+        LastNamSearch
 
 
 waitingPersons : HasFind m -> Html Msg
