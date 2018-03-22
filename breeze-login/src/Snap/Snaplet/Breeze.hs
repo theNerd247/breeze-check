@@ -184,8 +184,10 @@ getAttendance' :: (MonadIO m, MonadThrow m) => Breeze -> m ()
 getAttendance' config = flip evalStateT config $ do
   eid <- (liftIO . atomically $ readTVar (config^.breezeEventInfo)) >>= return . (view eventId)
   eas <- runBreeze' $ GetAttendance eid
-  withTVarWrite personDB $ appEndo . fold $
-    eas & mapped %~ Endo . updateAttending
+  withTVarWrite personDB $ 
+    case eas of
+      [] -> (const mempty)
+      _ -> appEndo . fold $ eas & mapped %~ Endo . updateAttending
   where
     updateAttending :: Person -> IxSet Person -> IxSet Person
     updateAttending p db = maybe
@@ -280,17 +282,21 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
     [] -> throwM $ BreezeException $ "Uh oh! It seems the family of group id: " ++ (show gid) ++ " canceled their check in before you could approve!"
     _ -> return $ allOf folded id vs
 
-initEvent :: Breeze -> IO (Either Text Breeze)
-initEvent config = runExceptT $ do
+resetServer :: (MonadIO m, MonadThrow m) => Breeze -> m Breeze
+resetServer config = do
   debugFlag <- liftIO $ atomically $ readTVar $ config^.debug 
   einfo <- case debugFlag of
     True -> return $ def & eventId .~ "40532683" & eventName .~ "Staff Meeting"
     _ -> do 
       es <- runBreeze config GetEvents
-      maybe (throwM $ BreezeException "There are no events today!") (return) $ es^? traverse
+      maybe (return def) return $ es^? traverse
   liftIO . atomically $ writeTVar (config^.breezeEventInfo) einfo
   getAttendance' config
   return config
+
+initEvent :: Breeze -> IO (Either Text Breeze)
+initEvent config = runExceptT $ 
+  resetServer config
   `catch` handleBreeze `catch` handleHTTP
   where
     handleBreeze :: BreezeException -> ExceptT Text IO a
@@ -328,13 +334,20 @@ eventInfoHandle = getEvent <|> setEvent
           let validEvent = es^? traverse.filtered (view $ eventId.to (==eid))
           maybe 
             (throwM $ BreezeException $ "Event with id: " ++ (Text.unpack eid) ++ " doesn't exist")
-            (\e -> withTVarWrite breezeEventInfo (const e) >> return e)
+            (\e -> do 
+              withTVarWrite breezeEventInfo $ const e 
+              newConfig <- use id >>= resetServer 
+              assign id newConfig
+              return e
+            )
             validEvent
 
 setDebugHandler :: (HasBreezeApp b) => Handler b v ()
 setDebugHandler = withTop breezeLens $ runAesonApi $ do
   db <- fromParam "enable"
   withTVarWrite debug (const db)
+  newConfig <- use id >>= resetServer
+  assign id newConfig
   withTVarRead debug id
 
 mkBreeze :: (MonadIO m) => m Breeze

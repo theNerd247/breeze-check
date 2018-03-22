@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "breeze-login";
-  version = "1.2.2";
+  version = "1.2.4";
   src = ./.;
   isLibrary = false;
   isExecutable = true;

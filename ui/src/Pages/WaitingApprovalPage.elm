@@ -24,7 +24,7 @@ view mdl =
             div [ class "w-100 text-center grow-1" ]
                 [ h2 [] [ text "You're Almost Done!" ]
                 , p [ class "text-center" ]
-                    [ text "Stop by the check-in desk and show them this number"
+                    [ text "Stop by the check-in desk and give them this number"
                     ]
                 ]
 
@@ -44,6 +44,22 @@ view mdl =
                 , br [] []
                 , Person.onlyListPersons mdl.waitingCheckIn
                 ]
+
+        information =
+            div [ class "text-center grow-1" ]
+                [ p []
+                    [ text
+                        """
+                  Please make sure your family waits in line with you. They will
+                  need stamps to participate.
+                  """
+                    ]
+                , p []
+                    [ text
+                        """
+                        """
+                    ]
+                ]
     in
     pageWrapper "" <|
         case mdl.groupId of
@@ -54,5 +70,6 @@ view mdl =
                 [ title
                 , groupId gid
                 , cancelCheckin
+                , information
                 , checkInPpl
                 ]
