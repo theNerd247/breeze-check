@@ -14,9 +14,8 @@ import Data as Data
 import Dict as Dict
 import ErrorMsg as Err
 import EventInfo as EventInfo
-import FindPeople as Find
-import Html as Html exposing (Html, br, div, h1, h4, hr, p, program, text)
-import Html.Attributes exposing (attribute, class, style, value)
+import Html as Html exposing (Html, br, div, h1, h4, h5, hr, p, program, text)
+import Html.Attributes exposing (attribute, class, selected, style, value)
 import Nested exposing (modifyBoth, modifyMdl)
 import Pages as Pages
 import Person as Person
@@ -69,17 +68,15 @@ main =
             , eventInfoList = []
             }
 
-        --( mdl, emsg ) =
-        --BreezeApi.getEventList GetEventInfoListReturn model
-        --TOOD: uncomment after easter egg hunt
+        ( mdl, emsg ) =
+            BreezeApi.getEventList GetEventInfoListReturn model
     in
     program
         { init =
             ( model
             , Cmd.batch
                 [ Cmd.map UI <| Tuple.second uiProg.init
-
-                --, emsg --TODO: uncomment after easter egg hunt
+                , emsg
                 ]
             )
         , update = update
@@ -221,12 +218,16 @@ view mdl =
             Html.map Err <| Err.view mdl
 
         eventInfoRow =
-            Grid.row [ Row.centerXs ]
-                [ Grid.col [ Col.xsAuto ]
+            if List.length mdl.eventInfoList > 1 then
+                div [ class "text-center grow-6 d-flex pb-5 flex-column-reverse" ]
                     [ eventInfoListView
+                        mdl.ui.eventInfo.eventId
                         mdl.eventInfoList
+                    , p [ class "text-danger" ] [ text "Note: this will remove anyone who is already waiting approval" ]
+                    , h5 [] [ text "Select Which Event You Want To Check In" ]
                     ]
-                ]
+            else
+                text ""
 
         uiView =
             Html.map UI <| UI.mainView mdl.ui
@@ -244,8 +245,8 @@ view mdl =
 
         body =
             div [ class "row flex-column h-100 mx-1" ]
-                [ div [ class "text-center", style [ ( "flex-grow", "1" ) ] ] [ title ]
-                , div [ style [ ( "flex-grow", "12" ) ] ]
+                [ div [ class "text-center grow-1" ] [ title ]
+                , div [ class "d-flex flex-column grow-6" ]
                     --, Grid.col [ Col.xs10, Col.attrs [ Size.w100 ] ]
                     [ errors
                     , br [] []
@@ -254,9 +255,7 @@ view mdl =
                     , groupInputRow
                     , br [] []
                     , checkInGroupRow
-
-                    --, eventInfoRow --TODO: uncomment when easter egg hunt is
-                    --finished
+                    , eventInfoRow
                     ]
                 ]
     in
@@ -358,14 +357,14 @@ checkMark =
     Html.i [ class "fas fa-check text-success" ] []
 
 
-eventInfoListView : List Data.EventInfo -> Html Msg
-eventInfoListView es =
+eventInfoListView : Data.EventId -> List Data.EventInfo -> Html Msg
+eventInfoListView selectedId es =
     Form.form []
         [ Select.custom
             [ Select.onChange <| SetEventInfo
             ]
           <|
             List.map
-                (\e -> Select.item [ value e.eventId ] [ text e.eventName ])
+                (\e -> Select.item [ value e.eventId, selected <| e.eventId == selectedId ] [ text e.eventName ])
                 es
         ]

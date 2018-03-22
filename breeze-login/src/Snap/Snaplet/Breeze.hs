@@ -148,7 +148,7 @@ instance BreezeApi MakeNewPerson where
 
 
 instance BreezeApi GetEvents where
-  type BreezeResponse GetEvents = NonEmpty EventInfo
+  type BreezeResponse GetEvents = [EventInfo]
   runBreeze b _ = do
     now <- liftIO getZonedTime
     let s = formatTime defaultTimeLocale "%F" now --{utctDayTime = 0}
@@ -282,11 +282,12 @@ approveCheckinHandle = withTop breezeLens $ runAesonApi $ do
 
 initEvent :: Breeze -> IO (Either Text Breeze)
 initEvent config = runExceptT $ do
-  einfo <- case (config^.debug) of
+  debugFlag <- liftIO $ atomically $ readTVar $ config^.debug 
+  einfo <- case debugFlag of
     True -> return $ def & eventId .~ "40532683" & eventName .~ "Staff Meeting"
     _ -> do 
       es <- runBreeze config GetEvents
-      return $ def & eventId .~ (es^?! traverse.eventId) & eventName .~ (es^?! traverse.eventName)
+      maybe (throwM $ BreezeException "There are no events today!") (return) $ es^? traverse
   liftIO . atomically $ writeTVar (config^.breezeEventInfo) einfo
   getAttendance' config
   return config
@@ -304,27 +305,44 @@ listAttendanceHandle = withTop breezeLens $
     >>= writeLBS . fromStrict . Char8.pack
 
 getEventListHandler :: (HasBreezeApp b) => Handler b v ()
-getEventListHandler = withTop breezeLens $ runAesonApi $ runBreeze' GetEvents
+getEventListHandler = withTop breezeLens $ runAesonApi $ do
+  db <- withTVarRead debug id
+  if db then do
+        withTVarRead breezeEventInfo id >>= return . (:[])
+  else
+    runBreeze' GetEvents
 
 eventInfoHandle :: (HasBreezeApp b) => Handler b v ()
 eventInfoHandle = getEvent <|> setEvent
   where 
     getEvent = method GET $ withTop breezeLens $ runAesonApi $ do
       withTVarRead breezeEventInfo id
+
     setEvent = method POST $ withTop breezeLens $ runAesonApi $ do 
-      eid <- fromBody 
-      es <- runBreeze' GetEvents
-      let validEvent = es^? traverse.filtered (view $ eventId.to (==eid))
-      maybe 
-        (throwM $ BreezeException $ "Event with id: " ++ (Text.unpack eid) ++ " doesn't exist")
-        (\e -> withTVarWrite breezeEventInfo (const e) >> return e)
-        validEvent
+      db <- withTVarRead debug id
+      case db of
+        True -> withTVarRead breezeEventInfo id
+        _ -> do
+          eid <- fromBody 
+          es <- runBreeze' GetEvents
+          let validEvent = es^? traverse.filtered (view $ eventId.to (==eid))
+          maybe 
+            (throwM $ BreezeException $ "Event with id: " ++ (Text.unpack eid) ++ " doesn't exist")
+            (\e -> withTVarWrite breezeEventInfo (const e) >> return e)
+            validEvent
+
+setDebugHandler :: (HasBreezeApp b) => Handler b v ()
+setDebugHandler = withTop breezeLens $ runAesonApi $ do
+  db <- fromParam "enable"
+  withTVarWrite debug (const db)
+  withTVarRead debug id
 
 mkBreeze :: (MonadIO m) => m Breeze
 mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
   einfo <- liftIO $ newTVarIO def
   gcntr <- liftIO $ newTVarIO 0
+  debugFlag <- liftIO $ newTVarIO True
   (ilgr, icln) <- liftIO $ initInfoLogger
   (elgr, ecln) <- liftIO $ initErrLogger
   return $ Breeze 
@@ -337,7 +355,7 @@ mkBreeze = do
     , _infoLoggerCleanup = icln
     , _errLoggerCleanup = ecln
     , _checkInGroupCounter = gcntr
-    , _debug = True
+    , _debug = debugFlag
     }
 
 
@@ -352,6 +370,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("getgroup", getCheckInGroupHandle)
     , ("approve", approveCheckinHandle) 
     , ("cancel", cancelCheckinHandle)
+    , ("debug", setDebugHandler)
     ] 
   addPostInitHook initEvent
   b <- mkBreeze  

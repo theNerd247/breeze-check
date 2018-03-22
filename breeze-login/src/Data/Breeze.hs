@@ -268,7 +268,7 @@ data Breeze = Breeze
   , _errLogger :: Logger
   , _errLoggerCleanup :: IO ()
   , _checkInGroupCounter :: TVar Int
-  , _debug :: Bool
+  , _debug :: TVar Bool
   , _breezeEventInfo :: TVar EventInfo
   } deriving (Data, Generic)
 

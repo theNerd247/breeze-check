@@ -129,7 +129,7 @@ update msg mdl cfg =
                                     , searchLastName = ""
                                     , personNotFound = Nothing
                                 }
-                                Router.Selected
+                                Router.Cart
                             )
                             nm
                    )
