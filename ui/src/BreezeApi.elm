@@ -172,7 +172,7 @@ setEventInfo eid f mdl =
 
 getGroupByLastName f lastName mdl =
     sendGet
-        ("getgroup?lastName=" ++ lastName)
+        ("getgrouplastname?lastName=" ++ lastName)
         (Decode.list Data.decodePerson)
         f
         mdl

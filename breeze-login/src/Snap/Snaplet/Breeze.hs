@@ -199,7 +199,7 @@ getPersonsHandle :: (HasBreezeApp b) => Handler b v ()
 getPersonsHandle = withTop breezeLens $ runAesonApi $ do 
   lname <- (sanitize . Text.pack . skipParse) <$> fromParam "lastname"
   ps <- runBreeze' $ FindPeople lname Nothing
-  let persons = ps^..folded.filtered (Text.isPrefixOf lname . (view lastName))
+  let persons = ps^..folded.filtered (Text.isPrefixOf lname . (view $ lastName . to (Text.toLower)))
   withTVarWrite personDB $ addMissingPersons persons
   withTVarRead personDB $ toList . getEQ CheckedOut . (@+ (persons^..folded.pid))
     where
@@ -209,7 +209,7 @@ getPersonsHandle = withTop breezeLens $ runAesonApi $ do
         (return db)
         (getOne $ db @= (p^.pid))
 
-      sanitize = Text.toTitle . Text.filter (Char.isAlpha)
+      sanitize = Text.toLower . Text.filter (Char.isAlpha)
 
 updatePerson :: (Person -> Person) -> Person -> IxSet Person -> IxSet Person
 updatePerson f p = updateIx (p^.pid) (f p)
@@ -250,20 +250,24 @@ userCheckInHandle = withTop breezeLens $ runAesonApi $ do
 
 getCheckInGroupHandle :: (HasBreezeApp b) => Handler b v ()
 getCheckInGroupHandle = withTop breezeLens $ runAesonApi $ do
-  mlastName <- fromParam "lastName"
-  case mlastName of
-    Just lastName -> 
-      withTVarRead personDB $ 
-        (\ps -> 
-            ps^..folded
-              .filtered 
-                (\p -> p^.checkedIn.to (is _WaitingApproval))
-        ) 
-        . toList 
-        . getEQ (LName lastName)
-    Nothing -> do
-      gid <- fromParam "groupid"
-      withTVarRead personDB $ toList . getEQ (GID gid)
+  gid <- fromParam "groupid"
+  withTVarRead personDB $ toList . getEQ (GID gid)
+
+getCheckInGroupByLastNameHandle :: (HasBreezeApp b) => Handler b v ()
+getCheckInGroupByLastNameHandle = withTop breezeLens $ runAesonApi $ do
+  lname <- (Text.toLower . Text.pack . skipParse) <$> fromParam "lastName"
+  withTVarRead personDB $ 
+    (\ps -> 
+      ps^..folded.filtered
+        ( \p -> 
+               p^.lastName.to (Text.toLower).to (==lname)
+            && p^.checkedIn.to (is _WaitingApproval)
+        )
+    )
+    . toList 
+    . getEQ (LName lname)
+
+
 
 cancelCheckinHandle :: (HasBreezeApp b) => Handler b v ()
 cancelCheckinHandle = withTop breezeLens $ runAesonApi $ do
@@ -393,6 +397,7 @@ initBreeze = makeSnaplet "breeze" "a breeze chms mobile friendly checkin system"
     , ("eventinfo", eventInfoHandle)
     , ("eventList", getEventListHandler)
     , ("getgroup", getCheckInGroupHandle)
+    , ("getgrouplastname", getCheckInGroupByLastNameHandle)
     , ("approve", approveCheckinHandle) 
     , ("cancel", cancelCheckinHandle)
     , ("debug", setDebugHandler)
