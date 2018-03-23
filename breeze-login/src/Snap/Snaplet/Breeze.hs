@@ -373,7 +373,7 @@ mkBreeze = do
   pdb <- liftIO $ newTVarIO empty
   einfo <- liftIO $ newTVarIO def
   gcntr <- liftIO $ newTVarIO 0
-  debugFlag <- liftIO $ newTVarIO True
+  debugFlag <- liftIO $ newTVarIO False
   (ilgr, icln) <- liftIO $ initInfoLogger
   (elgr, ecln) <- liftIO $ initErrLogger
   return $ Breeze 
