@@ -260,14 +260,11 @@ getCheckInGroupByLastNameHandle = withTop breezeLens $ runAesonApi $ do
     (\ps -> 
       ps^..folded.filtered
         ( \p -> 
-               p^.lastName.to (Text.toLower).to (==lname)
-            && (p^.checkedIn.to (is _WaitingApproval)
-                || p^.checkedIn.to (is _WaitingCreation)
-               )
+                p^.lastName.to (Text.toLower).to (Text.isPrefixOf lname)
         )
     )
     . toList 
-    . getEQ (LName lname)
+    . getEQ (HasGID True)
 
 
 

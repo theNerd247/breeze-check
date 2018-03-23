@@ -187,6 +187,8 @@ newtype LName = LName Text.Text deriving (Eq, Ord, Data)
 
 newtype GID = GID CheckInGroupId deriving (Eq, Ord, Data)
 
+newtype HasGID = HasGID Bool deriving (Eq, Ord, Data)
+
 
 instance Indexable Person where
   empty = ixSet 
@@ -196,6 +198,10 @@ instance Indexable Person where
                       WaitingApproval gid -> [gid]
                       WaitingCreation gid _ -> [gid]
                       _ -> []
+    , ixFun $ \x -> HasGID <$> case x^.checkedIn of
+                      WaitingApproval _ -> [True]
+                      WaitingCreation _ _ -> [True]
+                      _ -> [False]
     , ixFun $ (:[]) . FName . (view firstName)
     , ixFun $ (:[]) . LName . (view lastName)
     , ixFun $ (:[]) . (view  newPersonInfo)

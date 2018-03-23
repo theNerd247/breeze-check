@@ -158,7 +158,14 @@ update msg mdl =
 
 updateLastNameGroupSearch : List Data.Person -> Model -> ( Model, Cmd Msg )
 updateLastNameGroupSearch ps mdl =
-    ( { mdl | groupSearchPeople = Person.fromList ps }, Cmd.none )
+    ( { mdl
+        | groupSearchPeople =
+            ps
+                |> List.indexedMap (\i p -> ( i, p ))
+                |> Dict.fromList
+      }
+    , Cmd.none
+    )
 
 
 getEventListResult : List Data.EventInfo -> Model -> ( Model, Cmd Msg )
