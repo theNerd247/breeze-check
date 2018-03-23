@@ -2,8 +2,6 @@ module Admin exposing (..)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Form.Select as Select
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -103,7 +101,13 @@ update msg mdl =
             BreezeApi.getGroupByLastName
                 LastNameSearchResult
                 mdl.lastNameSearch
-                mdl
+                { mdl
+                    | groupCheckedIn = False
+                    , checkInGroup = []
+                    , groupNotFound = False
+                    , groupSearchPeople = Person.initPersons
+                    , searchCheckInGroupId = Nothing
+                }
 
         LastNameSearchResult m ->
             BreezeApi.update updateLastNameGroupSearch m mdl
@@ -175,6 +179,8 @@ updateSearchGroupClick mdl =
                     | groupCheckedIn = False
                     , checkInGroup = []
                     , groupNotFound = False
+                    , groupSearchPeople = Person.initPersons
+                    , lastNameSearch = ""
                 }
 
 
@@ -275,6 +281,14 @@ view mdl =
                     LastNameSearch
                 ]
 
+        lastNameResultsRow =
+            if Dict.isEmpty mdl.groupSearchPeople then
+                text ""
+            else
+                div [ class "grow-auto w-100 mb-3" ]
+                    [ searchGroupView mdl.groupSearchPeople
+                    ]
+
         body =
             div [ class "row flex-column h-100 mx-1" ]
                 [ div [ class "text-center grow-1" ] [ title ]
@@ -287,6 +301,7 @@ view mdl =
                     , groupInputRow
                     , lastNameSearchRow
                     , br [] []
+                    , lastNameResultsRow
                     , checkInGroupRow
                     , eventInfoRow
                     ]
@@ -311,7 +326,7 @@ checkInGroupView mdl =
                 [ p [ class "text-danger" ]
                     [ text <|
                         "The group for "
-                            ++ toString mdl.groupId
+                            ++ toString (mdl.groupId |> Maybe.withDefault 0)
                             ++ " doesn't have any members"
                     ]
                 ]
@@ -392,3 +407,31 @@ eventInfoListView selectedId es =
                 (\e -> Select.item [ value e.eventId, selected <| e.eventId == selectedId ] [ text e.eventName ])
                 es
         ]
+
+
+searchGroupView : Person.Persons -> Html Msg
+searchGroupView ps =
+    let
+        groupId p =
+            case p.checkedIn of
+                Data.WaitingApproval gid ->
+                    toString gid |> text
+
+                Data.WaitingCreation gid _ ->
+                    toString gid |> text
+
+                _ ->
+                    text ""
+    in
+    Person.config
+        |> Person.cols
+            [ groupId
+            , \p -> text p.personName.firstName
+            , \p -> text p.personName.lastName
+            ]
+        |> Person.header
+            [ text "Group Id"
+            , text "First Name"
+            , text "Last Name"
+            ]
+        |> Person.view ps
