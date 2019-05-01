@@ -49,6 +49,8 @@ data Checkin = Checkin EventId Person
 data MakeNewPerson = MakeNewPerson Person
 data GetEvents = GetEvents
 data GetFields = GetFields
+data GetAttendanceJSON = GetAttendanceJSON EventId
+data GetAllPeople = GetAllPeople
 
 class HasBreezeApp b where
   breezeLens :: SnapletLens b Breeze
@@ -72,6 +74,13 @@ instance BreezeApi FindPeople where
       ]
     return $ (ps :: [BreezePerson])^..folded.bPerson
 
+instance BreezeApi GetAllPeople where
+  type BreezeResponse GetAllPeople = Maybe Value
+  runBreeze b GetAllPeople = 
+    runApiReq b "/people" 
+      [("details", Just . Char8.pack . show $ 1)
+      ]
+
 instance BreezeApi GetAttendance where
   type BreezeResponse GetAttendance = [Person]
   runBreeze b (GetAttendance eid) = do 
@@ -81,6 +90,15 @@ instance BreezeApi GetAttendance where
       , ("type",        Just "person")
       ]
     return $ (ps :: [ParseAttendance])^..folded.attendingPerson
+
+instance BreezeApi GetAttendanceJSON where
+  type BreezeResponse GetAttendanceJSON = Value
+  runBreeze b (GetAttendanceJSON eid) =
+    runApiReq b "/events/attendance/list"
+      [ ("instance_id", Just . encodeUtf8 $ eid)
+      , ("details",     Just "true")
+      , ("type",        Just "person")
+      ]
     
 instance BreezeApi Checkin where
   type BreezeResponse Checkin = Person

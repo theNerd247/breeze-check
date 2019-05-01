@@ -1,12 +1,10 @@
 {pkgs ? import <nixpkgs> {}}:
 
-with import ./dev.nix;
-
 let 
   ghc = 
-    pkgs.haskellPackages.ghcWithPackages (pkgs: 
-      with pkgs;
-      breeze-login.buildInputs
+    pkgs.haskellPackages.ghcWithPackages (hpkgs: 
+      (import ./dev.nix).breeze-login.buildInputs
+      ++ [hpkgs.cabal-install]
     );
 in
   ghc
