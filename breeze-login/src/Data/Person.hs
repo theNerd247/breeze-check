@@ -1,3 +1,6 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
 module Data.Person where
 
 import qualified Data.Text as Text
@@ -12,9 +15,9 @@ data Person = Person
   , _newPersonInfo :: Maybe NewPersonInfo
   , _wantsPhotos :: Bool
   , _isParent :: Bool
-  , _newAddress :: Address
+  , _newAddress :: Maybe Address
   , _newCurrentChurch :: Maybe Text.Text
-  , _newEmail :: Text.Text
+  , _newEmail :: Maybe Text.Text
   , _fullyNew :: Bool
   } deriving (Show, Data, Eq, Ord, Generic)
 
