@@ -26,30 +26,3 @@ makeClassy ''Person
 
 instance HasName Person where
   name = personName
-
-instance FromJSON Person where
-  parseJSON = genericParseJSON customAesonOptions
-  {-parseJSON v@(Object o) = Person-}
-    {-<$> o .: "pid"-}
-    {-<*> o .: "name"-}
-    {-<*> (o .: "checkedIn" >>= return . toCheckin)-}
-    {-<*> o .: "newPersonInfo"-}
-    {-<*> o .: "wantsPhotos"-}
-    {-where-}
-      {-toCheckin True = CheckedIn-}
-      {-toCheckin False = CheckedOut-}
-  {-parseJSON _ = mempty-}
-
-instance ToJSON Person where
-  toJSON = genericToJSON customAesonOptions
-  {-toJSON p = object -}
-    {-[ "pid" .= (p^.pid)-}
-    {-, "name" .= (p^.personName)-}
-    {-, "checkedIn" .= (p^.checkedIn.to checkInStatusBool)-}
-    {-, "newPersonInfo" .= (Nothing :: Maybe String)-}
-    {-, "wantsPhotos" .= (p^.wantsPhotos)-}
-    {-]-}
-    {-where-}
-      {-checkInStatusBool CheckedOut = False-}
-      {-checkInStatusBool _ = True-}
-

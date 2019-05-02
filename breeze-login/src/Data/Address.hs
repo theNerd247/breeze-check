@@ -13,10 +13,3 @@ data Address = Address
   } deriving (Show, Eq, Ord, Data, Generic, ElmType) 
 
 makeClassy ''Address
-
-instance FromJSON Address where
-  parseJSON = genericParseJSON customAesonOptions
-
-instance ToJSON Address where
-  toJSON = genericToJSON customAesonOptions
-

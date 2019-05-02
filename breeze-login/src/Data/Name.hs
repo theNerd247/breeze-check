@@ -11,9 +11,3 @@ data Name = Name
   } deriving (Show, Data, Eq, Ord, Generic)
 
 makeClassy ''Name
-
-instance FromJSON Name where
-  parseJSON = genericParseJSON customAesonOptions
-
-instance ToJSON Name where
-  toJSON = genericToJSON customAesonOptions

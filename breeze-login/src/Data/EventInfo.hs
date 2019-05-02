@@ -11,12 +11,3 @@ data EventInfo = EventInfo
   } deriving (Show, Eq, Ord, Data, Generic)
 
 makeClassy ''EventInfo
-
-instance FromJSON EventInfo where
-  parseJSON (Object o) = EventInfo
-    <$> (o .: "id")
-    <*> (o .: "name")
-
-instance ToJSON EventInfo where
-  toJSON = genericToJSON customAesonOptions
-

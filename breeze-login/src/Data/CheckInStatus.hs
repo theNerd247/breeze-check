@@ -12,11 +12,3 @@ data CheckInStatus = CheckedOut
                    deriving (Show, Eq, Ord, Data, Generic)
 
 makePrisms ''CheckInStatus
-
-instance FromJSON CheckInStatus
-
-instance ToJSON CheckInStatus
-
-instance Default CheckInStatus where
-  def = CheckedOut
-
