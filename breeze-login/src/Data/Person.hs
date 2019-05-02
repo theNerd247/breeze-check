@@ -8,6 +8,8 @@ import qualified Data.Text as Text
 import Data.Address
 import Data.CheckInStatus
 import Data.Name
+import GHC.Generics hiding (to)
+import Control.Lens
 
 type PersonId = Int
 

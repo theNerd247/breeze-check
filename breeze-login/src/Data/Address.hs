@@ -5,6 +5,8 @@
 module Data.Address where
 
 import qualified Data.Text as Text
+import GHC.Generics hiding (to)
+import Control.Lens
 
 data Address = Address
   { _street :: Text.Text

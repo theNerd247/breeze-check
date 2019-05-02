@@ -5,6 +5,8 @@
 module Data.EventInfo where
 
 import qualified Data.Text as Text
+import GHC.Generics hiding (to)
+import Control.Lens
 
 data EventInfo = EventInfo
   { _eventId :: Text.Text
