@@ -5,14 +5,15 @@ module Data.Person where
 
 import qualified Data.Text as Text
 import Data.Address
+import Data.CheckInStatus
+import Data.Name
 
 type PersonId = Int
 
 data Person = Person
   { _pid       :: PersonId
-  , _personName :: Text.Text
+  , _personName :: Name
   , _checkedIn :: CheckInStatus
-  , _newPersonInfo :: Maybe NewPersonInfo
   , _wantsPhotos :: Bool
   , _isParent :: Bool
   , _newAddress :: Maybe Address
